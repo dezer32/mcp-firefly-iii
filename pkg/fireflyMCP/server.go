@@ -50,6 +50,7 @@ type ListBudgetsArgs struct {
 
 type ListCategoriesArgs struct {
 	Limit int `json:"limit,omitempty" mcp:"Maximum number of categories to return"`
+	Page  int `json:"page,omitempty" mcp:"Page number for pagination (default: 1)"`
 }
 
 type GetSummaryArgs struct {
@@ -411,6 +412,11 @@ func (s *FireflyMCPServer) handleListCategories(ctx context.Context, ss *mcp.Ser
 		apiParams.Limit = &limit
 	}
 
+	if params.Arguments.Page > 0 {
+		page := int32(params.Arguments.Page)
+		apiParams.Page = &page
+	}
+
 	resp, err := s.client.ListCategoryWithResponse(ctx, apiParams)
 	if err != nil {
 		return &mcp.CallToolResultFor[struct{}]{
@@ -430,7 +436,9 @@ func (s *FireflyMCPServer) handleListCategories(ctx context.Context, ss *mcp.Ser
 		}, nil
 	}
 
-	result, _ := json.MarshalIndent(resp.ApplicationvndApiJSON200, "", "  ")
+	// Map the response to CategoryList DTO
+	categoryList := mapCategoryArrayToCategoryList(resp.ApplicationvndApiJSON200)
+	result, _ := json.MarshalIndent(categoryList, "", "  ")
 	return &mcp.CallToolResultFor[struct{}]{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(result)},
@@ -532,6 +540,42 @@ func mapBudgetArrayToBudgetList(budgetArray *client.BudgetArray) *BudgetList {
 	}
 
 	return budgetList
+}
+
+// mapCategoryArrayToCategoryList converts client.CategoryArray to CategoryList DTO
+func mapCategoryArrayToCategoryList(categoryArray *client.CategoryArray) *CategoryList {
+	if categoryArray == nil {
+		return nil
+	}
+
+	categoryList := &CategoryList{
+		Data: make([]Category, len(categoryArray.Data)),
+	}
+
+	// Map category data
+	for i, categoryRead := range categoryArray.Data {
+		category := Category{
+			Id:    categoryRead.Id,
+			Name:  categoryRead.Attributes.Name,
+			Notes: categoryRead.Attributes.Notes,
+		}
+
+		categoryList.Data[i] = category
+	}
+
+	// Map pagination
+	if categoryArray.Meta.Pagination != nil {
+		pagination := categoryArray.Meta.Pagination
+		categoryList.Pagination = Pagination{
+			Count:       getIntValue(pagination.Count),
+			Total:       getIntValue(pagination.Total),
+			CurrentPage: getIntValue(pagination.CurrentPage),
+			PerPage:     getIntValue(pagination.PerPage),
+			TotalPages:  getIntValue(pagination.TotalPages),
+		}
+	}
+
+	return categoryList
 }
 
 // getIntValue safely extracts int value from pointer, returns 0 if nil

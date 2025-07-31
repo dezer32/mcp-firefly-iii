@@ -26,3 +26,14 @@ type BudgetList struct {
 	Data       []Budget   `json:"data"`
 	Pagination Pagination `json:"pagination"`
 }
+
+type Category struct {
+	Id    string      `json:"id"`
+	Name  string      `json:"name"`
+	Notes interface{} `json:"notes"`
+}
+
+type CategoryList struct {
+	Data       []Category `json:"data"`
+	Pagination Pagination `json:"pagination"`
+}
