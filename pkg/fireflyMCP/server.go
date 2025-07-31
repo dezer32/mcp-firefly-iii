@@ -393,7 +393,9 @@ func (s *FireflyMCPServer) handleListBudgets(ctx context.Context, ss *mcp.Server
 		}, nil
 	}
 
-	result, _ := json.MarshalIndent(resp.ApplicationvndApiJSON200, "", "  ")
+	// Map the response to BudgetList DTO
+	budgetList := mapBudgetArrayToBudgetList(resp.ApplicationvndApiJSON200)
+	result, _ := json.MarshalIndent(budgetList, "", "  ")
 	return &mcp.CallToolResultFor[struct{}]{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(result)},
@@ -478,6 +480,79 @@ func (s *FireflyMCPServer) handleGetSummary(ctx context.Context, ss *mcp.ServerS
 			&mcp.TextContent{Text: string(result)},
 		},
 	}, nil
+}
+
+// mapBudgetArrayToBudgetList converts client.BudgetArray to BudgetList DTO
+func mapBudgetArrayToBudgetList(budgetArray *client.BudgetArray) *BudgetList {
+	if budgetArray == nil {
+		return nil
+	}
+
+	budgetList := &BudgetList{
+		Data: make([]Budget, len(budgetArray.Data)),
+	}
+
+	// Map budget data
+	for i, budgetRead := range budgetArray.Data {
+		budget := Budget{
+			Id:        budgetRead.Id,
+			Active:    budgetRead.Attributes.Active != nil && *budgetRead.Attributes.Active,
+			Name:      budgetRead.Attributes.Name,
+			Notes:     budgetRead.Attributes.Notes,
+			UpdatedAt: time.Time{},
+		}
+
+		// Handle UpdatedAt
+		if budgetRead.Attributes.UpdatedAt != nil {
+			budget.UpdatedAt = *budgetRead.Attributes.UpdatedAt
+		}
+
+		// Map spent information
+		if budgetRead.Attributes.Spent != nil {
+			budget.Spent = make(Spent, len(*budgetRead.Attributes.Spent))
+			for j, spentItem := range *budgetRead.Attributes.Spent {
+				budget.Spent[j] = struct {
+					Sum          string `json:"sum"`
+					CurrencyCode string `json:"currency_code"`
+				}{
+					Sum:          getStringValue(spentItem.Sum),
+					CurrencyCode: getStringValue(spentItem.CurrencyCode),
+				}
+			}
+		}
+
+		budgetList.Data[i] = budget
+	}
+
+	// Map pagination
+	if budgetArray.Meta.Pagination != nil {
+		pagination := budgetArray.Meta.Pagination
+		budgetList.Pagination = Pagination{
+			Count:       getIntValue(pagination.Count),
+			Total:       getIntValue(pagination.Total),
+			CurrentPage: getIntValue(pagination.CurrentPage),
+			PerPage:     getIntValue(pagination.PerPage),
+			TotalPages:  getIntValue(pagination.TotalPages),
+		}
+	}
+
+	return budgetList
+}
+
+// getIntValue safely extracts int value from pointer, returns 0 if nil
+func getIntValue(ptr *int) int {
+	if ptr == nil {
+		return 0
+	}
+	return *ptr
+}
+
+// getStringValue safely extracts string value from pointer, returns empty string if nil
+func getStringValue(ptr *string) string {
+	if ptr == nil {
+		return ""
+	}
+	return *ptr
 }
 
 // fixCurrencyIdFields converts numeric currency_id values to strings in JSON response
