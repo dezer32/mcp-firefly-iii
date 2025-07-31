@@ -45,6 +45,7 @@ type ListBudgetsArgs struct {
 	Start string `json:"start,omitempty" mcp:"Start date (YYYY-MM-DD)"`
 	End   string `json:"end,omitempty" mcp:"End date (YYYY-MM-DD)"`
 	Limit int    `json:"limit,omitempty" mcp:"Maximum number of budgets to return"`
+	Page  int    `json:"page,omitempty" mcp:"Page number for pagination (default: 1)"`
 }
 
 type ListCategoriesArgs struct {
@@ -366,6 +367,11 @@ func (s *FireflyMCPServer) handleListBudgets(ctx context.Context, ss *mcp.Server
 	if params.Arguments.Limit > 0 {
 		limit := int32(params.Arguments.Limit)
 		apiParams.Limit = &limit
+	}
+
+	if params.Arguments.Page > 0 {
+		page := int32(params.Arguments.Page)
+		apiParams.Page = &page
 	}
 
 	resp, err := s.client.ListBudgetWithResponse(ctx, apiParams)

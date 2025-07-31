@@ -359,6 +359,106 @@ func TestIntegration_ListBudgets(t *testing.T) {
 			}
 		},
 	)
+
+	t.Run(
+		"MCPToolCallWithPagination", func(t *testing.T) {
+			fmt.Printf("[DEBUG_LOG] Testing MCP tool call for list_budgets with pagination parameters\n")
+
+			// Create a mock session
+			session := &mcp.ServerSession{}
+
+			// Test case 1: Basic pagination
+			params := &mcp.CallToolParamsFor[ListBudgetsArgs]{
+				Name: "list_budgets",
+				Arguments: ListBudgetsArgs{
+					Limit: 3,
+					Page:  1,
+				},
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+			defer cancel()
+
+			// Call the handler directly
+			result, err := server.handleListBudgets(ctx, session, params)
+
+			fmt.Printf("[DEBUG_LOG] MCP call with pagination result: %v, Error: %v\n", result != nil, err)
+
+			if err != nil {
+				t.Logf("MCP tool call with pagination failed (this might be expected): %v", err)
+				assert.Contains(t, err.Error(), "failed to list budgets", "Expected specific error message")
+			} else {
+				assert.NotNil(t, result, "Expected non-nil result")
+				assert.False(t, result.IsError, "Expected successful result")
+				t.Logf("Successfully called list_budgets MCP tool with pagination parameters")
+			}
+
+			// Test case 2: Different page number
+			params2 := &mcp.CallToolParamsFor[ListBudgetsArgs]{
+				Name: "list_budgets",
+				Arguments: ListBudgetsArgs{
+					Limit: 5,
+					Page:  2,
+				},
+			}
+
+			result2, err2 := server.handleListBudgets(ctx, session, params2)
+
+			fmt.Printf("[DEBUG_LOG] MCP call with page 2 result: %v, Error: %v\n", result2 != nil, err2)
+
+			if err2 != nil {
+				t.Logf("MCP tool call with page 2 failed (this might be expected): %v", err2)
+			} else {
+				assert.NotNil(t, result2, "Expected non-nil result for page 2")
+				assert.False(t, result2.IsError, "Expected successful result for page 2")
+				t.Logf("Successfully called list_budgets MCP tool with page 2")
+			}
+
+			// Test case 3: Edge case - page 0 should be ignored
+			params3 := &mcp.CallToolParamsFor[ListBudgetsArgs]{
+				Name: "list_budgets",
+				Arguments: ListBudgetsArgs{
+					Limit: 5,
+					Page:  0, // Should be ignored
+				},
+			}
+
+			result3, err3 := server.handleListBudgets(ctx, session, params3)
+
+			fmt.Printf("[DEBUG_LOG] MCP call with page 0 result: %v, Error: %v\n", result3 != nil, err3)
+
+			if err3 != nil {
+				t.Logf("MCP tool call with page 0 failed (this might be expected): %v", err3)
+			} else {
+				assert.NotNil(t, result3, "Expected non-nil result for page 0")
+				assert.False(t, result3.IsError, "Expected successful result for page 0")
+				t.Logf("Successfully called list_budgets MCP tool with page 0 (should be ignored)")
+			}
+
+			// Test case 4: Combined with date parameters
+			params4 := &mcp.CallToolParamsFor[ListBudgetsArgs]{
+				Name: "list_budgets",
+				Arguments: ListBudgetsArgs{
+					Start: "2024-01-01",
+					End:   "2024-12-31",
+					Limit: 2,
+					Page:  1,
+				},
+			}
+
+			result4, err4 := server.handleListBudgets(ctx, session, params4)
+
+			fmt.Printf("[DEBUG_LOG] MCP call with pagination and dates result: %v, Error: %v\n", result4 != nil, err4)
+
+			if err4 != nil {
+				t.Logf("MCP tool call with pagination and dates failed (this might be expected): %v", err4)
+			} else {
+				assert.NotNil(t, result4, "Expected non-nil result for pagination with dates")
+				assert.False(t, result4.IsError, "Expected successful result for pagination with dates")
+				t.Logf("Successfully called list_budgets MCP tool with pagination and date parameters")
+			}
+		},
+	)
 }
 
 func TestIntegration_ErrorHandling(t *testing.T) {
