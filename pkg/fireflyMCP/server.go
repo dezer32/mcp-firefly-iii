@@ -1,0 +1,427 @@
+package fireflyMCP
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"time"
+
+	"github.com/dezer32/firefly-iii/pkg/client"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
+	openapi_types "github.com/oapi-codegen/runtime/types"
+)
+
+// FireflyMCPServer represents the MCP server for Firefly III
+type FireflyMCPServer struct {
+	server *mcp.Server
+	client *client.ClientWithResponses
+	config *Config
+}
+
+// Tool argument types
+type ListAccountsArgs struct {
+	Type  string `json:"type,omitempty" mcp:"Filter by account type (asset, expense, revenue, etc.)"`
+	Limit int    `json:"limit,omitempty" mcp:"Maximum number of accounts to return"`
+}
+
+type GetAccountArgs struct {
+	ID string `json:"id" mcp:"Account ID"`
+}
+
+type ListTransactionsArgs struct {
+	Type  string `json:"type,omitempty" mcp:"Filter by transaction type"`
+	Start string `json:"start,omitempty" mcp:"Start date (YYYY-MM-DD)"`
+	End   string `json:"end,omitempty" mcp:"End date (YYYY-MM-DD)"`
+	Limit int    `json:"limit,omitempty" mcp:"Maximum number of transactions to return"`
+}
+
+type GetTransactionArgs struct {
+	ID string `json:"id" mcp:"Transaction ID"`
+}
+
+type ListBudgetsArgs struct {
+	Limit int `json:"limit,omitempty" mcp:"Maximum number of budgets to return"`
+}
+
+type ListCategoriesArgs struct {
+	Limit int `json:"limit,omitempty" mcp:"Maximum number of categories to return"`
+}
+
+type GetSummaryArgs struct {
+	Start string `json:"start,omitempty" mcp:"Start date (YYYY-MM-DD)"`
+	End   string `json:"end,omitempty" mcp:"End date (YYYY-MM-DD)"`
+}
+
+// NewFireflyMCPServer creates a new Firefly III MCP server
+func NewFireflyMCPServer(config *Config) (*FireflyMCPServer, error) {
+	// Create HTTP client with authentication
+	httpClient := &http.Client{
+		Timeout: config.GetTimeout(),
+	}
+
+	// Create Firefly III client with request editor for authentication
+	fireflyClient, err := client.NewClientWithResponses(
+		config.Server.URL,
+		client.WithHTTPClient(httpClient),
+		client.WithRequestEditorFn(func(ctx context.Context, req *http.Request) error {
+			req.Header.Set("Authorization", "Bearer "+config.API.Token)
+			return nil
+		}),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Firefly III client: %w", err)
+	}
+
+	// Create MCP server
+	mcpServer := mcp.NewServer(&mcp.Implementation{
+		Name:    config.MCP.Name,
+		Version: config.MCP.Version,
+	}, nil)
+
+	server := &FireflyMCPServer{
+		server: mcpServer,
+		client: fireflyClient,
+		config: config,
+	}
+
+	// Register tools
+	server.registerTools()
+
+	return server, nil
+}
+
+// Run starts the MCP server with the given transport
+func (s *FireflyMCPServer) Run(ctx context.Context, transport mcp.Transport) error {
+	return s.server.Run(ctx, transport)
+}
+
+// registerTools registers all available MCP tools
+func (s *FireflyMCPServer) registerTools() {
+	// Account tools
+	mcp.AddTool(s.server, &mcp.Tool{
+		Name:        "list_accounts",
+		Description: "List all accounts in Firefly III",
+	}, s.handleListAccounts)
+
+	mcp.AddTool(s.server, &mcp.Tool{
+		Name:        "get_account",
+		Description: "Get details of a specific account",
+	}, s.handleGetAccount)
+
+	// Transaction tools
+	mcp.AddTool(s.server, &mcp.Tool{
+		Name:        "list_transactions",
+		Description: "List transactions in Firefly III",
+	}, s.handleListTransactions)
+
+	mcp.AddTool(s.server, &mcp.Tool{
+		Name:        "get_transaction",
+		Description: "Get details of a specific transaction",
+	}, s.handleGetTransaction)
+
+	// Budget tools
+	mcp.AddTool(s.server, &mcp.Tool{
+		Name:        "list_budgets",
+		Description: "List all budgets in Firefly III",
+	}, s.handleListBudgets)
+
+	// Category tools
+	mcp.AddTool(s.server, &mcp.Tool{
+		Name:        "list_categories",
+		Description: "List all categories in Firefly III",
+	}, s.handleListCategories)
+
+	// Summary tools
+	mcp.AddTool(s.server, &mcp.Tool{
+		Name:        "get_summary",
+		Description: "Get basic financial summary from Firefly III",
+	}, s.handleGetSummary)
+}
+
+// Tool handlers
+
+func (s *FireflyMCPServer) handleListAccounts(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[ListAccountsArgs]) (*mcp.CallToolResultFor[struct{}], error) {
+	apiParams := &client.ListAccountParams{}
+
+	if params.Arguments.Type != "" {
+		filter := client.AccountTypeFilter(params.Arguments.Type)
+		apiParams.Type = &filter
+	}
+
+	if params.Arguments.Limit > 0 {
+		limit := int32(params.Arguments.Limit)
+		apiParams.Limit = &limit
+	}
+
+	resp, err := s.client.ListAccountWithResponse(ctx, apiParams)
+	if err != nil {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error listing accounts: %v", err)},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	if resp.StatusCode() != 200 {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	// Format response
+	result, _ := json.MarshalIndent(resp.ApplicationvndApiJSON200, "", "  ")
+	return &mcp.CallToolResultFor[struct{}]{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: string(result)},
+		},
+	}, nil
+}
+
+func (s *FireflyMCPServer) handleGetAccount(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[GetAccountArgs]) (*mcp.CallToolResultFor[struct{}], error) {
+	if params.Arguments.ID == "" {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: "Account ID is required"},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	apiParams := &client.GetAccountParams{}
+	resp, err := s.client.GetAccountWithResponse(ctx, params.Arguments.ID, apiParams)
+	if err != nil {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error getting account: %v", err)},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	if resp.StatusCode() != 200 {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	result, _ := json.MarshalIndent(resp.ApplicationvndApiJSON200, "", "  ")
+	return &mcp.CallToolResultFor[struct{}]{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: string(result)},
+		},
+	}, nil
+}
+
+func (s *FireflyMCPServer) handleListTransactions(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[ListTransactionsArgs]) (*mcp.CallToolResultFor[struct{}], error) {
+	apiParams := &client.ListTransactionParams{}
+
+	if params.Arguments.Type != "" {
+		filter := client.TransactionTypeFilter(params.Arguments.Type)
+		apiParams.Type = &filter
+	}
+
+	if params.Arguments.Start != "" {
+		if startDate, err := time.Parse("2006-01-02", params.Arguments.Start); err == nil {
+			date := openapi_types.Date{Time: startDate}
+			apiParams.Start = &date
+		}
+	}
+
+	if params.Arguments.End != "" {
+		if endDate, err := time.Parse("2006-01-02", params.Arguments.End); err == nil {
+			date := openapi_types.Date{Time: endDate}
+			apiParams.End = &date
+		}
+	}
+
+	if params.Arguments.Limit > 0 {
+		limit := int32(params.Arguments.Limit)
+		apiParams.Limit = &limit
+	}
+
+	resp, err := s.client.ListTransactionWithResponse(ctx, apiParams)
+	if err != nil {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error listing transactions: %v", err)},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	if resp.StatusCode() != 200 {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	result, _ := json.MarshalIndent(resp.ApplicationvndApiJSON200, "", "  ")
+	return &mcp.CallToolResultFor[struct{}]{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: string(result)},
+		},
+	}, nil
+}
+
+func (s *FireflyMCPServer) handleGetTransaction(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[GetTransactionArgs]) (*mcp.CallToolResultFor[struct{}], error) {
+	if params.Arguments.ID == "" {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: "Transaction ID is required"},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	apiParams := &client.GetTransactionParams{}
+	resp, err := s.client.GetTransactionWithResponse(ctx, params.Arguments.ID, apiParams)
+	if err != nil {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error getting transaction: %v", err)},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	if resp.StatusCode() != 200 {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	result, _ := json.MarshalIndent(resp.ApplicationvndApiJSON200, "", "  ")
+	return &mcp.CallToolResultFor[struct{}]{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: string(result)},
+		},
+	}, nil
+}
+
+func (s *FireflyMCPServer) handleListBudgets(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[ListBudgetsArgs]) (*mcp.CallToolResultFor[struct{}], error) {
+	apiParams := &client.ListBudgetParams{}
+
+	if params.Arguments.Limit > 0 {
+		limit := int32(params.Arguments.Limit)
+		apiParams.Limit = &limit
+	}
+
+	resp, err := s.client.ListBudgetWithResponse(ctx, apiParams)
+	if err != nil {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error listing budgets: %v", err)},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	if resp.StatusCode() != 200 {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	result, _ := json.MarshalIndent(resp.ApplicationvndApiJSON200, "", "  ")
+	return &mcp.CallToolResultFor[struct{}]{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: string(result)},
+		},
+	}, nil
+}
+
+func (s *FireflyMCPServer) handleListCategories(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[ListCategoriesArgs]) (*mcp.CallToolResultFor[struct{}], error) {
+	apiParams := &client.ListCategoryParams{}
+
+	if params.Arguments.Limit > 0 {
+		limit := int32(params.Arguments.Limit)
+		apiParams.Limit = &limit
+	}
+
+	resp, err := s.client.ListCategoryWithResponse(ctx, apiParams)
+	if err != nil {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error listing categories: %v", err)},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	if resp.StatusCode() != 200 {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	result, _ := json.MarshalIndent(resp.ApplicationvndApiJSON200, "", "  ")
+	return &mcp.CallToolResultFor[struct{}]{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: string(result)},
+		},
+	}, nil
+}
+
+func (s *FireflyMCPServer) handleGetSummary(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[GetSummaryArgs]) (*mcp.CallToolResultFor[struct{}], error) {
+	apiParams := &client.GetBasicSummaryParams{}
+
+	if params.Arguments.Start != "" {
+		if startDate, err := time.Parse("2006-01-02", params.Arguments.Start); err == nil {
+			date := openapi_types.Date{Time: startDate}
+			apiParams.Start = date
+		}
+	}
+
+	if params.Arguments.End != "" {
+		if endDate, err := time.Parse("2006-01-02", params.Arguments.End); err == nil {
+			date := openapi_types.Date{Time: endDate}
+			apiParams.End = date
+		}
+	}
+
+	resp, err := s.client.GetBasicSummaryWithResponse(ctx, apiParams)
+	if err != nil {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error getting summary: %v", err)},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	if resp.StatusCode() != 200 {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	result, _ := json.MarshalIndent(resp.ApplicationvndApiJSON200, "", "  ")
+	return &mcp.CallToolResultFor[struct{}]{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: string(result)},
+		},
+	}, nil
+}

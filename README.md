@@ -1,309 +1,160 @@
-# Firefly III Go Client
+# Firefly III MCP Server
 
-This project provides a Go client library for the [Firefly III](https://www.firefly-iii.org/) personal finance manager API, generated using [oapi-codegen](https://github.com/oapi-codegen/oapi-codegen).
+This is a Model Context Protocol (MCP) server implementation for Firefly III personal finance management system, built using the [Go MCP SDK](https://github.com/modelcontextprotocol/go-sdk).
 
 ## Features
 
-- **Complete API Coverage**: Generated from the official Firefly III OpenAPI specification (v6.2.21)
-- **Type Safety**: Fully typed Go structs for all API models and responses
-- **HTTP Client Integration**: Built on standard Go HTTP client with customizable transport
-- **Authentication Support**: Bearer token authentication built-in
-- **Response Handling**: Both raw HTTP responses and parsed response objects
-- **Comprehensive**: Supports all Firefly III API endpoints including:
-  - Accounts management
-  - Transactions and transfers
-  - Budgets and categories
-  - Bills and recurring transactions
-  - Rules and rule groups
-  - Reports and insights
-  - User and system management
+The MCP server provides the following tools for interacting with Firefly III:
 
-## Installation
+### Account Management
+- `list_accounts` - List all accounts with optional filtering by type and limit
+- `get_account` - Get detailed information about a specific account
 
-```bash
-go get github.com/dezer32/firefly-iii
+### Transaction Management  
+- `list_transactions` - List transactions with optional filtering by type, date range, and limit
+- `get_transaction` - Get detailed information about a specific transaction
+
+### Budget Management
+- `list_budgets` - List all budgets with optional limit
+
+### Category Management
+- `list_categories` - List all categories with optional limit
+
+### Financial Summary
+- `get_summary` - Get basic financial summary with optional date range
+
+## Configuration
+
+The server uses a YAML configuration file (`config.yaml`) with the following structure:
+
+```yaml
+# Firefly III API Configuration
+server:
+  url: "https://your-firefly-instance.com/api"
+
+api:
+  token: "your-api-token-here"
+
+client:
+  timeout: 30 # timeout in seconds
+
+# API call limits
+limits:
+  accounts: 10
+  transactions: 5
+  categories: 10
+  budgets: 10
+
+# MCP server configuration
+mcp:
+  name: "firefly-iii-mcp"
+  version: "1.0.0"
+  instructions: "MCP server for Firefly III personal finance management"
 ```
 
-## Quick Start
+## Setup
 
-### Basic Setup
+1. **Configure Firefly III API Access**
+   - Obtain an API token from your Firefly III instance
+   - Update the `server.url` and `api.token` in `config.yaml`
 
-```go
-package main
+2. **Build the Server**
+   ```bash
+   go build ./cmd/mcp-server
+   ```
 
-import (
-    "context"
-    "log"
-    "net/http"
-    
-    "github.com/dezer32/firefly-iii/pkg/client"
-)
+3. **Run the Server**
+   ```bash
+   ./mcp-server [config-file]
+   ```
+   
+   If no config file is specified, it defaults to `config.yaml`.
 
-// AuthTransport adds Bearer token authentication
-type AuthTransport struct {
-    Token string
-    Base  http.RoundTripper
-}
+## Usage
 
-func (t *AuthTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-    req.Header.Set("Authorization", "Bearer "+t.Token)
-    req.Header.Set("Accept", "application/json")
-    req.Header.Set("Content-Type", "application/json")
-    
-    base := t.Base
-    if base == nil {
-        base = http.DefaultTransport
-    }
-    return base.RoundTrip(req)
-}
+The server communicates over stdin/stdout using the MCP protocol. It can be integrated with MCP-compatible clients.
 
-func main() {
-    // Create authenticated HTTP client
-    httpClient := &http.Client{
-        Transport: &AuthTransport{
-            Token: "your-api-token-here",
-        },
-    }
+### Tool Examples
 
-    // Create Firefly III client
-    fireflyClient, err := client.NewClientWithResponses(
-        "https://your-firefly-iii-instance.com",
-        client.WithHTTPClient(httpClient),
-    )
-    if err != nil {
-        log.Fatalf("Failed to create client: %v", err)
-    }
-
-    ctx := context.Background()
-
-    // Get system information
-    aboutResp, err := fireflyClient.GetAboutWithResponse(ctx, &client.GetAboutParams{})
-    if err != nil {
-        log.Fatalf("Error: %v", err)
-    }
-    
-    if aboutResp.StatusCode() == 200 {
-        log.Println("Successfully connected to Firefly III!")
-    }
-}
-```
-
-### API Token Setup
-
-1. Log into your Firefly III instance
-2. Go to Options → Profile → OAuth
-3. Create a new Personal Access Token
-4. Copy the token and use it in your Go application
-
-## Usage Examples
-
-### List Accounts
-
-```go
-accountsResp, err := fireflyClient.ListAccountWithResponse(ctx, &client.ListAccountParams{
-    Limit: &[]int32{10}[0], // Get first 10 accounts
-    Type:  &[]client.AccountTypeFilter{client.AccountTypeFilter("asset")}[0],
-})
-
-if err != nil {
-    log.Printf("Error: %v", err)
-    return
-}
-
-if accountsResp.StatusCode() == 200 && accountsResp.JSON200 != nil {
-    for _, account := range accountsResp.JSON200.Data {
-        fmt.Printf("Account: %s (ID: %s)\n", 
-            *account.Attributes.Name, 
-            account.Id)
-    }
+#### List Accounts
+```json
+{
+  "name": "list_accounts",
+  "arguments": {
+    "type": "asset",
+    "limit": 5
+  }
 }
 ```
 
-### Create a Transaction
-
-```go
-transactionData := client.TransactionStore{
-    Transactions: []client.TransactionSplitStore{
-        {
-            Type:               client.TransactionTypeProperty("withdrawal"),
-            Description:        "Coffee purchase",
-            Amount:             "4.50",
-            SourceId:           &sourceAccountId,
-            DestinationName:    &[]string{"Coffee Shop"}[0],
-            CategoryName:       &[]string{"Food & Drinks"}[0],
-        },
-    },
-}
-
-transactionResp, err := fireflyClient.StoreTransactionWithResponse(
-    ctx, 
-    &client.StoreTransactionParams{}, 
-    transactionData,
-)
-
-if err != nil {
-    log.Printf("Error creating transaction: %v", err)
-    return
-}
-
-if transactionResp.StatusCode() == 200 {
-    fmt.Println("Transaction created successfully!")
+#### Get Account Details
+```json
+{
+  "name": "get_account", 
+  "arguments": {
+    "id": "123"
+  }
 }
 ```
 
-### Get Budget Information
-
-```go
-budgetsResp, err := fireflyClient.ListBudgetWithResponse(ctx, &client.ListBudgetParams{
-    Limit: &[]int32{20}[0],
-})
-
-if err != nil {
-    log.Printf("Error: %v", err)
-    return
-}
-
-if budgetsResp.StatusCode() == 200 && budgetsResp.JSON200 != nil {
-    for _, budget := range budgetsResp.JSON200.Data {
-        fmt.Printf("Budget: %s\n", *budget.Attributes.Name)
-        if budget.Attributes.Spent != nil {
-            fmt.Printf("  Spent: %s\n", *budget.Attributes.Spent)
-        }
-    }
+#### List Transactions
+```json
+{
+  "name": "list_transactions",
+  "arguments": {
+    "type": "withdrawal",
+    "start": "2024-01-01",
+    "end": "2024-01-31",
+    "limit": 10
+  }
 }
 ```
 
-## Client Types
-
-The library provides two client types:
-
-### Basic Client
-```go
-client, err := client.NewClient("https://your-instance.com", options...)
+#### Get Financial Summary
+```json
+{
+  "name": "get_summary",
+  "arguments": {
+    "start": "2024-01-01",
+    "end": "2024-01-31"
+  }
+}
 ```
-Returns raw `*http.Response` objects that you need to parse manually.
 
-### Client with Responses (Recommended)
-```go
-client, err := client.NewClientWithResponses("https://your-instance.com", options...)
-```
-Returns typed response objects with parsed JSON data accessible via `.JSON200`, `.JSON400`, etc.
+## Architecture
+
+The implementation consists of:
+
+- **`cmd/mcp-server/main.go`** - Server entry point
+- **`pkg/fireflyMCP/config.go`** - Configuration management
+- **`pkg/fireflyMCP/server.go`** - MCP server implementation with tool handlers
+- **`pkg/client/`** - Auto-generated Firefly III API client
+
+## Authentication
+
+The server uses Bearer token authentication with the Firefly III API. The token is automatically added to all API requests via a request editor function.
 
 ## Error Handling
 
-The client provides detailed error information:
+All tools include proper error handling for:
+- API connection errors
+- Authentication failures
+- Invalid parameters
+- HTTP error responses
 
-```go
-resp, err := fireflyClient.ListAccountWithResponse(ctx, params)
-if err != nil {
-    log.Printf("Request failed: %v", err)
-    return
-}
-
-switch resp.StatusCode() {
-case 200:
-    // Success - use resp.JSON200
-    accounts := resp.JSON200.Data
-case 401:
-    // Unauthorized - check your API token
-    log.Println("Authentication failed")
-case 422:
-    // Validation error - check resp.JSON422 for details
-    if resp.JSON422 != nil {
-        log.Printf("Validation errors: %+v", resp.JSON422.Errors)
-    }
-default:
-    log.Printf("Unexpected status: %d", resp.StatusCode())
-}
-```
-
-## Configuration Options
-
-### Custom HTTP Client
-```go
-httpClient := &http.Client{
-    Timeout: 30 * time.Second,
-    Transport: &AuthTransport{Token: "your-token"},
-}
-
-client, err := client.NewClientWithResponses(
-    serverURL,
-    client.WithHTTPClient(httpClient),
-)
-```
-
-### Request Editors
-```go
-// Add custom headers to all requests
-requestEditor := func(ctx context.Context, req *http.Request) error {
-    req.Header.Set("X-Custom-Header", "value")
-    return nil
-}
-
-resp, err := fireflyClient.ListAccountWithResponse(
-    ctx, 
-    params, 
-    requestEditor,
-)
-```
+Errors are returned as MCP tool results with appropriate error messages.
 
 ## Development
 
-### Regenerating the Client
+To extend the server with additional tools:
 
-The project includes a `//go:generate` directive for easy client regeneration. You can regenerate the client in two ways:
+1. Define argument types in `server.go`
+2. Register the tool in `registerTools()`
+3. Implement the handler function following the existing patterns
+4. Update this documentation
 
-#### Using go generate (Recommended)
+## Dependencies
 
-```bash
-# Regenerate the client using the built-in generate directive
-go generate ./pkg/client
-```
-
-This uses the `//go:generate` directive in `pkg/client/generate.go` to automatically regenerate the client code.
-
-#### Manual Generation
-
-If you need to regenerate the client manually or with custom parameters:
-
-1. Update the OpenAPI spec file in `resources/`
-2. Run the generation command:
-
-```bash
-go run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen \
-    -generate client,models,embedded-spec \
-    -package client \
-    -o pkg/client/client.go \
-    resources/firefly-iii-6.2.21-v1.yaml
-```
-
-### Running the Example
-
-```bash
-# Edit example/main.go with your Firefly III URL and API token
-go run example/main.go
-```
-
-## API Documentation
-
-For detailed API documentation, refer to:
-- [Firefly III API Documentation](https://api-docs.firefly-iii.org/)
-- [Generated client code](pkg/client/client.go) - contains all available methods and types
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## License
-
-This project is licensed under the same terms as Firefly III.
-
-## Support
-
-- [Firefly III Documentation](https://docs.firefly-iii.org/)
-- [Firefly III GitHub](https://github.com/firefly-iii/firefly-iii)
-- [oapi-codegen Documentation](https://github.com/oapi-codegen/oapi-codegen)
+- [Go MCP SDK](https://github.com/modelcontextprotocol/go-sdk) - MCP protocol implementation
+- [oapi-codegen](https://github.com/oapi-codegen/oapi-codegen) - OpenAPI client generation
+- Firefly III API client (auto-generated)

@@ -12,3 +12,11 @@ client:
 limits:
   accounts: 10
   transactions: 5
+  categories: 10
+  budgets: 10
+
+# MCP server configuration
+mcp:
+  name: "firefly-iii-mcp"
+  version: "1.0.0"
+  instructions: "MCP server for Firefly III personal finance management"
