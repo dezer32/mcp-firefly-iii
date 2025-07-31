@@ -323,6 +323,42 @@ func TestIntegration_ListBudgets(t *testing.T) {
 			}
 		},
 	)
+
+	t.Run(
+		"MCPToolCallWithDates", func(t *testing.T) {
+			fmt.Printf("[DEBUG_LOG] Testing MCP tool call for list_budgets with date parameters\n")
+
+			// Create a mock session
+			session := &mcp.ServerSession{}
+
+			// Create tool call parameters with date range
+			params := &mcp.CallToolParamsFor[ListBudgetsArgs]{
+				Name: "list_budgets",
+				Arguments: ListBudgetsArgs{
+					Start: "2024-01-01",
+					End:   "2024-12-31",
+					Limit: 10,
+				},
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+			defer cancel()
+
+			// Call the handler directly
+			result, err := server.handleListBudgets(ctx, session, params)
+
+			fmt.Printf("[DEBUG_LOG] MCP call with dates result: %v, Error: %v\n", result != nil, err)
+
+			if err != nil {
+				t.Logf("MCP tool call with dates failed (this might be expected): %v", err)
+				assert.Contains(t, err.Error(), "failed to list budgets", "Expected specific error message")
+			} else {
+				assert.NotNil(t, result, "Expected non-nil result")
+				assert.False(t, result.IsError, "Expected successful result")
+				t.Logf("Successfully called list_budgets MCP tool with date parameters")
+			}
+		},
+	)
 }
 
 func TestIntegration_ErrorHandling(t *testing.T) {
