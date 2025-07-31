@@ -9,7 +9,7 @@ type Pagination struct {
 	PerPage     int `json:"per_page"`
 	TotalPages  int `json:"total_pages"`
 }
-type Spent []struct {
+type Spent struct {
 	Sum          string `json:"sum"`
 	CurrencyCode string `json:"currency_code"`
 }

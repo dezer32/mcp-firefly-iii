@@ -84,9 +84,8 @@ func TestMapBudgetArrayToBudgetList(t *testing.T) {
 	assert.Equal(t, updatedAt, budget.UpdatedAt)
 
 	// Verify spent data
-	assert.Len(t, budget.Spent, 1)
-	assert.Equal(t, sum, budget.Spent[0].Sum)
-	assert.Equal(t, currencyCode, budget.Spent[0].CurrencyCode)
+	assert.Equal(t, sum, budget.Spent.Sum)
+	assert.Equal(t, currencyCode, budget.Spent.CurrencyCode)
 
 	// Verify pagination
 	assert.Equal(t, count, result.Pagination.Count)
@@ -94,6 +93,54 @@ func TestMapBudgetArrayToBudgetList(t *testing.T) {
 	assert.Equal(t, currentPage, result.Pagination.CurrentPage)
 	assert.Equal(t, perPage, result.Pagination.PerPage)
 	assert.Equal(t, totalPages, result.Pagination.TotalPages)
+}
+
+func TestMapBudgetArrayToBudgetList_MultipleSpentItems(t *testing.T) {
+	// Test that only the first spent item is used when multiple exist
+	active := true
+	firstSum := "100.50"
+	secondSum := "200.75"
+	firstCurrency := "USD"
+	secondCurrency := "EUR"
+	updatedAt := time.Now()
+
+	budgetArray := &client.BudgetArray{
+		Data: []client.BudgetRead{
+			{
+				Id: "1",
+				Attributes: client.Budget{
+					Active: &active,
+					Name:   "Test Budget",
+					Spent: &[]client.BudgetSpent{
+						{
+							Sum:          &firstSum,
+							CurrencyCode: &firstCurrency,
+						},
+						{
+							Sum:          &secondSum,
+							CurrencyCode: &secondCurrency,
+						},
+					},
+					UpdatedAt: &updatedAt,
+				},
+				Type: "budgets",
+			},
+		},
+		Meta: client.Meta{},
+	}
+
+	result := mapBudgetArrayToBudgetList(budgetArray)
+
+	// Verify only the first spent item is used
+	assert.NotNil(t, result)
+	assert.Len(t, result.Data, 1)
+
+	budget := result.Data[0]
+	assert.Equal(t, firstSum, budget.Spent.Sum)
+	assert.Equal(t, firstCurrency, budget.Spent.CurrencyCode)
+	// Verify second item is NOT used
+	assert.NotEqual(t, secondSum, budget.Spent.Sum)
+	assert.NotEqual(t, secondCurrency, budget.Spent.CurrencyCode)
 }
 
 func TestGetStringValue(t *testing.T) {

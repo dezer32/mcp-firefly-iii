@@ -507,17 +507,12 @@ func mapBudgetArrayToBudgetList(budgetArray *client.BudgetArray) *BudgetList {
 			budget.UpdatedAt = *budgetRead.Attributes.UpdatedAt
 		}
 
-		// Map spent information
-		if budgetRead.Attributes.Spent != nil {
-			budget.Spent = make(Spent, len(*budgetRead.Attributes.Spent))
-			for j, spentItem := range *budgetRead.Attributes.Spent {
-				budget.Spent[j] = struct {
-					Sum          string `json:"sum"`
-					CurrencyCode string `json:"currency_code"`
-				}{
-					Sum:          getStringValue(spentItem.Sum),
-					CurrencyCode: getStringValue(spentItem.CurrencyCode),
-				}
+		// Map spent information - take only the first value
+		if budgetRead.Attributes.Spent != nil && len(*budgetRead.Attributes.Spent) > 0 {
+			firstSpent := (*budgetRead.Attributes.Spent)[0]
+			budget.Spent = Spent{
+				Sum:          getStringValue(firstSpent.Sum),
+				CurrencyCode: getStringValue(firstSpent.CurrencyCode),
 			}
 		}
 
