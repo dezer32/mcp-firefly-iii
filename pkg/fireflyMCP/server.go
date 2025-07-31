@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/dezer32/firefly-iii/pkg/client"
@@ -41,7 +42,9 @@ type GetTransactionArgs struct {
 }
 
 type ListBudgetsArgs struct {
-	Limit int `json:"limit,omitempty" mcp:"Maximum number of budgets to return"`
+	Start string `json:"start,omitempty" mcp:"Start date (YYYY-MM-DD)"`
+	End   string `json:"end,omitempty" mcp:"End date (YYYY-MM-DD)"`
+	Limit int    `json:"limit,omitempty" mcp:"Maximum number of budgets to return"`
 }
 
 type ListCategoriesArgs struct {
@@ -64,20 +67,24 @@ func NewFireflyMCPServer(config *Config) (*FireflyMCPServer, error) {
 	fireflyClient, err := client.NewClientWithResponses(
 		config.Server.URL,
 		client.WithHTTPClient(httpClient),
-		client.WithRequestEditorFn(func(ctx context.Context, req *http.Request) error {
-			req.Header.Set("Authorization", "Bearer "+config.API.Token)
-			return nil
-		}),
+		client.WithRequestEditorFn(
+			func(ctx context.Context, req *http.Request) error {
+				req.Header.Set("Authorization", "Bearer "+config.API.Token)
+				return nil
+			},
+		),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Firefly III client: %w", err)
 	}
 
 	// Create MCP server
-	mcpServer := mcp.NewServer(&mcp.Implementation{
-		Name:    config.MCP.Name,
-		Version: config.MCP.Version,
-	}, nil)
+	mcpServer := mcp.NewServer(
+		&mcp.Implementation{
+			Name:    config.MCP.Name,
+			Version: config.MCP.Version,
+		}, nil,
+	)
 
 	server := &FireflyMCPServer{
 		server: mcpServer,
@@ -99,44 +106,58 @@ func (s *FireflyMCPServer) Run(ctx context.Context, transport mcp.Transport) err
 // registerTools registers all available MCP tools
 func (s *FireflyMCPServer) registerTools() {
 	// Account tools
-	mcp.AddTool(s.server, &mcp.Tool{
-		Name:        "list_accounts",
-		Description: "List all accounts in Firefly III",
-	}, s.handleListAccounts)
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "list_accounts",
+			Description: "List all accounts in Firefly III",
+		}, s.handleListAccounts,
+	)
 
-	mcp.AddTool(s.server, &mcp.Tool{
-		Name:        "get_account",
-		Description: "Get details of a specific account",
-	}, s.handleGetAccount)
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "get_account",
+			Description: "Get details of a specific account",
+		}, s.handleGetAccount,
+	)
 
 	// Transaction tools
-	mcp.AddTool(s.server, &mcp.Tool{
-		Name:        "list_transactions",
-		Description: "List transactions in Firefly III",
-	}, s.handleListTransactions)
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "list_transactions",
+			Description: "List transactions in Firefly III",
+		}, s.handleListTransactions,
+	)
 
-	mcp.AddTool(s.server, &mcp.Tool{
-		Name:        "get_transaction",
-		Description: "Get details of a specific transaction",
-	}, s.handleGetTransaction)
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "get_transaction",
+			Description: "Get details of a specific transaction",
+		}, s.handleGetTransaction,
+	)
 
 	// Budget tools
-	mcp.AddTool(s.server, &mcp.Tool{
-		Name:        "list_budgets",
-		Description: "List all budgets in Firefly III",
-	}, s.handleListBudgets)
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "list_budgets",
+			Description: "List all budgets in Firefly III",
+		}, s.handleListBudgets,
+	)
 
 	// Category tools
-	mcp.AddTool(s.server, &mcp.Tool{
-		Name:        "list_categories",
-		Description: "List all categories in Firefly III",
-	}, s.handleListCategories)
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "list_categories",
+			Description: "List all categories in Firefly III",
+		}, s.handleListCategories,
+	)
 
 	// Summary tools
-	mcp.AddTool(s.server, &mcp.Tool{
-		Name:        "get_summary",
-		Description: "Get basic financial summary from Firefly III",
-	}, s.handleGetSummary)
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "get_summary",
+			Description: "Get basic financial summary from Firefly III",
+		}, s.handleGetSummary,
+	)
 }
 
 // Tool handlers
@@ -315,6 +336,33 @@ func (s *FireflyMCPServer) handleGetTransaction(ctx context.Context, ss *mcp.Ser
 func (s *FireflyMCPServer) handleListBudgets(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[ListBudgetsArgs]) (*mcp.CallToolResultFor[struct{}], error) {
 	apiParams := &client.ListBudgetParams{}
 
+	// Set default start date to first day of current month
+	now := time.Now()
+	firstDayOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	startDate := openapi_types.Date{Time: firstDayOfMonth}
+	apiParams.Start = &startDate
+
+	// Set default end date to last day of current month
+	lastDayOfMonth := time.Date(now.Year(), now.Month()+1, 0, 23, 59, 59, 0, now.Location())
+	endDate := openapi_types.Date{Time: lastDayOfMonth}
+	apiParams.End = &endDate
+
+	// Handle custom start date if provided
+	if params.Arguments.Start != "" {
+		if customStartDate, err := time.Parse("2006-01-02", params.Arguments.Start); err == nil {
+			date := openapi_types.Date{Time: customStartDate}
+			apiParams.Start = &date
+		}
+	}
+
+	// Handle end date if provided
+	if params.Arguments.End != "" {
+		if endDate, err := time.Parse("2006-01-02", params.Arguments.End); err == nil {
+			date := openapi_types.Date{Time: endDate}
+			apiParams.End = &date
+		}
+	}
+
 	if params.Arguments.Limit > 0 {
 		limit := int32(params.Arguments.Limit)
 		apiParams.Limit = &limit
@@ -424,4 +472,12 @@ func (s *FireflyMCPServer) handleGetSummary(ctx context.Context, ss *mcp.ServerS
 			&mcp.TextContent{Text: string(result)},
 		},
 	}, nil
+}
+
+// fixCurrencyIdFields converts numeric currency_id values to strings in JSON response
+// This fixes the JSON unmarshaling error where API returns numbers but structs expect strings
+func fixCurrencyIdFields(jsonStr string) string {
+	// Pattern to match "currency_id": <number> and convert to "currency_id": "<number>"
+	re := regexp.MustCompile(`"currency_id":\s*(\d+)`)
+	return re.ReplaceAllString(jsonStr, `"currency_id": "$1"`)
 }

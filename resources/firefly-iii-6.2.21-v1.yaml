@@ -18173,8 +18173,8 @@ components:
           example: "123.45"
           description: "The amount spent. This is in the administration's native currency, if the conversion is turned on."
         currency_id:
-          type: string
-          format: string
+          type: integer
+          format: int32
           example: "5"
         currency_code:
           type: string
