@@ -503,16 +503,10 @@ func mapBudgetArrayToBudgetList(budgetArray *client.BudgetArray) *BudgetList {
 	// Map budget data
 	for i, budgetRead := range budgetArray.Data {
 		budget := Budget{
-			Id:        budgetRead.Id,
-			Active:    budgetRead.Attributes.Active != nil && *budgetRead.Attributes.Active,
-			Name:      budgetRead.Attributes.Name,
-			Notes:     budgetRead.Attributes.Notes,
-			UpdatedAt: time.Time{},
-		}
-
-		// Handle UpdatedAt
-		if budgetRead.Attributes.UpdatedAt != nil {
-			budget.UpdatedAt = *budgetRead.Attributes.UpdatedAt
+			Id:     budgetRead.Id,
+			Active: budgetRead.Attributes.Active != nil && *budgetRead.Attributes.Active,
+			Name:   budgetRead.Attributes.Name,
+			Notes:  budgetRead.Attributes.Notes,
 		}
 
 		// Map spent information - take only the first value

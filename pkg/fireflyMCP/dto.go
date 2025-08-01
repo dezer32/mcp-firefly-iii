@@ -1,7 +1,5 @@
 package fireflyMCP
 
-import "time"
-
 type Pagination struct {
 	Count       int `json:"count"`
 	Total       int `json:"total"`
@@ -15,12 +13,11 @@ type Spent struct {
 }
 
 type Budget struct {
-	Id        string      `json:"id"`
-	Active    bool        `json:"active"`
-	Name      string      `json:"name"`
-	Notes     interface{} `json:"notes"`
-	Spent     Spent       `json:"spent"`
-	UpdatedAt time.Time   `json:"updated_at"`
+	Id     string      `json:"id"`
+	Active bool        `json:"active"`
+	Name   string      `json:"name"`
+	Notes  interface{} `json:"notes"`
+	Spent  Spent       `json:"spent"`
 }
 type BudgetList struct {
 	Data       []Budget   `json:"data"`
