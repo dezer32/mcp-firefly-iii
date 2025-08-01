@@ -2,7 +2,6 @@ package fireflyMCP
 
 import (
 	"testing"
-	"time"
 
 	"github.com/dezer32/firefly-iii/pkg/client"
 	"github.com/stretchr/testify/assert"
@@ -27,7 +26,6 @@ func TestMapBudgetArrayToBudgetList(t *testing.T) {
 	sum := "100.50"
 	currencyCode := "USD"
 	notes := "Test budget notes"
-	updatedAt := time.Now()
 	count := 1
 	total := 1
 	currentPage := 1
@@ -48,7 +46,6 @@ func TestMapBudgetArrayToBudgetList(t *testing.T) {
 							CurrencyCode: &currencyCode,
 						},
 					},
-					UpdatedAt: &updatedAt,
 				},
 				Type: "budgets",
 			},
@@ -81,7 +78,6 @@ func TestMapBudgetArrayToBudgetList(t *testing.T) {
 	assert.True(t, budget.Active)
 	assert.Equal(t, "Test Budget", budget.Name)
 	assert.Equal(t, &notes, budget.Notes)
-	assert.Equal(t, updatedAt, budget.UpdatedAt)
 
 	// Verify spent data
 	assert.Equal(t, sum, budget.Spent.Sum)
@@ -102,7 +98,6 @@ func TestMapBudgetArrayToBudgetList_MultipleSpentItems(t *testing.T) {
 	secondSum := "200.75"
 	firstCurrency := "USD"
 	secondCurrency := "EUR"
-	updatedAt := time.Now()
 
 	budgetArray := &client.BudgetArray{
 		Data: []client.BudgetRead{
@@ -121,7 +116,6 @@ func TestMapBudgetArrayToBudgetList_MultipleSpentItems(t *testing.T) {
 							CurrencyCode: &secondCurrency,
 						},
 					},
-					UpdatedAt: &updatedAt,
 				},
 				Type: "budgets",
 			},
@@ -159,4 +153,138 @@ func TestGetIntValue(t *testing.T) {
 	// Test with valid pointer
 	value := 42
 	assert.Equal(t, 42, getIntValue(&value))
+}
+
+func TestMapAccountArrayToAccountList(t *testing.T) {
+	// Test with nil input
+	result := mapAccountArrayToAccountList(nil)
+	assert.Nil(t, result)
+
+	// Test with empty account array
+	emptyArray := &client.AccountArray{
+		Data: []client.AccountRead{},
+		Meta: client.Meta{},
+	}
+	result = mapAccountArrayToAccountList(emptyArray)
+	assert.NotNil(t, result)
+	assert.Empty(t, result.Data)
+
+	// Test with sample data
+	active := true
+	notes := "Test account notes"
+	count := 1
+	total := 1
+	currentPage := 1
+	perPage := 10
+	totalPages := 1
+
+	accountArray := &client.AccountArray{
+		Data: []client.AccountRead{
+			{
+				Id: "1",
+				Attributes: client.Account{
+					Active: &active,
+					Name:   "Test Account",
+					Notes:  &notes,
+				},
+				Type: "asset",
+			},
+		},
+		Meta: client.Meta{
+			Pagination: &struct {
+				Count       *int `json:"count,omitempty"`
+				CurrentPage *int `json:"current_page,omitempty"`
+				PerPage     *int `json:"per_page,omitempty"`
+				Total       *int `json:"total,omitempty"`
+				TotalPages  *int `json:"total_pages,omitempty"`
+			}{
+				Count:       &count,
+				Total:       &total,
+				CurrentPage: &currentPage,
+				PerPage:     &perPage,
+				TotalPages:  &totalPages,
+			},
+		},
+	}
+
+	result = mapAccountArrayToAccountList(accountArray)
+
+	// Verify the mapping
+	assert.NotNil(t, result)
+	assert.Len(t, result.Data, 1)
+
+	account := result.Data[0]
+	assert.Equal(t, "1", account.Id)
+	assert.True(t, account.Active)
+	assert.Equal(t, "Test Account", account.Name)
+	assert.Equal(t, &notes, account.Notes)
+	assert.Equal(t, "asset", account.Type)
+
+	// Verify pagination
+	assert.Equal(t, count, result.Pagination.Count)
+	assert.Equal(t, total, result.Pagination.Total)
+	assert.Equal(t, currentPage, result.Pagination.CurrentPage)
+	assert.Equal(t, perPage, result.Pagination.PerPage)
+	assert.Equal(t, totalPages, result.Pagination.TotalPages)
+}
+
+func TestMapAccountArrayToAccountList_InactiveAccount(t *testing.T) {
+	// Test with inactive account
+	active := false
+
+	accountArray := &client.AccountArray{
+		Data: []client.AccountRead{
+			{
+				Id: "2",
+				Attributes: client.Account{
+					Active: &active,
+					Name:   "Inactive Account",
+				},
+				Type: "liability",
+			},
+		},
+		Meta: client.Meta{},
+	}
+
+	result := mapAccountArrayToAccountList(accountArray)
+
+	// Verify the mapping
+	assert.NotNil(t, result)
+	assert.Len(t, result.Data, 1)
+
+	account := result.Data[0]
+	assert.Equal(t, "2", account.Id)
+	assert.False(t, account.Active)
+	assert.Equal(t, "Inactive Account", account.Name)
+	assert.Nil(t, account.Notes)
+	assert.Equal(t, "liability", account.Type)
+}
+
+func TestMapAccountArrayToAccountList_NilActiveField(t *testing.T) {
+	// Test with nil Active field (should default to false)
+	accountArray := &client.AccountArray{
+		Data: []client.AccountRead{
+			{
+				Id: "3",
+				Attributes: client.Account{
+					Active: nil, // nil pointer
+					Name:   "Account with nil active",
+				},
+				Type: "expense",
+			},
+		},
+		Meta: client.Meta{},
+	}
+
+	result := mapAccountArrayToAccountList(accountArray)
+
+	// Verify the mapping
+	assert.NotNil(t, result)
+	assert.Len(t, result.Data, 1)
+
+	account := result.Data[0]
+	assert.Equal(t, "3", account.Id)
+	assert.False(t, account.Active) // Should be false when Active is nil
+	assert.Equal(t, "Account with nil active", account.Name)
+	assert.Equal(t, "expense", account.Type)
 }

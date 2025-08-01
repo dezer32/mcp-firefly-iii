@@ -34,3 +34,16 @@ type CategoryList struct {
 	Data       []Category `json:"data"`
 	Pagination Pagination `json:"pagination"`
 }
+
+type Account struct {
+	Id     string  `json:"id"`
+	Active bool    `json:"active"`
+	Name   string  `json:"name"`
+	Notes  *string `json:"notes"`
+	Type   string  `json:"type"`
+}
+
+type AccountList struct {
+	Data       []Account  `json:"data"`
+	Pagination Pagination `json:"pagination"`
+}

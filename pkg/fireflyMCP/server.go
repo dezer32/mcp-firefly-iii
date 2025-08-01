@@ -24,6 +24,7 @@ type FireflyMCPServer struct {
 type ListAccountsArgs struct {
 	Type  string `json:"type,omitempty" mcp:"Filter by account type (asset, expense, revenue, etc.)"`
 	Limit int    `json:"limit,omitempty" mcp:"Maximum number of accounts to return"`
+	Page  int    `json:"page,omitempty" mcp:"Page number for pagination (default: 1)"`
 }
 
 type GetAccountArgs struct {
@@ -35,6 +36,7 @@ type ListTransactionsArgs struct {
 	Start string `json:"start,omitempty" mcp:"Start date (YYYY-MM-DD)"`
 	End   string `json:"end,omitempty" mcp:"End date (YYYY-MM-DD)"`
 	Limit int    `json:"limit,omitempty" mcp:"Maximum number of transactions to return"`
+	Page  int    `json:"page,omitempty" mcp:"Page number for pagination (default: 1)"`
 }
 
 type GetTransactionArgs struct {
@@ -177,6 +179,11 @@ func (s *FireflyMCPServer) handleListAccounts(ctx context.Context, ss *mcp.Serve
 		apiParams.Limit = &limit
 	}
 
+	if params.Arguments.Page > 0 {
+		page := int32(params.Arguments.Page)
+		apiParams.Page = &page
+	}
+
 	resp, err := s.client.ListAccountWithResponse(ctx, apiParams)
 	if err != nil {
 		return &mcp.CallToolResultFor[struct{}]{
@@ -196,8 +203,9 @@ func (s *FireflyMCPServer) handleListAccounts(ctx context.Context, ss *mcp.Serve
 		}, nil
 	}
 
-	// Format response
-	result, _ := json.MarshalIndent(resp.ApplicationvndApiJSON200, "", "  ")
+	// Map response to DTO
+	accountList := mapAccountArrayToAccountList(resp.ApplicationvndApiJSON200)
+	result, _ := json.MarshalIndent(accountList, "", "  ")
 	return &mcp.CallToolResultFor[struct{}]{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(result)},
@@ -268,6 +276,11 @@ func (s *FireflyMCPServer) handleListTransactions(ctx context.Context, ss *mcp.S
 	if params.Arguments.Limit > 0 {
 		limit := int32(params.Arguments.Limit)
 		apiParams.Limit = &limit
+	}
+
+	if params.Arguments.Page > 0 {
+		page := int32(params.Arguments.Page)
+		apiParams.Page = &page
 	}
 
 	resp, err := s.client.ListTransactionWithResponse(ctx, apiParams)
@@ -570,6 +583,44 @@ func mapCategoryArrayToCategoryList(categoryArray *client.CategoryArray) *Catego
 	}
 
 	return categoryList
+}
+
+// mapAccountArrayToAccountList converts client.AccountArray to AccountList DTO
+func mapAccountArrayToAccountList(accountArray *client.AccountArray) *AccountList {
+	if accountArray == nil {
+		return nil
+	}
+
+	accountList := &AccountList{
+		Data: make([]Account, len(accountArray.Data)),
+	}
+
+	// Map account data
+	for i, accountRead := range accountArray.Data {
+		account := Account{
+			Id:     accountRead.Id,
+			Active: accountRead.Attributes.Active != nil && *accountRead.Attributes.Active,
+			Name:   accountRead.Attributes.Name,
+			Notes:  accountRead.Attributes.Notes,
+			Type:   string(accountRead.Attributes.Type),
+		}
+
+		accountList.Data[i] = account
+	}
+
+	// Map pagination
+	if accountArray.Meta.Pagination != nil {
+		pagination := accountArray.Meta.Pagination
+		accountList.Pagination = Pagination{
+			Count:       getIntValue(pagination.Count),
+			Total:       getIntValue(pagination.Total),
+			CurrentPage: getIntValue(pagination.CurrentPage),
+			PerPage:     getIntValue(pagination.PerPage),
+			TotalPages:  getIntValue(pagination.TotalPages),
+		}
+	}
+
+	return accountList
 }
 
 // getIntValue safely extracts int value from pointer, returns 0 if nil
