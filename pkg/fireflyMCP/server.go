@@ -333,6 +333,16 @@ func (s *FireflyMCPServer) handleGetTransaction(ctx context.Context, ss *mcp.Ser
 		}, nil
 	}
 
+	// Map the response to TransactionGroup DTO
+	if resp.StatusCode() == 404 {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: "Transaction not found"},
+			},
+			IsError: true,
+		}, nil
+	}
+
 	if resp.StatusCode() != 200 {
 		return &mcp.CallToolResultFor[struct{}]{
 			Content: []mcp.Content{
@@ -342,7 +352,9 @@ func (s *FireflyMCPServer) handleGetTransaction(ctx context.Context, ss *mcp.Ser
 		}, nil
 	}
 
-	result, _ := json.MarshalIndent(resp.ApplicationvndApiJSON200, "", "  ")
+	transactionGroup := mapTransactionReadToTransactionGroup(&resp.ApplicationvndApiJSON200.Data)
+
+	result, _ := json.MarshalIndent(transactionGroup, "", "  ")
 	return &mcp.CallToolResultFor[struct{}]{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(result)},
@@ -693,6 +705,55 @@ func mapTransactionArrayToTransactionList(transactionArray *client.TransactionAr
 	}
 
 	return transactionList
+}
+
+// mapTransactionReadToTransactionGroup converts client.TransactionRead to TransactionGroup DTO
+func mapTransactionReadToTransactionGroup(transactionRead *client.TransactionRead) *TransactionGroup {
+	if transactionRead == nil {
+		return nil
+	}
+
+	group := &TransactionGroup{
+		Id:           transactionRead.Id,
+		GroupTitle:   getStringValue(transactionRead.Attributes.GroupTitle),
+		Transactions: make([]Transaction, len(transactionRead.Attributes.Transactions)),
+	}
+
+	// Map individual transactions within the group
+	for i, split := range transactionRead.Attributes.Transactions {
+		transaction := Transaction{
+			Id:              getStringValue(split.TransactionJournalId),
+			Amount:          split.Amount,
+			BillId:          split.BillId,
+			BillName:        split.BillName,
+			BudgetId:        split.BudgetId,
+			BudgetName:      split.BudgetName,
+			CategoryId:      split.CategoryId,
+			CategoryName:    split.CategoryName,
+			CurrencyCode:    getStringValue(split.CurrencyCode),
+			Date:            split.Date,
+			Description:     split.Description,
+			DestinationId:   getStringValue(split.DestinationId),
+			DestinationName: getStringValue(split.DestinationName),
+			DestinationType: string(getAccountTypeValue(split.DestinationType)),
+			Notes:           split.Notes,
+			Reconciled:      split.Reconciled != nil && *split.Reconciled,
+			SourceId:        getStringValue(split.SourceId),
+			SourceName:      getStringValue(split.SourceName),
+			Type:            string(split.Type),
+		}
+
+		// Handle tags
+		if split.Tags != nil && len(*split.Tags) > 0 {
+			transaction.Tags = *split.Tags
+		} else {
+			transaction.Tags = []string{}
+		}
+
+		group.Transactions[i] = transaction
+	}
+
+	return group
 }
 
 // getAccountTypeValue safely extracts AccountTypeProperty value, returns empty string if nil
