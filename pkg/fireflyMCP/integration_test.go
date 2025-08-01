@@ -2,6 +2,7 @@ package fireflyMCP
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -228,6 +229,156 @@ func TestIntegration_ListTransactions(t *testing.T) {
 				assert.NotNil(t, result, "Expected non-nil result")
 				assert.False(t, result.IsError, "Expected successful result")
 				t.Logf("Successfully called list_transactions MCP tool")
+
+				// Verify the result structure
+				if len(result.Content) > 0 {
+					if textContent, ok := result.Content[0].(*mcp.TextContent); ok {
+						// Unmarshal to verify it's a properly formatted TransactionList
+						var transactionList TransactionList
+						err := json.Unmarshal([]byte(textContent.Text), &transactionList)
+						assert.NoError(t, err, "Result should be valid TransactionList JSON")
+
+						// Verify pagination is included
+						assert.NotNil(t, transactionList.Meta.Pagination, "Expected pagination metadata")
+						assert.GreaterOrEqual(t, transactionList.Meta.Pagination.Count, 0, "Pagination count should be >= 0")
+
+						// If there are transactions, verify the structure
+						if len(transactionList.Data) > 0 {
+							firstGroup := transactionList.Data[0]
+							assert.NotEmpty(t, firstGroup.Id, "Transaction group should have an ID")
+							
+							// Verify transactions within the group
+							if len(firstGroup.Transactions) > 0 {
+								firstTransaction := firstGroup.Transactions[0]
+								assert.NotEmpty(t, firstTransaction.Id, "Transaction should have an ID")
+								assert.NotEmpty(t, firstTransaction.Amount, "Transaction should have an amount")
+								assert.NotEmpty(t, firstTransaction.Date, "Transaction should have a date")
+								assert.NotEmpty(t, firstTransaction.Description, "Transaction should have a description")
+								assert.NotEmpty(t, firstTransaction.Type, "Transaction should have a type")
+								
+								// Check source/destination names are populated based on type
+								switch firstTransaction.Type {
+								case "withdrawal", "expense":
+									assert.NotEmpty(t, firstTransaction.SourceName, "Withdrawal should have source name")
+									assert.NotEmpty(t, firstTransaction.DestinationName, "Withdrawal should have destination name")
+								case "deposit", "income":
+									assert.NotEmpty(t, firstTransaction.SourceName, "Deposit should have source name")
+									assert.NotEmpty(t, firstTransaction.DestinationName, "Deposit should have destination name")
+								case "transfer":
+									assert.NotEmpty(t, firstTransaction.SourceName, "Transfer should have source name")
+									assert.NotEmpty(t, firstTransaction.DestinationName, "Transfer should have destination name")
+								}
+							}
+						}
+
+						t.Logf("Successfully verified TransactionList structure with %d transaction groups", len(transactionList.Data))
+					}
+				}
+			}
+		},
+	)
+
+	t.Run(
+		"MCPToolCallWithPagination", func(t *testing.T) {
+			fmt.Printf("[DEBUG_LOG] Testing MCP tool call for list_transactions with pagination\n")
+
+			// Create a mock session
+			session := &mcp.ServerSession{}
+
+			// Create tool call parameters with pagination
+			params := &mcp.CallToolParamsFor[ListTransactionsArgs]{
+				Name: "list_transactions",
+				Arguments: ListTransactionsArgs{
+					Limit: 2,
+					Page:  1,
+					Start: "2024-01-01",
+					End:   "2024-12-31",
+				},
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+			defer cancel()
+
+			// Call the handler directly
+			result, err := server.handleListTransactions(ctx, session, params)
+
+			fmt.Printf("[DEBUG_LOG] MCP call with pagination result: %v, Error: %v\n", result != nil, err)
+
+			if err != nil {
+				t.Logf("MCP tool call with pagination failed (this might be expected): %v", err)
+			} else {
+				assert.NotNil(t, result, "Expected non-nil result")
+				assert.False(t, result.IsError, "Expected successful result")
+				
+				// Verify pagination parameters in response
+				if len(result.Content) > 0 {
+					if textContent, ok := result.Content[0].(*mcp.TextContent); ok {
+						var transactionList TransactionList
+						err := json.Unmarshal([]byte(textContent.Text), &transactionList)
+						assert.NoError(t, err, "Result should be valid TransactionList JSON")
+						
+						if transactionList.Meta.Pagination != nil {
+							assert.Equal(t, 1, transactionList.Meta.Pagination.CurrentPage, "Should be on page 1")
+							assert.LessOrEqual(t, transactionList.Meta.Pagination.Count, 2, "Should have at most 2 items per page")
+							assert.Equal(t, 2, transactionList.Meta.Pagination.PerPage, "Should show 2 items per page")
+						}
+					}
+				}
+				
+				t.Logf("Successfully called list_transactions MCP tool with pagination")
+			}
+		},
+	)
+
+	t.Run(
+		"MCPToolCallWithType", func(t *testing.T) {
+			fmt.Printf("[DEBUG_LOG] Testing MCP tool call for list_transactions with type filter\n")
+
+			// Create a mock session
+			session := &mcp.ServerSession{}
+
+			// Create tool call parameters with type filter
+			params := &mcp.CallToolParamsFor[ListTransactionsArgs]{
+				Name: "list_transactions",
+				Arguments: ListTransactionsArgs{
+					Limit: 5,
+					Type:  "withdrawal",
+					Start: "2024-01-01",
+					End:   "2024-12-31",
+				},
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+			defer cancel()
+
+			// Call the handler directly
+			result, err := server.handleListTransactions(ctx, session, params)
+
+			fmt.Printf("[DEBUG_LOG] MCP call with type filter result: %v, Error: %v\n", result != nil, err)
+
+			if err != nil {
+				t.Logf("MCP tool call with type filter failed (this might be expected): %v", err)
+			} else {
+				assert.NotNil(t, result, "Expected non-nil result")
+				assert.False(t, result.IsError, "Expected successful result")
+				
+				// Verify filtered results
+				if len(result.Content) > 0 {
+					if textContent, ok := result.Content[0].(*mcp.TextContent); ok {
+						var transactionList TransactionList
+						err := json.Unmarshal([]byte(textContent.Text), &transactionList)
+						assert.NoError(t, err, "Result should be valid TransactionList JSON")
+						
+						// Verify all returned transactions are of the requested type
+						for _, group := range transactionList.Data {
+							for _, transaction := range group.Transactions {
+								assert.Equal(t, "withdrawal", transaction.Type, "All transactions should be withdrawals")
+							}
+						}
+					}
+				}
+				
+				t.Logf("Successfully called list_transactions MCP tool with type filter")
 			}
 		},
 	)

@@ -302,7 +302,9 @@ func (s *FireflyMCPServer) handleListTransactions(ctx context.Context, ss *mcp.S
 		}, nil
 	}
 
-	result, _ := json.MarshalIndent(resp.ApplicationvndApiJSON200, "", "  ")
+	// Map response to DTO
+	transactionList := mapTransactionArrayToTransactionList(resp.ApplicationvndApiJSON200)
+	result, _ := json.MarshalIndent(transactionList, "", "  ")
 	return &mcp.CallToolResultFor[struct{}]{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(result)},
@@ -621,6 +623,84 @@ func mapAccountArrayToAccountList(accountArray *client.AccountArray) *AccountLis
 	}
 
 	return accountList
+}
+
+// mapTransactionArrayToTransactionList converts client.TransactionArray to TransactionList DTO
+func mapTransactionArrayToTransactionList(transactionArray *client.TransactionArray) *TransactionList {
+	if transactionArray == nil {
+		return nil
+	}
+
+	transactionList := &TransactionList{
+		Data: make([]TransactionGroup, len(transactionArray.Data)),
+	}
+
+	// Map transaction data
+	for i, transactionRead := range transactionArray.Data {
+		group := TransactionGroup{
+			Id:           transactionRead.Id,
+			GroupTitle:   getStringValue(transactionRead.Attributes.GroupTitle),
+			Transactions: make([]Transaction, len(transactionRead.Attributes.Transactions)),
+		}
+
+		// Map individual transactions within the group
+		for j, split := range transactionRead.Attributes.Transactions {
+			transaction := Transaction{
+				Id:              getStringValue(split.TransactionJournalId),
+				Amount:          split.Amount,
+				BillId:          split.BillId,
+				BillName:        split.BillName,
+				BudgetId:        split.BudgetId,
+				BudgetName:      split.BudgetName,
+				CategoryId:      split.CategoryId,
+				CategoryName:    split.CategoryName,
+				CurrencyCode:    getStringValue(split.CurrencyCode),
+				Date:            split.Date,
+				Description:     split.Description,
+				DestinationId:   getStringValue(split.DestinationId),
+				DestinationName: getStringValue(split.DestinationName),
+				DestinationType: string(getAccountTypeValue(split.DestinationType)),
+				Notes:           split.Notes,
+				Reconciled:      split.Reconciled != nil && *split.Reconciled,
+				SourceId:        getStringValue(split.SourceId),
+				SourceName:      getStringValue(split.SourceName),
+				Type:            string(split.Type),
+			}
+
+			// Handle tags
+			if split.Tags != nil && len(*split.Tags) > 0 {
+				transaction.Tags = *split.Tags
+			} else {
+				transaction.Tags = []string{}
+			}
+
+			group.Transactions[j] = transaction
+		}
+
+		transactionList.Data[i] = group
+	}
+
+	// Map pagination
+	if transactionArray.Meta.Pagination != nil {
+		pagination := transactionArray.Meta.Pagination
+		transactionList.Pagination = Pagination{
+			Count:       getIntValue(pagination.Count),
+			Total:       getIntValue(pagination.Total),
+			CurrentPage: getIntValue(pagination.CurrentPage),
+			PerPage:     getIntValue(pagination.PerPage),
+			TotalPages:  getIntValue(pagination.TotalPages),
+		}
+	}
+
+	return transactionList
+}
+
+// getAccountTypeValue safely extracts AccountTypeProperty value, returns empty string if nil
+func getAccountTypeValue(ptr *client.AccountTypeProperty) client.AccountTypeProperty {
+	if ptr == nil {
+		return ""
+	}
+	return *ptr
 }
 
 // getIntValue safely extracts int value from pointer, returns 0 if nil
