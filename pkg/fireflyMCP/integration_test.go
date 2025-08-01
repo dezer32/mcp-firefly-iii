@@ -239,8 +239,7 @@ func TestIntegration_ListTransactions(t *testing.T) {
 						assert.NoError(t, err, "Result should be valid TransactionList JSON")
 
 						// Verify pagination is included
-						assert.NotNil(t, transactionList.Meta.Pagination, "Expected pagination metadata")
-						assert.GreaterOrEqual(t, transactionList.Meta.Pagination.Count, 0, "Pagination count should be >= 0")
+						assert.GreaterOrEqual(t, transactionList.Pagination.Count, 0, "Pagination count should be >= 0")
 
 						// If there are transactions, verify the structure
 						if len(transactionList.Data) > 0 {
@@ -317,10 +316,10 @@ func TestIntegration_ListTransactions(t *testing.T) {
 						err := json.Unmarshal([]byte(textContent.Text), &transactionList)
 						assert.NoError(t, err, "Result should be valid TransactionList JSON")
 						
-						if transactionList.Meta.Pagination != nil {
-							assert.Equal(t, 1, transactionList.Meta.Pagination.CurrentPage, "Should be on page 1")
-							assert.LessOrEqual(t, transactionList.Meta.Pagination.Count, 2, "Should have at most 2 items per page")
-							assert.Equal(t, 2, transactionList.Meta.Pagination.PerPage, "Should show 2 items per page")
+						if transactionList.Pagination.Count > 0 {
+							assert.Equal(t, 1, transactionList.Pagination.CurrentPage, "Should be on page 1")
+							assert.LessOrEqual(t, transactionList.Pagination.Count, 2, "Should have at most 2 items per page")
+							assert.Equal(t, 2, transactionList.Pagination.PerPage, "Should show 2 items per page")
 						}
 					}
 				}
@@ -380,6 +379,84 @@ func TestIntegration_ListTransactions(t *testing.T) {
 				
 				t.Logf("Successfully called list_transactions MCP tool with type filter")
 			}
+		},
+	)
+}
+
+func TestIntegration_GetTransaction(t *testing.T) {
+	testConfig := loadTestConfig(t)
+	server := createTestServer(t, testConfig)
+
+	// First, get a list of transactions to find a valid ID
+	ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+	defer cancel()
+
+	// List transactions to get a valid ID
+	apiParams := &client.ListTransactionParams{}
+	limit := int32(1)
+	apiParams.Limit = &limit
+	
+	resp, err := server.client.ListTransactionWithResponse(ctx, apiParams)
+	if err != nil {
+		t.Fatalf("Failed to list transactions: %v", err)
+	}
+	
+	if resp.StatusCode() != 200 || resp.ApplicationvndApiJSON200 == nil || len(resp.ApplicationvndApiJSON200.Data) == 0 {
+		t.Skip("No transactions available for testing get_transaction")
+	}
+
+	transactionId := resp.ApplicationvndApiJSON200.Data[0].Id
+
+	t.Run(
+		"MCPToolCall", func(t *testing.T) {
+			fmt.Printf("[DEBUG_LOG] Testing MCP tool call for get_transaction with ID: %s\n", transactionId)
+
+			// Create a mock session
+			session := &mcp.ServerSession{}
+
+			// Create tool call parameters
+			params := &mcp.CallToolParamsFor[GetTransactionArgs]{
+				Name: "get_transaction",
+				Arguments: GetTransactionArgs{
+					ID: transactionId,
+				},
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+			defer cancel()
+
+			// Call the handler directly
+			result, err := server.handleGetTransaction(ctx, session, params)
+
+			fmt.Printf("[DEBUG_LOG] MCP call result: %v, Error: %v\n", result != nil, err)
+
+			assert.NoError(t, err, "Expected no error from MCP tool call")
+			assert.NotNil(t, result, "Expected non-nil result")
+			assert.False(t, result.IsError, "Expected successful result")
+			assert.NotEmpty(t, result.Content, "Expected content in result")
+
+			// Verify the response structure
+			if textContent, ok := result.Content[0].(*mcp.TextContent); ok {
+				fmt.Printf("[DEBUG_LOG] Response content: %s\n", textContent.Text)
+				
+				var transactionGroup TransactionGroup
+				err := json.Unmarshal([]byte(textContent.Text), &transactionGroup)
+				assert.NoError(t, err, "Result should be valid TransactionGroup JSON")
+				
+				// Verify basic structure
+				assert.Equal(t, transactionId, transactionGroup.Id, "Transaction ID should match")
+				assert.NotEmpty(t, transactionGroup.Transactions, "Should have at least one transaction")
+				
+				// Verify first transaction has required fields
+				if len(transactionGroup.Transactions) > 0 {
+					firstTransaction := transactionGroup.Transactions[0]
+					assert.NotEmpty(t, firstTransaction.Amount, "Transaction should have amount")
+					assert.NotEmpty(t, firstTransaction.Description, "Transaction should have description")
+					assert.NotEmpty(t, firstTransaction.Type, "Transaction should have type")
+				}
+			}
+			
+			t.Logf("Successfully called get_transaction MCP tool and received TransactionGroup DTO")
 		},
 	)
 }
