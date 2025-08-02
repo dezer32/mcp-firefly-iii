@@ -1099,7 +1099,7 @@ type BasicSummaryEntry struct {
 	LocalIcon *string `json:"local_icon,omitempty"`
 
 	// MonetaryValue The amount as a float.
-	MonetaryValue *float64 `json:"monetary_value,omitempty"`
+	MonetaryValue *string `json:"monetary_value,omitempty"`
 
 	// NoAvailableBudgets True if there are no available budgets available.
 	NoAvailableBudgets *bool `json:"no_available_budgets,omitempty"`

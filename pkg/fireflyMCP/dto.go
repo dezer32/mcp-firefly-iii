@@ -83,3 +83,14 @@ type TransactionList struct {
 	Data       []TransactionGroup `json:"data"`
 	Pagination Pagination         `json:"pagination"`
 }
+
+type BasicSummary struct {
+	Key           string `json:"key"`
+	Title         string `json:"title"`
+	CurrencyCode  string `json:"currency_code"`
+	MonetaryValue string `json:"monetary_value"`
+}
+
+type BasicSummaryList struct {
+	Data []BasicSummary `json:"data"`
+}

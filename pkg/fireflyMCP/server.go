@@ -478,6 +478,17 @@ func (s *FireflyMCPServer) handleListCategories(ctx context.Context, ss *mcp.Ser
 func (s *FireflyMCPServer) handleGetSummary(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[GetSummaryArgs]) (*mcp.CallToolResultFor[struct{}], error) {
 	apiParams := &client.GetBasicSummaryParams{}
 
+	// Set default start date to first day of current month
+	now := time.Now()
+	firstDayOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+	startDate := openapi_types.Date{Time: firstDayOfMonth}
+	apiParams.Start = startDate
+
+	// Set default end date to last day of current month
+	lastDayOfMonth := time.Date(now.Year(), now.Month()+1, 0, 23, 59, 59, 0, now.Location())
+	endDate := openapi_types.Date{Time: lastDayOfMonth}
+	apiParams.End = endDate
+
 	if params.Arguments.Start != "" {
 		if startDate, err := time.Parse("2006-01-02", params.Arguments.Start); err == nil {
 			date := openapi_types.Date{Time: startDate}
