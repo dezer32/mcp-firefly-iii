@@ -872,3 +872,137 @@ func TestMapTransactionReadToTransactionGroup_EmptyTransactions(t *testing.T) {
 	assert.Equal(t, groupTitle, result.GroupTitle)
 	assert.Empty(t, result.Transactions)
 }
+
+func TestMapBasicSummaryToBasicSummaryList_Success(t *testing.T) {
+	// Test with normal data
+	key1 := "balance-in-EUR"
+	title1 := "Balance (EUR)"
+	currencyCode1 := "EUR"
+	monetaryValue1 := "1234.56"
+
+	key2 := "spent-in-USD"
+	title2 := "Spent (USD)"
+	currencyCode2 := "USD"
+	monetaryValue2 := "-500.00"
+
+	basicSummary := &client.BasicSummary{
+		"balance": client.BasicSummaryEntry{
+			Key:           &key1,
+			Title:         &title1,
+			CurrencyCode:  &currencyCode1,
+			MonetaryValue: &monetaryValue1,
+		},
+		"spent": client.BasicSummaryEntry{
+			Key:           &key2,
+			Title:         &title2,
+			CurrencyCode:  &currencyCode2,
+			MonetaryValue: &monetaryValue2,
+		},
+	}
+
+	result := mapBasicSummaryToBasicSummaryList(basicSummary)
+
+	// Verify the mapping
+	assert.NotNil(t, result)
+	assert.Len(t, result.Data, 2)
+
+	// Check that both entries are mapped correctly
+	foundBalance := false
+	foundSpent := false
+
+	for _, summary := range result.Data {
+		if summary.Key == key1 {
+			foundBalance = true
+			assert.Equal(t, title1, summary.Title)
+			assert.Equal(t, currencyCode1, summary.CurrencyCode)
+			assert.Equal(t, monetaryValue1, summary.MonetaryValue)
+		}
+		if summary.Key == key2 {
+			foundSpent = true
+			assert.Equal(t, title2, summary.Title)
+			assert.Equal(t, currencyCode2, summary.CurrencyCode)
+			assert.Equal(t, monetaryValue2, summary.MonetaryValue)
+		}
+	}
+
+	assert.True(t, foundBalance, "Balance entry should be found")
+	assert.True(t, foundSpent, "Spent entry should be found")
+}
+
+func TestMapBasicSummaryToBasicSummaryList_EmptyMap(t *testing.T) {
+	// Test with empty map
+	emptySummary := &client.BasicSummary{}
+	result := mapBasicSummaryToBasicSummaryList(emptySummary)
+
+	assert.NotNil(t, result)
+	assert.Empty(t, result.Data)
+}
+
+func TestMapBasicSummaryToBasicSummaryList_NilInput(t *testing.T) {
+	// Test with nil input
+	result := mapBasicSummaryToBasicSummaryList(nil)
+
+	assert.NotNil(t, result)
+	assert.Empty(t, result.Data)
+}
+
+func TestMapBasicSummaryToBasicSummaryList_NilValues(t *testing.T) {
+	// Test with nil values in entries
+	basicSummary := &client.BasicSummary{
+		"entry1": client.BasicSummaryEntry{
+			Key:           nil,
+			Title:         nil,
+			CurrencyCode:  nil,
+			MonetaryValue: nil,
+		},
+		"entry2": client.BasicSummaryEntry{
+			Key:           nil,
+			Title:         nil,
+			CurrencyCode:  nil,
+			MonetaryValue: nil,
+		},
+	}
+
+	result := mapBasicSummaryToBasicSummaryList(basicSummary)
+
+	// Verify the mapping handles nil values gracefully
+	assert.NotNil(t, result)
+	assert.Len(t, result.Data, 2)
+
+	// All values should be empty strings
+	for _, summary := range result.Data {
+		assert.Equal(t, "", summary.Key)
+		assert.Equal(t, "", summary.Title)
+		assert.Equal(t, "", summary.CurrencyCode)
+		assert.Equal(t, "", summary.MonetaryValue)
+	}
+}
+
+func TestMapBasicSummaryToBasicSummaryList_InvalidData(t *testing.T) {
+	// Test with various edge cases
+	key := "net-worth-in-EUR"
+	title := "Net Worth (EUR)"
+	currencyCode := "EUR"
+	monetaryValue := "0.00"
+
+	basicSummary := &client.BasicSummary{
+		"net_worth": client.BasicSummaryEntry{
+			Key:           &key,
+			Title:         &title,
+			CurrencyCode:  &currencyCode,
+			MonetaryValue: &monetaryValue,
+		},
+	}
+
+	result := mapBasicSummaryToBasicSummaryList(basicSummary)
+
+	// Verify the mapping
+	assert.NotNil(t, result)
+	assert.Len(t, result.Data, 1)
+
+	summary := result.Data[0]
+	assert.Equal(t, key, summary.Key)
+	assert.Equal(t, title, summary.Title)
+	assert.Equal(t, currencyCode, summary.CurrencyCode)
+	assert.Equal(t, monetaryValue, summary.MonetaryValue)
+}

@@ -522,7 +522,9 @@ func (s *FireflyMCPServer) handleGetSummary(ctx context.Context, ss *mcp.ServerS
 		}, nil
 	}
 
-	result, _ := json.MarshalIndent(resp.ApplicationvndApiJSON200, "", "  ")
+	// Map response to DTO
+	summaryList := mapBasicSummaryToBasicSummaryList(resp.ApplicationvndApiJSON200)
+	result, _ := json.MarshalIndent(summaryList, "", "  ")
 	return &mcp.CallToolResultFor[struct{}]{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(result)},
@@ -782,6 +784,32 @@ func mapTransactionReadToTransactionGroup(transactionRead *client.TransactionRea
 	}
 
 	return group
+}
+
+// mapBasicSummaryToBasicSummaryList converts client.BasicSummary to BasicSummaryList DTO
+func mapBasicSummaryToBasicSummaryList(basicSummary *client.BasicSummary) *BasicSummaryList {
+	if basicSummary == nil {
+		return &BasicSummaryList{
+			Data: []BasicSummary{},
+		}
+	}
+
+	summaryList := &BasicSummaryList{
+		Data: make([]BasicSummary, 0, len(*basicSummary)),
+	}
+
+	// Convert the map to a slice of BasicSummary DTOs
+	for _, entry := range *basicSummary {
+		summary := BasicSummary{
+			Key:           getStringValue(entry.Key),
+			Title:         getStringValue(entry.Title),
+			CurrencyCode:  getStringValue(entry.CurrencyCode),
+			MonetaryValue: getStringValue(entry.MonetaryValue),
+		}
+		summaryList.Data = append(summaryList.Data, summary)
+	}
+
+	return summaryList
 }
 
 // getAccountTypeValue safely extracts AccountTypeProperty value, returns empty string if nil

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -489,27 +488,81 @@ func TestIntegration_GetSummary(t *testing.T) {
 
 			fmt.Printf("[DEBUG_LOG] MCP call result: %v, Error: %v\n", result != nil, err)
 
-			if err != nil {
-				t.Logf("MCP tool call failed (this might be expected): %v", err)
-				assert.Contains(t, err.Error(), "failed to get summary", "Expected specific error message")
-			} else {
-				assert.NotNil(t, result, "Expected non-nil result")
-				if result.IsError {
-					// Print the actual error content to understand what's failing
-					if len(result.Content) > 0 {
-						if textContent, ok := result.Content[0].(*mcp.TextContent); ok {
-							fmt.Printf("[DEBUG_LOG] Error content: %s\n", textContent.Text)
-							// Check if it's the known JSON unmarshaling issue
-							if strings.Contains(textContent.Text, "cannot unmarshal string into Go struct field") {
-								t.Logf("Known API/client compatibility issue with JSON unmarshaling")
-								return // Skip the assertion, this is expected
-							}
-						}
+			assert.NoError(t, err, "Expected no error from MCP tool call")
+			assert.NotNil(t, result, "Expected non-nil result")
+			assert.False(t, result.IsError, "Expected successful result")
+			assert.NotEmpty(t, result.Content, "Expected content in result")
+
+			// Verify the response structure
+			if textContent, ok := result.Content[0].(*mcp.TextContent); ok {
+				fmt.Printf("[DEBUG_LOG] Response content: %s\n", textContent.Text)
+
+				var summaryList BasicSummaryList
+				err := json.Unmarshal([]byte(textContent.Text), &summaryList)
+				assert.NoError(t, err, "Result should be valid BasicSummaryList JSON")
+
+				// Verify basic structure
+				assert.NotNil(t, summaryList.Data, "Data should not be nil")
+
+				// Log the summary entries for debugging
+				for _, summary := range summaryList.Data {
+					t.Logf("Summary entry: Key=%s, Title=%s, Currency=%s, Value=%s",
+						summary.Key, summary.Title, summary.CurrencyCode, summary.MonetaryValue)
+				}
+
+				// Verify some expected keys (if any data is returned)
+				if len(summaryList.Data) > 0 {
+					// Check that each entry has the required fields populated
+					for _, summary := range summaryList.Data {
+						assert.NotEmpty(t, summary.Key, "Key should not be empty")
+						assert.NotEmpty(t, summary.Title, "Title should not be empty")
+						assert.NotEmpty(t, summary.CurrencyCode, "CurrencyCode should not be empty")
+						assert.NotEmpty(t, summary.MonetaryValue, "MonetaryValue should not be empty")
 					}
 				}
-				assert.False(t, result.IsError, "Expected successful result")
-				t.Logf("Successfully called get_summary MCP tool")
 			}
+
+			t.Logf("Successfully called get_summary MCP tool and received BasicSummaryList DTO")
+		},
+	)
+
+	t.Run(
+		"MCPToolCallWithDefaultDates", func(t *testing.T) {
+			fmt.Printf("[DEBUG_LOG] Testing MCP tool call for get_summary with default dates\n")
+
+			// Create a mock session
+			session := &mcp.ServerSession{}
+
+			// Create tool call parameters without dates (should use current month)
+			params := &mcp.CallToolParamsFor[GetSummaryArgs]{
+				Name:      "get_summary",
+				Arguments: GetSummaryArgs{
+					// No dates provided - should default to current month
+				},
+			}
+
+			ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+			defer cancel()
+
+			// Call the handler directly
+			result, err := server.handleGetSummary(ctx, session, params)
+
+			fmt.Printf("[DEBUG_LOG] MCP call with default dates result: %v, Error: %v\n", result != nil, err)
+
+			assert.NoError(t, err, "Expected no error from MCP tool call")
+			assert.NotNil(t, result, "Expected non-nil result")
+			assert.False(t, result.IsError, "Expected successful result")
+			assert.NotEmpty(t, result.Content, "Expected content in result")
+
+			// Verify the response structure
+			if textContent, ok := result.Content[0].(*mcp.TextContent); ok {
+				var summaryList BasicSummaryList
+				err := json.Unmarshal([]byte(textContent.Text), &summaryList)
+				assert.NoError(t, err, "Result should be valid BasicSummaryList JSON")
+				assert.NotNil(t, summaryList.Data, "Data should not be nil")
+			}
+
+			t.Logf("Successfully called get_summary MCP tool with default dates")
 		},
 	)
 }
