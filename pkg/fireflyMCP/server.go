@@ -60,6 +60,13 @@ type GetSummaryArgs struct {
 	End   string `json:"end,omitempty" mcp:"End date (YYYY-MM-DD)"`
 }
 
+type SearchAccountsArgs struct {
+	Query string `json:"query" mcp:"The search query"`
+	Field string `json:"field" mcp:"The account field(s) to search in (all, iban, name, number, id)"`
+	Limit int    `json:"limit,omitempty" mcp:"Maximum number of accounts to return"`
+	Page  int    `json:"page,omitempty" mcp:"Page number for pagination (default: 1)"`
+}
+
 // NewFireflyMCPServer creates a new Firefly III MCP server
 func NewFireflyMCPServer(config *Config) (*FireflyMCPServer, error) {
 	// Create HTTP client with authentication
@@ -122,6 +129,13 @@ func (s *FireflyMCPServer) registerTools() {
 			Name:        "get_account",
 			Description: "Get details of a specific account",
 		}, s.handleGetAccount,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "search_accounts",
+			Description: "Search for accounts by name, IBAN, or other fields",
+		}, s.handleSearchAccounts,
 	)
 
 	// Transaction tools
@@ -246,6 +260,72 @@ func (s *FireflyMCPServer) handleGetAccount(ctx context.Context, ss *mcp.ServerS
 	// Map response to DTO
 	account := mapAccountSingleToAccount(resp.ApplicationvndApiJSON200)
 	result, _ := json.MarshalIndent(account, "", "  ")
+	return &mcp.CallToolResultFor[struct{}]{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: string(result)},
+		},
+	}, nil
+}
+
+func (s *FireflyMCPServer) handleSearchAccounts(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[SearchAccountsArgs]) (*mcp.CallToolResultFor[struct{}], error) {
+	// Validate required arguments
+	if params.Arguments.Query == "" {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: "Query parameter is required"},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	if params.Arguments.Field == "" {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: "Field parameter is required"},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	// Build API parameters
+	apiParams := &client.SearchAccountsParams{
+		Query: params.Arguments.Query,
+		Field: client.AccountSearchFieldFilter(params.Arguments.Field),
+	}
+
+	if params.Arguments.Limit > 0 {
+		limit := int32(params.Arguments.Limit)
+		apiParams.Limit = &limit
+	}
+
+	if params.Arguments.Page > 0 {
+		page := int32(params.Arguments.Page)
+		apiParams.Page = &page
+	}
+
+	// Call the API
+	resp, err := s.client.SearchAccountsWithResponse(ctx, apiParams)
+	if err != nil {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error searching accounts: %v", err)},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	if resp.StatusCode() != 200 {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	// Map response to DTO - reuse existing mapper since response type is AccountArray
+	accountList := mapAccountArrayToAccountList(resp.ApplicationvndApiJSON200)
+	result, _ := json.MarshalIndent(accountList, "", "  ")
 	return &mcp.CallToolResultFor[struct{}]{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(result)},
