@@ -9,6 +9,7 @@ The MCP server provides the following tools for interacting with Firefly III:
 ### Account Management
 - `list_accounts` - List all accounts with optional filtering by type and limit
 - `get_account` - Get detailed information about a specific account
+- `search_accounts` - Search for accounts by name, IBAN, or other fields
 
 ### Transaction Management  
 - `list_transactions` - List transactions with optional filtering by type, date range, and limit
@@ -96,6 +97,20 @@ The server communicates over stdin/stdout using the MCP protocol. It can be inte
   }
 }
 ```
+
+#### Search Accounts
+```json
+{
+  "name": "search_accounts",
+  "arguments": {
+    "query": "checking",
+    "field": "name",
+    "limit": 5
+  }
+}
+```
+
+Field options: `all`, `iban`, `name`, `number`, `id`
 
 #### List Transactions
 ```json
