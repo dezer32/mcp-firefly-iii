@@ -128,7 +128,23 @@ func main() {
 		}
 	}
 
-	// Example 4: Get basic summary
+	// Example 4: Search accounts
+	fmt.Println("\n=== Searching for Accounts ===")
+	searchResp, err := fireflyClient.SearchAccountsWithResponse(ctx, &client.SearchAccountsParams{
+		Query: "checking",
+		Field: client.AccountSearchFieldFilterName,
+		Limit: &[]int32{5}[0],
+	})
+	if err != nil {
+		log.Printf("Error searching accounts: %v", err)
+	} else {
+		fmt.Printf("Search response status: %s\n", searchResp.Status())
+		if searchResp.StatusCode() == 200 {
+			fmt.Println("Successfully searched accounts!")
+		}
+	}
+
+	// Example 5: Get basic summary
 	fmt.Println("\n=== Getting Basic Summary ===")
 	summaryResp, err := fireflyClient.GetBasicSummaryWithResponse(ctx, &client.GetBasicSummaryParams{})
 	if err != nil {
