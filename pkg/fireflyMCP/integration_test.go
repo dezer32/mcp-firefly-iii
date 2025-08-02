@@ -192,6 +192,158 @@ func TestIntegration_ListAccounts(t *testing.T) {
 	)
 }
 
+func TestIntegration_SearchAccounts(t *testing.T) {
+	testConfig := loadTestConfig(t)
+	server := createTestServer(t, testConfig)
+
+	// Test direct client call first
+	t.Run(
+		"DirectClientCall", func(t *testing.T) {
+			fmt.Printf("[DEBUG_LOG] Testing direct client call for search accounts to %s\n", testConfig.ServerURL)
+
+			clientWithAuth, err := client.NewClient(
+				testConfig.ServerURL, client.WithRequestEditorFn(
+					func(ctx context.Context, req *http.Request) error {
+						req.Header.Set("Authorization", "Bearer "+testConfig.APIToken)
+						req.Header.Set("Accept", "application/vnd.api+json")
+						req.Header.Set("Content-Type", "application/json")
+						return nil
+					},
+				),
+			)
+			require.NoError(t, err, "Failed to create client")
+
+			ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+			defer cancel()
+
+			params := &client.SearchAccountsParams{
+				Query: "checking",
+				Field: client.AccountSearchFieldFilterName,
+			}
+			limit := int32(5)
+			params.Limit = &limit
+
+			response, err := clientWithAuth.SearchAccounts(ctx, params)
+
+			fmt.Printf("[DEBUG_LOG] Response status: %v, Error: %v\n", response.StatusCode, err)
+
+			if err != nil {
+				t.Logf("API call failed (this might be expected): %v", err)
+			} else {
+				assert.Equal(t, 200, response.StatusCode, "Expected successful response")
+				t.Logf("Successfully searched accounts from Firefly III API")
+			}
+		},
+	)
+
+	// Test MCP tool call with various scenarios
+	testCases := []struct {
+		name      string
+		args      SearchAccountsArgs
+		expectErr bool
+		errMsg    string
+	}{
+		{
+			name: "Valid search by name",
+			args: SearchAccountsArgs{
+				Query: "checking",
+				Field: "name",
+				Limit: 5,
+			},
+			expectErr: false,
+		},
+		{
+			name: "Search all fields",
+			args: SearchAccountsArgs{
+				Query: "test",
+				Field: "all",
+				Limit: 10,
+			},
+			expectErr: false,
+		},
+		{
+			name: "Search by IBAN",
+			args: SearchAccountsArgs{
+				Query: "NL",
+				Field: "iban",
+				Limit: 5,
+			},
+			expectErr: false,
+		},
+		{
+			name: "Missing query",
+			args: SearchAccountsArgs{
+				Field: "name",
+			},
+			expectErr: true,
+			errMsg:    "Query parameter is required",
+		},
+		{
+			name: "Missing field",
+			args: SearchAccountsArgs{
+				Query: "test",
+			},
+			expectErr: true,
+			errMsg:    "Field parameter is required",
+		},
+		{
+			name: "With pagination",
+			args: SearchAccountsArgs{
+				Query: "account",
+				Field: "all",
+				Limit: 3,
+				Page:  1,
+			},
+			expectErr: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(
+			tc.name, func(t *testing.T) {
+				fmt.Printf("[DEBUG_LOG] Testing MCP search_accounts: %s\n", tc.name)
+
+				session := &mcp.ServerSession{}
+				params := &mcp.CallToolParamsFor[SearchAccountsArgs]{
+					Name:      "search_accounts",
+					Arguments: tc.args,
+				}
+
+				ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+				defer cancel()
+
+				result, err := server.handleSearchAccounts(ctx, session, params)
+
+				fmt.Printf("[DEBUG_LOG] MCP call result: %v, Error: %v\n", result != nil, err)
+
+				if tc.expectErr {
+					assert.NotNil(t, result)
+					assert.True(t, result.IsError)
+					if tc.errMsg != "" {
+						assert.Contains(t, result.Content[0].(*mcp.TextContent).Text, tc.errMsg)
+					}
+				} else {
+					if err != nil {
+						t.Logf("MCP tool call failed (this might be expected): %v", err)
+					} else {
+						assert.NotNil(t, result)
+						assert.False(t, result.IsError)
+
+						// Parse and validate the response
+						var accountList AccountList
+						err := json.Unmarshal([]byte(result.Content[0].(*mcp.TextContent).Text), &accountList)
+						assert.NoError(t, err, "Failed to parse response")
+
+						// Check pagination info
+						assert.NotNil(t, accountList.Pagination)
+						t.Logf("Found %d accounts out of %d total", accountList.Pagination.Count, accountList.Pagination.Total)
+					}
+				}
+			},
+		)
+	}
+}
+
 func TestIntegration_ListTransactions(t *testing.T) {
 	testConfig := loadTestConfig(t)
 	server := createTestServer(t, testConfig)
@@ -815,6 +967,23 @@ func TestIntegration_AllTools(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
 			defer cancel()
 			_, err := server.handleListAccounts(ctx, session, params)
+			if err != nil {
+				t.Logf("Tool failed (expected): %v", err)
+			}
+		}},
+		{"search_accounts", func(t *testing.T) {
+			session := &mcp.ServerSession{}
+			params := &mcp.CallToolParamsFor[SearchAccountsArgs]{
+				Name: "search_accounts",
+				Arguments: SearchAccountsArgs{
+					Query: "test",
+					Field: "all",
+					Limit: 2,
+				},
+			}
+			ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+			defer cancel()
+			_, err := server.handleSearchAccounts(ctx, session, params)
 			if err != nil {
 				t.Logf("Tool failed (expected): %v", err)
 			}
