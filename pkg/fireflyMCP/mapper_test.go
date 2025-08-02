@@ -293,6 +293,90 @@ func TestMapAccountArrayToAccountList_NilActiveField(t *testing.T) {
 	assert.Equal(t, "expense", account.Type)
 }
 
+func TestMapAccountSingleToAccount(t *testing.T) {
+	// Test with nil input
+	result := mapAccountSingleToAccount(nil)
+	assert.Nil(t, result)
+
+	// Test with sample data
+	active := true
+	notes := "Test account notes"
+
+	accountSingle := &client.AccountSingle{
+		Data: client.AccountRead{
+			Id: "1",
+			Attributes: client.Account{
+				Active: &active,
+				Name:   "Test Account",
+				Notes:  &notes,
+				Type:   client.ShortAccountTypePropertyAsset,
+			},
+			Type: "accounts",
+		},
+	}
+
+	result = mapAccountSingleToAccount(accountSingle)
+
+	// Verify the mapping
+	assert.NotNil(t, result)
+	assert.Equal(t, "1", result.Id)
+	assert.True(t, result.Active)
+	assert.Equal(t, "Test Account", result.Name)
+	assert.Equal(t, &notes, result.Notes)
+	assert.Equal(t, "asset", result.Type)
+}
+
+func TestMapAccountSingleToAccount_InactiveAccount(t *testing.T) {
+	// Test with inactive account
+	active := false
+
+	accountSingle := &client.AccountSingle{
+		Data: client.AccountRead{
+			Id: "2",
+			Attributes: client.Account{
+				Active: &active,
+				Name:   "Inactive Account",
+				Type:   client.ShortAccountTypePropertyLiability,
+			},
+			Type: "accounts",
+		},
+	}
+
+	result := mapAccountSingleToAccount(accountSingle)
+
+	// Verify the mapping
+	assert.NotNil(t, result)
+	assert.Equal(t, "2", result.Id)
+	assert.False(t, result.Active)
+	assert.Equal(t, "Inactive Account", result.Name)
+	assert.Nil(t, result.Notes)
+	assert.Equal(t, "liability", result.Type)
+}
+
+func TestMapAccountSingleToAccount_NilActiveField(t *testing.T) {
+	// Test with nil Active field (should default to false)
+	accountSingle := &client.AccountSingle{
+		Data: client.AccountRead{
+			Id: "3",
+			Attributes: client.Account{
+				Active: nil, // nil pointer
+				Name:   "Account with nil active",
+				Type:   client.ShortAccountTypePropertyExpense,
+			},
+			Type: "accounts",
+		},
+	}
+
+	result := mapAccountSingleToAccount(accountSingle)
+
+	// Verify the mapping
+	assert.NotNil(t, result)
+	assert.Equal(t, "3", result.Id)
+	assert.False(t, result.Active) // Should be false when Active is nil
+	assert.Equal(t, "Account with nil active", result.Name)
+	assert.Equal(t, "expense", result.Type)
+}
+
 func TestMapTransactionArrayToTransactionList(t *testing.T) {
 	// Test with nil input
 	result := mapTransactionArrayToTransactionList(nil)
@@ -543,15 +627,15 @@ func TestMapTransactionArrayToTransactionList_NilFields(t *testing.T) {
 	transaction := group.Transactions[0]
 	assert.Equal(t, "", transaction.Id) // Should be empty string when nil
 	assert.Equal(t, "100.00", transaction.Amount)
-	assert.Equal(t, "", transaction.CurrencyCode)     // Should be empty string when nil
-	assert.Equal(t, "", transaction.DestinationId)    // Should be empty string when nil
-	assert.Equal(t, "", transaction.DestinationName)  // Should be empty string when nil
-	assert.Equal(t, "", transaction.DestinationType)  // Should be empty string when nil
-	assert.Nil(t, transaction.Notes)                  // Should remain nil
-	assert.False(t, transaction.Reconciled)           // Should be false when nil
-	assert.Equal(t, "", transaction.SourceId)         // Should be empty string when nil
-	assert.Equal(t, "", transaction.SourceName)       // Should be empty string when nil
-	assert.Empty(t, transaction.Tags)                 // Should be empty slice when nil
+	assert.Equal(t, "", transaction.CurrencyCode)    // Should be empty string when nil
+	assert.Equal(t, "", transaction.DestinationId)   // Should be empty string when nil
+	assert.Equal(t, "", transaction.DestinationName) // Should be empty string when nil
+	assert.Equal(t, "", transaction.DestinationType) // Should be empty string when nil
+	assert.Nil(t, transaction.Notes)                 // Should remain nil
+	assert.False(t, transaction.Reconciled)          // Should be false when nil
+	assert.Equal(t, "", transaction.SourceId)        // Should be empty string when nil
+	assert.Equal(t, "", transaction.SourceName)      // Should be empty string when nil
+	assert.Empty(t, transaction.Tags)                // Should be empty slice when nil
 	assert.Equal(t, "deposit", transaction.Type)
 }
 
@@ -755,22 +839,22 @@ func TestMapTransactionReadToTransactionGroup_NilFields(t *testing.T) {
 	transaction := result.Transactions[0]
 	assert.Equal(t, "", transaction.Id) // Should be empty string when nil
 	assert.Equal(t, "100.00", transaction.Amount)
-	assert.Equal(t, "", transaction.CurrencyCode)     // Should be empty string when nil
-	assert.Equal(t, "", transaction.DestinationId)    // Should be empty string when nil
-	assert.Equal(t, "", transaction.DestinationName)  // Should be empty string when nil
-	assert.Equal(t, "", transaction.DestinationType)  // Should be empty string when nil
-	assert.Nil(t, transaction.Notes)                  // Should remain nil
-	assert.False(t, transaction.Reconciled)           // Should be false when nil
-	assert.Equal(t, "", transaction.SourceId)         // Should be empty string when nil
-	assert.Equal(t, "", transaction.SourceName)       // Should be empty string when nil
-	assert.Empty(t, transaction.Tags)                 // Should be empty slice when nil
+	assert.Equal(t, "", transaction.CurrencyCode)    // Should be empty string when nil
+	assert.Equal(t, "", transaction.DestinationId)   // Should be empty string when nil
+	assert.Equal(t, "", transaction.DestinationName) // Should be empty string when nil
+	assert.Equal(t, "", transaction.DestinationType) // Should be empty string when nil
+	assert.Nil(t, transaction.Notes)                 // Should remain nil
+	assert.False(t, transaction.Reconciled)          // Should be false when nil
+	assert.Equal(t, "", transaction.SourceId)        // Should be empty string when nil
+	assert.Equal(t, "", transaction.SourceName)      // Should be empty string when nil
+	assert.Empty(t, transaction.Tags)                // Should be empty slice when nil
 	assert.Equal(t, "deposit", transaction.Type)
 }
 
 func TestMapTransactionReadToTransactionGroup_EmptyTransactions(t *testing.T) {
 	// Test with empty transactions slice
 	groupTitle := "Empty Group"
-	
+
 	transactionRead := &client.TransactionRead{
 		Id: "1",
 		Attributes: client.Transaction{

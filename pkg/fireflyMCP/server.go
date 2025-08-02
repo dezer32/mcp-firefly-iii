@@ -243,7 +243,9 @@ func (s *FireflyMCPServer) handleGetAccount(ctx context.Context, ss *mcp.ServerS
 		}, nil
 	}
 
-	result, _ := json.MarshalIndent(resp.ApplicationvndApiJSON200, "", "  ")
+	// Map response to DTO
+	account := mapAccountSingleToAccount(resp.ApplicationvndApiJSON200)
+	result, _ := json.MarshalIndent(account, "", "  ")
 	return &mcp.CallToolResultFor[struct{}]{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(result)},
@@ -635,6 +637,21 @@ func mapAccountArrayToAccountList(accountArray *client.AccountArray) *AccountLis
 	}
 
 	return accountList
+}
+
+// mapAccountSingleToAccount converts client.AccountSingle to Account DTO
+func mapAccountSingleToAccount(accountSingle *client.AccountSingle) *Account {
+	if accountSingle == nil {
+		return nil
+	}
+
+	return &Account{
+		Id:     accountSingle.Data.Id,
+		Active: accountSingle.Data.Attributes.Active != nil && *accountSingle.Data.Attributes.Active,
+		Name:   accountSingle.Data.Attributes.Name,
+		Notes:  accountSingle.Data.Attributes.Notes,
+		Type:   string(accountSingle.Data.Attributes.Type),
+	}
 }
 
 // mapTransactionArrayToTransactionList converts client.TransactionArray to TransactionList DTO

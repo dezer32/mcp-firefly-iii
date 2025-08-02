@@ -245,7 +245,7 @@ func TestIntegration_ListTransactions(t *testing.T) {
 						if len(transactionList.Data) > 0 {
 							firstGroup := transactionList.Data[0]
 							assert.NotEmpty(t, firstGroup.Id, "Transaction group should have an ID")
-							
+
 							// Verify transactions within the group
 							if len(firstGroup.Transactions) > 0 {
 								firstTransaction := firstGroup.Transactions[0]
@@ -254,7 +254,7 @@ func TestIntegration_ListTransactions(t *testing.T) {
 								assert.NotEmpty(t, firstTransaction.Date, "Transaction should have a date")
 								assert.NotEmpty(t, firstTransaction.Description, "Transaction should have a description")
 								assert.NotEmpty(t, firstTransaction.Type, "Transaction should have a type")
-								
+
 								// Check source/destination names are populated based on type
 								switch firstTransaction.Type {
 								case "withdrawal", "expense":
@@ -308,14 +308,14 @@ func TestIntegration_ListTransactions(t *testing.T) {
 			} else {
 				assert.NotNil(t, result, "Expected non-nil result")
 				assert.False(t, result.IsError, "Expected successful result")
-				
+
 				// Verify pagination parameters in response
 				if len(result.Content) > 0 {
 					if textContent, ok := result.Content[0].(*mcp.TextContent); ok {
 						var transactionList TransactionList
 						err := json.Unmarshal([]byte(textContent.Text), &transactionList)
 						assert.NoError(t, err, "Result should be valid TransactionList JSON")
-						
+
 						if transactionList.Pagination.Count > 0 {
 							assert.Equal(t, 1, transactionList.Pagination.CurrentPage, "Should be on page 1")
 							assert.LessOrEqual(t, transactionList.Pagination.Count, 2, "Should have at most 2 items per page")
@@ -323,7 +323,7 @@ func TestIntegration_ListTransactions(t *testing.T) {
 						}
 					}
 				}
-				
+
 				t.Logf("Successfully called list_transactions MCP tool with pagination")
 			}
 		},
@@ -360,14 +360,14 @@ func TestIntegration_ListTransactions(t *testing.T) {
 			} else {
 				assert.NotNil(t, result, "Expected non-nil result")
 				assert.False(t, result.IsError, "Expected successful result")
-				
+
 				// Verify filtered results
 				if len(result.Content) > 0 {
 					if textContent, ok := result.Content[0].(*mcp.TextContent); ok {
 						var transactionList TransactionList
 						err := json.Unmarshal([]byte(textContent.Text), &transactionList)
 						assert.NoError(t, err, "Result should be valid TransactionList JSON")
-						
+
 						// Verify all returned transactions are of the requested type
 						for _, group := range transactionList.Data {
 							for _, transaction := range group.Transactions {
@@ -376,7 +376,7 @@ func TestIntegration_ListTransactions(t *testing.T) {
 						}
 					}
 				}
-				
+
 				t.Logf("Successfully called list_transactions MCP tool with type filter")
 			}
 		},
@@ -395,12 +395,12 @@ func TestIntegration_GetTransaction(t *testing.T) {
 	apiParams := &client.ListTransactionParams{}
 	limit := int32(1)
 	apiParams.Limit = &limit
-	
+
 	resp, err := server.client.ListTransactionWithResponse(ctx, apiParams)
 	if err != nil {
 		t.Fatalf("Failed to list transactions: %v", err)
 	}
-	
+
 	if resp.StatusCode() != 200 || resp.ApplicationvndApiJSON200 == nil || len(resp.ApplicationvndApiJSON200.Data) == 0 {
 		t.Skip("No transactions available for testing get_transaction")
 	}
@@ -438,15 +438,15 @@ func TestIntegration_GetTransaction(t *testing.T) {
 			// Verify the response structure
 			if textContent, ok := result.Content[0].(*mcp.TextContent); ok {
 				fmt.Printf("[DEBUG_LOG] Response content: %s\n", textContent.Text)
-				
+
 				var transactionGroup TransactionGroup
 				err := json.Unmarshal([]byte(textContent.Text), &transactionGroup)
 				assert.NoError(t, err, "Result should be valid TransactionGroup JSON")
-				
+
 				// Verify basic structure
 				assert.Equal(t, transactionId, transactionGroup.Id, "Transaction ID should match")
 				assert.NotEmpty(t, transactionGroup.Transactions, "Should have at least one transaction")
-				
+
 				// Verify first transaction has required fields
 				if len(transactionGroup.Transactions) > 0 {
 					firstTransaction := transactionGroup.Transactions[0]
@@ -455,7 +455,7 @@ func TestIntegration_GetTransaction(t *testing.T) {
 					assert.NotEmpty(t, firstTransaction.Type, "Transaction should have type")
 				}
 			}
-			
+
 			t.Logf("Successfully called get_transaction MCP tool and received TransactionGroup DTO")
 		},
 	)

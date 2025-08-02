@@ -54,7 +54,7 @@ func (t *AuthTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	req.Header.Set("Authorization", "Bearer "+t.Token)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	base := t.Base
 	if base == nil {
 		base = http.DefaultTransport
