@@ -1006,3 +1006,196 @@ func TestMapBasicSummaryToBasicSummaryList_InvalidData(t *testing.T) {
 	assert.Equal(t, currencyCode, summary.CurrencyCode)
 	assert.Equal(t, monetaryValue, summary.MonetaryValue)
 }
+
+func TestMapInsightGroupToDTO(t *testing.T) {
+	// Test with nil input
+	result := mapInsightGroupToDTO(nil)
+	assert.NotNil(t, result)
+	assert.Empty(t, result.Entries)
+
+	// Test with empty insight group
+	emptyGroup := &client.InsightGroup{}
+	result = mapInsightGroupToDTO(emptyGroup)
+	assert.NotNil(t, result)
+	assert.Empty(t, result.Entries)
+
+	// Test with sample data
+	id1 := "1"
+	name1 := "Groceries"
+	difference1 := "-150.50"
+	currencyCode1 := "EUR"
+
+	id2 := "2"
+	name2 := "Transport"
+	difference2 := "-75.00"
+	currencyCode2 := "EUR"
+
+	insightGroup := &client.InsightGroup{
+		{
+			Id:           &id1,
+			Name:         &name1,
+			Difference:   &difference1,
+			CurrencyCode: &currencyCode1,
+		},
+		{
+			Id:           &id2,
+			Name:         &name2,
+			Difference:   &difference2,
+			CurrencyCode: &currencyCode2,
+		},
+	}
+
+	result = mapInsightGroupToDTO(insightGroup)
+
+	// Verify the mapping
+	assert.NotNil(t, result)
+	assert.Len(t, result.Entries, 2)
+
+	// Check first entry
+	entry1 := result.Entries[0]
+	assert.Equal(t, id1, entry1.Id)
+	assert.Equal(t, name1, entry1.Name)
+	assert.Equal(t, difference1, entry1.Amount)
+	assert.Equal(t, currencyCode1, entry1.CurrencyCode)
+
+	// Check second entry
+	entry2 := result.Entries[1]
+	assert.Equal(t, id2, entry2.Id)
+	assert.Equal(t, name2, entry2.Name)
+	assert.Equal(t, difference2, entry2.Amount)
+	assert.Equal(t, currencyCode2, entry2.CurrencyCode)
+}
+
+func TestMapInsightGroupToDTO_NilValues(t *testing.T) {
+	// Test with nil values in entries
+	insightGroup := &client.InsightGroup{
+		{
+			Id:           nil,
+			Name:         nil,
+			Difference:   nil,
+			CurrencyCode: nil,
+		},
+	}
+
+	result := mapInsightGroupToDTO(insightGroup)
+
+	// Verify the mapping handles nil values gracefully
+	assert.NotNil(t, result)
+	assert.Len(t, result.Entries, 1)
+
+	entry := result.Entries[0]
+	assert.Equal(t, "", entry.Id)
+	assert.Equal(t, "", entry.Name)
+	assert.Equal(t, "", entry.Amount)
+	assert.Equal(t, "", entry.CurrencyCode)
+}
+
+func TestMapInsightTotalToDTO(t *testing.T) {
+	// Test with nil input
+	result := mapInsightTotalToDTO(nil)
+	assert.NotNil(t, result)
+	assert.Empty(t, result.Entries)
+
+	// Test with empty insight total
+	emptyTotal := &client.InsightTotal{}
+	result = mapInsightTotalToDTO(emptyTotal)
+	assert.NotNil(t, result)
+	assert.Empty(t, result.Entries)
+
+	// Test with sample data
+	difference1 := "-500.00"
+	currencyCode1 := "EUR"
+
+	difference2 := "-250.50"
+	currencyCode2 := "USD"
+
+	insightTotal := &client.InsightTotal{
+		{
+			Difference:   &difference1,
+			CurrencyCode: &currencyCode1,
+		},
+		{
+			Difference:   &difference2,
+			CurrencyCode: &currencyCode2,
+		},
+	}
+
+	result = mapInsightTotalToDTO(insightTotal)
+
+	// Verify the mapping
+	assert.NotNil(t, result)
+	assert.Len(t, result.Entries, 2)
+
+	// Check first entry
+	entry1 := result.Entries[0]
+	assert.Equal(t, difference1, entry1.Amount)
+	assert.Equal(t, currencyCode1, entry1.CurrencyCode)
+
+	// Check second entry
+	entry2 := result.Entries[1]
+	assert.Equal(t, difference2, entry2.Amount)
+	assert.Equal(t, currencyCode2, entry2.CurrencyCode)
+}
+
+func TestMapInsightTotalToDTO_NilValues(t *testing.T) {
+	// Test with nil values in entries
+	insightTotal := &client.InsightTotal{
+		{
+			Difference:   nil,
+			CurrencyCode: nil,
+		},
+	}
+
+	result := mapInsightTotalToDTO(insightTotal)
+
+	// Verify the mapping handles nil values gracefully
+	assert.NotNil(t, result)
+	assert.Len(t, result.Entries, 1)
+
+	entry := result.Entries[0]
+	assert.Equal(t, "", entry.Amount)
+	assert.Equal(t, "", entry.CurrencyCode)
+}
+
+func TestMapInsightTotalToDTO_MultipleCurrencies(t *testing.T) {
+	// Test with multiple currencies
+	differenceEUR := "-1000.00"
+	currencyCodeEUR := "EUR"
+
+	differenceUSD := "-750.00"
+	currencyCodeUSD := "USD"
+
+	differenceGBP := "-500.00"
+	currencyCodeGBP := "GBP"
+
+	insightTotal := &client.InsightTotal{
+		{
+			Difference:   &differenceEUR,
+			CurrencyCode: &currencyCodeEUR,
+		},
+		{
+			Difference:   &differenceUSD,
+			CurrencyCode: &currencyCodeUSD,
+		},
+		{
+			Difference:   &differenceGBP,
+			CurrencyCode: &currencyCodeGBP,
+		},
+	}
+
+	result := mapInsightTotalToDTO(insightTotal)
+
+	// Verify the mapping
+	assert.NotNil(t, result)
+	assert.Len(t, result.Entries, 3)
+
+	// Check all entries
+	assert.Equal(t, differenceEUR, result.Entries[0].Amount)
+	assert.Equal(t, currencyCodeEUR, result.Entries[0].CurrencyCode)
+
+	assert.Equal(t, differenceUSD, result.Entries[1].Amount)
+	assert.Equal(t, currencyCodeUSD, result.Entries[1].CurrencyCode)
+
+	assert.Equal(t, differenceGBP, result.Entries[2].Amount)
+	assert.Equal(t, currencyCodeGBP, result.Entries[2].CurrencyCode)
+}

@@ -57,6 +57,15 @@ Category {
   Id, Name, Notes
 }
 
+// Insight entities
+InsightCategoryEntry {
+  Id, Name, Amount, CurrencyCode
+}
+
+InsightTotalEntry {
+  Amount, CurrencyCode
+}
+
 // All responses include pagination
 Pagination {
   Count, Total, CurrentPage, PerPage, TotalPages
@@ -76,6 +85,8 @@ MCP tools map to Firefly III endpoints:
 - `list_budgets` → GET /api/v1/budgets
 - `list_categories` → GET /api/v1/categories
 - `get_summary` → GET /api/v1/summary/basic
+- `expense_category_insights` → GET /api/v1/insight/expense/category
+- `expense_total_insights` → GET /api/v1/insight/expense/total
 
 ### Technology Stack
 

@@ -25,6 +25,10 @@ The MCP server provides the following tools for interacting with Firefly III:
 ### Financial Summary
 - `get_summary` - Get basic financial summary with optional date range
 
+### Expense Insights
+- `expense_category_insights` - Get expense insights grouped by category for a date range
+- `expense_total_insights` - Get total expense trends for a date range
+
 ## Configuration
 
 The server uses a YAML configuration file (`config.yaml`) with the following structure:
@@ -95,6 +99,30 @@ The server communicates over stdin/stdout using the MCP protocol. It can be inte
   "name": "get_account", 
   "arguments": {
     "id": "123"
+  }
+}
+```
+
+#### Get Expense Category Insights
+```json
+{
+  "name": "expense_category_insights",
+  "arguments": {
+    "start": "2024-01-01",
+    "end": "2024-12-31",
+    "accounts": ["1", "2"] // optional
+  }
+}
+```
+
+#### Get Expense Total Insights
+```json
+{
+  "name": "expense_total_insights",
+  "arguments": {
+    "start": "2024-01-01",
+    "end": "2024-12-31",
+    "accounts": ["1", "2"] // optional
   }
 }
 ```

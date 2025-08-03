@@ -94,3 +94,23 @@ type BasicSummary struct {
 type BasicSummaryList struct {
 	Data []BasicSummary `json:"data"`
 }
+
+type InsightCategoryEntry struct {
+	Id           string `json:"id"`
+	Name         string `json:"name"`
+	Amount       string `json:"amount"`
+	CurrencyCode string `json:"currency_code"`
+}
+
+type InsightTotalEntry struct {
+	Amount       string `json:"amount"`
+	CurrencyCode string `json:"currency_code"`
+}
+
+type InsightCategoryResponse struct {
+	Entries []InsightCategoryEntry `json:"entries"`
+}
+
+type InsightTotalResponse struct {
+	Entries []InsightTotalEntry `json:"entries"`
+}

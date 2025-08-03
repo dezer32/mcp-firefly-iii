@@ -626,8 +626,8 @@ func TestIntegration_SearchTransactions(t *testing.T) {
 			name: "ValidSearch",
 			args: SearchTransactionsArgs{
 				Query: "test",
-				Limit: intPtr(5),
-				Page:  intPtr(1),
+				Limit: 5,
+				Page:  1,
 			},
 			expectErr: false,
 		},
@@ -635,8 +635,8 @@ func TestIntegration_SearchTransactions(t *testing.T) {
 			name: "SearchWithPagination",
 			args: SearchTransactionsArgs{
 				Query: "payment",
-				Limit: intPtr(2),
-				Page:  intPtr(2),
+				Limit: 2,
+				Page:  2,
 			},
 			expectErr: false,
 		},
@@ -652,7 +652,7 @@ func TestIntegration_SearchTransactions(t *testing.T) {
 			name: "NoResults",
 			args: SearchTransactionsArgs{
 				Query: "xyznonexistent123",
-				Limit: intPtr(10),
+				Limit: 10,
 			},
 			expectErr: false,
 		},
@@ -713,11 +713,6 @@ func TestIntegration_SearchTransactions(t *testing.T) {
 			},
 		)
 	}
-}
-
-// Helper function to create int32 pointer
-func intPtr(i int32) *int32 {
-	return &i
 }
 
 func TestIntegration_GetSummary(t *testing.T) {
@@ -1149,4 +1144,361 @@ func TestIntegration_AllTools(t *testing.T) {
 			},
 		)
 	}
+}
+
+func TestIntegrationExpenseCategoryInsights(t *testing.T) {
+	testConfig := loadTestConfig(t)
+	server := createTestServer(t, testConfig)
+
+	t.Run("BasicCall", func(t *testing.T) {
+		fmt.Printf("[DEBUG_LOG] Testing MCP tool call for expense_category_insights\n")
+
+		// Create a mock session
+		session := &mcp.ServerSession{}
+
+		// Create tool call parameters
+		params := &mcp.CallToolParamsFor[ExpenseCategoryInsightsArgs]{
+			Name: "expense_category_insights",
+			Arguments: ExpenseCategoryInsightsArgs{
+				Start: "2024-01-01",
+				End:   "2024-12-31",
+			},
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+		defer cancel()
+
+		// Call the handler directly
+		result, err := server.handleExpenseCategoryInsights(ctx, session, params)
+
+		fmt.Printf("[DEBUG_LOG] MCP call result: %v, Error: %v\n", result != nil, err)
+
+		if err != nil {
+			t.Logf("MCP tool call failed (this might be expected): %v", err)
+			assert.Contains(t, err.Error(), "failed to get expense category insights", "Expected specific error message")
+		} else {
+			assert.NotNil(t, result, "Expected non-nil result")
+			assert.False(t, result.IsError, "Expected successful result")
+			t.Logf("Successfully called expense_category_insights MCP tool")
+
+			// Verify the result structure
+			if len(result.Content) > 0 {
+				if textContent, ok := result.Content[0].(*mcp.TextContent); ok {
+					// Unmarshal to verify it's a properly formatted InsightCategoryResponse
+					var insightResponse InsightCategoryResponse
+					err := json.Unmarshal([]byte(textContent.Text), &insightResponse)
+					assert.NoError(t, err, "Result should be valid InsightCategoryResponse JSON")
+
+					// Verify the structure
+					for _, entry := range insightResponse.Entries {
+						assert.NotEmpty(t, entry.Id, "Entry should have an ID")
+						assert.NotEmpty(t, entry.Name, "Entry should have a name")
+						assert.NotEmpty(t, entry.Amount, "Entry should have an amount")
+						assert.NotEmpty(t, entry.CurrencyCode, "Entry should have a currency code")
+					}
+
+					t.Logf("Successfully verified InsightCategoryResponse structure with %d entries", len(insightResponse.Entries))
+				}
+			}
+		}
+	})
+
+	t.Run("WithAccountFilter", func(t *testing.T) {
+		fmt.Printf("[DEBUG_LOG] Testing MCP tool call for expense_category_insights with account filter\n")
+
+		// First, get a list of accounts to get valid IDs
+		apiParams := &client.ListAccountParams{}
+		limit := int32(2)
+		apiParams.Limit = &limit
+
+		ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+		defer cancel()
+
+		resp, err := server.client.ListAccountWithResponse(ctx, apiParams)
+		if err != nil || resp.StatusCode() != 200 || resp.ApplicationvndApiJSON200 == nil || len(resp.ApplicationvndApiJSON200.Data) == 0 {
+			t.Skip("No accounts available for testing with account filter")
+		}
+
+		// Get account IDs
+		var accountIds []string
+		for _, account := range resp.ApplicationvndApiJSON200.Data {
+			accountIds = append(accountIds, account.Id)
+			if len(accountIds) >= 2 {
+				break
+			}
+		}
+
+		// Create a mock session
+		session := &mcp.ServerSession{}
+
+		// Create tool call parameters with account filter
+		params := &mcp.CallToolParamsFor[ExpenseCategoryInsightsArgs]{
+			Name: "expense_category_insights",
+			Arguments: ExpenseCategoryInsightsArgs{
+				Start:    "2024-01-01",
+				End:      "2024-12-31",
+				Accounts: accountIds,
+			},
+		}
+
+		// Call the handler directly
+		result, err := server.handleExpenseCategoryInsights(ctx, session, params)
+
+		fmt.Printf("[DEBUG_LOG] MCP call with account filter result: %v, Error: %v\n", result != nil, err)
+
+		if err != nil {
+			t.Logf("MCP tool call with account filter failed (this might be expected): %v", err)
+		} else {
+			assert.NotNil(t, result, "Expected non-nil result")
+			assert.False(t, result.IsError, "Expected successful result")
+			t.Logf("Successfully called expense_category_insights MCP tool with account filter")
+		}
+	})
+
+	t.Run("InvalidDateFormat", func(t *testing.T) {
+		fmt.Printf("[DEBUG_LOG] Testing MCP tool call for expense_category_insights with invalid date format\n")
+
+		// Create a mock session
+		session := &mcp.ServerSession{}
+
+		// Create tool call parameters with invalid date format
+		params := &mcp.CallToolParamsFor[ExpenseCategoryInsightsArgs]{
+			Name: "expense_category_insights",
+			Arguments: ExpenseCategoryInsightsArgs{
+				Start: "01/01/2024", // Invalid format
+				End:   "2024-12-31",
+			},
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+		defer cancel()
+
+		// Call the handler directly
+		result, err := server.handleExpenseCategoryInsights(ctx, session, params)
+
+		fmt.Printf("[DEBUG_LOG] MCP call with invalid date result: %v, Error: %v\n", result != nil, err)
+
+		assert.NoError(t, err, "MCP handlers should not return Go errors")
+		assert.NotNil(t, result, "Expected non-nil result")
+		assert.True(t, result.IsError, "Expected error result")
+
+		// Verify error message
+		if len(result.Content) > 0 {
+			if textContent, ok := result.Content[0].(*mcp.TextContent); ok {
+				assert.Contains(t, textContent.Text, "Invalid start date format", "Expected date format error message")
+			}
+		}
+	})
+
+	t.Run("EmptyDateRange", func(t *testing.T) {
+		fmt.Printf("[DEBUG_LOG] Testing MCP tool call for expense_category_insights with empty date range\n")
+
+		// Create a mock session
+		session := &mcp.ServerSession{}
+
+		// Create tool call parameters without dates
+		params := &mcp.CallToolParamsFor[ExpenseCategoryInsightsArgs]{
+			Name:      "expense_category_insights",
+			Arguments: ExpenseCategoryInsightsArgs{
+				// No dates provided
+			},
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+		defer cancel()
+
+		// Call the handler directly
+		result, err := server.handleExpenseCategoryInsights(ctx, session, params)
+
+		fmt.Printf("[DEBUG_LOG] MCP call with empty dates result: %v, Error: %v\n", result != nil, err)
+
+		assert.NoError(t, err, "MCP handlers should not return Go errors")
+		assert.NotNil(t, result, "Expected non-nil result")
+		assert.True(t, result.IsError, "Expected error result")
+
+		// Verify error message
+		if len(result.Content) > 0 {
+			if textContent, ok := result.Content[0].(*mcp.TextContent); ok {
+				assert.Contains(t, textContent.Text, "required", "Expected required parameter error message")
+			}
+		}
+	})
+}
+
+func TestIntegrationExpenseTotalInsights(t *testing.T) {
+	testConfig := loadTestConfig(t)
+	server := createTestServer(t, testConfig)
+
+	t.Run("BasicCall", func(t *testing.T) {
+		fmt.Printf("[DEBUG_LOG] Testing MCP tool call for expense_total_insights\n")
+
+		// Create a mock session
+		session := &mcp.ServerSession{}
+
+		// Create tool call parameters
+		params := &mcp.CallToolParamsFor[ExpenseTotalInsightsArgs]{
+			Name: "expense_total_insights",
+			Arguments: ExpenseTotalInsightsArgs{
+				Start: "2024-01-01",
+				End:   "2024-12-31",
+			},
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+		defer cancel()
+
+		// Call the handler directly
+		result, err := server.handleExpenseTotalInsights(ctx, session, params)
+
+		fmt.Printf("[DEBUG_LOG] MCP call result: %v, Error: %v\n", result != nil, err)
+
+		if err != nil {
+			t.Logf("MCP tool call failed (this might be expected): %v", err)
+			assert.Contains(t, err.Error(), "failed to get expense total insights", "Expected specific error message")
+		} else {
+			assert.NotNil(t, result, "Expected non-nil result")
+			assert.False(t, result.IsError, "Expected successful result")
+			t.Logf("Successfully called expense_total_insights MCP tool")
+
+			// Verify the result structure
+			if len(result.Content) > 0 {
+				if textContent, ok := result.Content[0].(*mcp.TextContent); ok {
+					// Unmarshal to verify it's a properly formatted InsightTotalResponse
+					var insightResponse InsightTotalResponse
+					err := json.Unmarshal([]byte(textContent.Text), &insightResponse)
+					assert.NoError(t, err, "Result should be valid InsightTotalResponse JSON")
+
+					// Verify the structure
+					for _, entry := range insightResponse.Entries {
+						assert.NotEmpty(t, entry.Amount, "Entry should have an amount")
+						assert.NotEmpty(t, entry.CurrencyCode, "Entry should have a currency code")
+					}
+
+					t.Logf("Successfully verified InsightTotalResponse structure with %d entries", len(insightResponse.Entries))
+				}
+			}
+		}
+	})
+
+	t.Run("WithAccountFilter", func(t *testing.T) {
+		fmt.Printf("[DEBUG_LOG] Testing MCP tool call for expense_total_insights with account filter\n")
+
+		// First, get a list of accounts to get valid IDs
+		apiParams := &client.ListAccountParams{}
+		limit := int32(2)
+		apiParams.Limit = &limit
+
+		ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+		defer cancel()
+
+		resp, err := server.client.ListAccountWithResponse(ctx, apiParams)
+		if err != nil || resp.StatusCode() != 200 || resp.ApplicationvndApiJSON200 == nil || len(resp.ApplicationvndApiJSON200.Data) == 0 {
+			t.Skip("No accounts available for testing with account filter")
+		}
+
+		// Get account IDs
+		var accountIds []string
+		for _, account := range resp.ApplicationvndApiJSON200.Data {
+			accountIds = append(accountIds, account.Id)
+			if len(accountIds) >= 2 {
+				break
+			}
+		}
+
+		// Create a mock session
+		session := &mcp.ServerSession{}
+
+		// Create tool call parameters with account filter
+		params := &mcp.CallToolParamsFor[ExpenseTotalInsightsArgs]{
+			Name: "expense_total_insights",
+			Arguments: ExpenseTotalInsightsArgs{
+				Start:    "2024-01-01",
+				End:      "2024-12-31",
+				Accounts: accountIds,
+			},
+		}
+
+		// Call the handler directly
+		result, err := server.handleExpenseTotalInsights(ctx, session, params)
+
+		fmt.Printf("[DEBUG_LOG] MCP call with account filter result: %v, Error: %v\n", result != nil, err)
+
+		if err != nil {
+			t.Logf("MCP tool call with account filter failed (this might be expected): %v", err)
+		} else {
+			assert.NotNil(t, result, "Expected non-nil result")
+			assert.False(t, result.IsError, "Expected successful result")
+			t.Logf("Successfully called expense_total_insights MCP tool with account filter")
+		}
+	})
+
+	t.Run("InvalidDateFormat", func(t *testing.T) {
+		fmt.Printf("[DEBUG_LOG] Testing MCP tool call for expense_total_insights with invalid date format\n")
+
+		// Create a mock session
+		session := &mcp.ServerSession{}
+
+		// Create tool call parameters with invalid date format
+		params := &mcp.CallToolParamsFor[ExpenseTotalInsightsArgs]{
+			Name: "expense_total_insights",
+			Arguments: ExpenseTotalInsightsArgs{
+				Start: "2024-01-01",
+				End:   "31-12-2024", // Invalid format
+			},
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+		defer cancel()
+
+		// Call the handler directly
+		result, err := server.handleExpenseTotalInsights(ctx, session, params)
+
+		fmt.Printf("[DEBUG_LOG] MCP call with invalid date result: %v, Error: %v\n", result != nil, err)
+
+		assert.NoError(t, err, "MCP handlers should not return Go errors")
+		assert.NotNil(t, result, "Expected non-nil result")
+		assert.True(t, result.IsError, "Expected error result")
+
+		// Verify error message
+		if len(result.Content) > 0 {
+			if textContent, ok := result.Content[0].(*mcp.TextContent); ok {
+				assert.Contains(t, textContent.Text, "Invalid end date format", "Expected date format error message")
+			}
+		}
+	})
+
+	t.Run("MissingEndDate", func(t *testing.T) {
+		fmt.Printf("[DEBUG_LOG] Testing MCP tool call for expense_total_insights with missing end date\n")
+
+		// Create a mock session
+		session := &mcp.ServerSession{}
+
+		// Create tool call parameters with missing end date
+		params := &mcp.CallToolParamsFor[ExpenseTotalInsightsArgs]{
+			Name: "expense_total_insights",
+			Arguments: ExpenseTotalInsightsArgs{
+				Start: "2024-01-01",
+				// End date is missing
+			},
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+		defer cancel()
+
+		// Call the handler directly
+		result, err := server.handleExpenseTotalInsights(ctx, session, params)
+
+		fmt.Printf("[DEBUG_LOG] MCP call with missing end date result: %v, Error: %v\n", result != nil, err)
+
+		assert.NoError(t, err, "MCP handlers should not return Go errors")
+		assert.NotNil(t, result, "Expected non-nil result")
+		assert.True(t, result.IsError, "Expected error result")
+
+		// Verify error message
+		if len(result.Content) > 0 {
+			if textContent, ok := result.Content[0].(*mcp.TextContent); ok {
+				assert.Contains(t, textContent.Text, "Start and End dates are required", "Expected required parameter error message")
+			}
+		}
+	})
 }

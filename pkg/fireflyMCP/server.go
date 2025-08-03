@@ -75,6 +75,18 @@ type SearchTransactionsArgs struct {
 	End   string `json:"end,omitempty" mcp:"End date (YYYY-MM-DD)"`
 }
 
+type ExpenseCategoryInsightsArgs struct {
+	Start    string   `json:"start" mcp:"Start date (YYYY-MM-DD)"`
+	End      string   `json:"end" mcp:"End date (YYYY-MM-DD)"`
+	Accounts []string `json:"accounts,omitempty" mcp:"Account IDs to include in results"`
+}
+
+type ExpenseTotalInsightsArgs struct {
+	Start    string   `json:"start" mcp:"Start date (YYYY-MM-DD)"`
+	End      string   `json:"end" mcp:"End date (YYYY-MM-DD)"`
+	Accounts []string `json:"accounts,omitempty" mcp:"Account IDs to include in results"`
+}
+
 // NewFireflyMCPServer creates a new Firefly III MCP server
 func NewFireflyMCPServer(config *Config) (*FireflyMCPServer, error) {
 	// Create HTTP client with authentication
@@ -190,6 +202,21 @@ func (s *FireflyMCPServer) registerTools() {
 			Name:        "get_summary",
 			Description: "Get basic financial summary from Firefly III",
 		}, s.handleGetSummary,
+	)
+
+	// Insights tools
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "expense_category_insights",
+			Description: "Get expense insights grouped by category for a date range",
+		}, s.handleExpenseCategoryInsights,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "expense_total_insights",
+			Description: "Get total expense insights for a date range",
+		}, s.handleExpenseTotalInsights,
 	)
 }
 
@@ -949,6 +976,237 @@ func mapBasicSummaryToBasicSummaryList(basicSummary *client.BasicSummary) *Basic
 	}
 
 	return summaryList
+}
+
+// handleExpenseCategoryInsights returns expense insights grouped by category
+func (s *FireflyMCPServer) handleExpenseCategoryInsights(
+	ctx context.Context,
+	ss *mcp.ServerSession,
+	params *mcp.CallToolParamsFor[ExpenseCategoryInsightsArgs],
+) (*mcp.CallToolResultFor[struct{}], error) {
+	// Validate required dates
+	if params.Arguments.Start == "" || params.Arguments.End == "" {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: "Start and End dates are required"},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	// Parse dates
+	startDate, err := time.Parse("2006-01-02", params.Arguments.Start)
+	if err != nil {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Invalid start date format: %v", err)},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	endDate, err := time.Parse("2006-01-02", params.Arguments.End)
+	if err != nil {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Invalid end date format: %v", err)},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	// Build API parameters
+	apiParams := &client.InsightExpenseCategoryParams{
+		Start: openapi_types.Date{Time: startDate},
+		End:   openapi_types.Date{Time: endDate},
+	}
+
+	// Convert account IDs from strings to int64
+	if len(params.Arguments.Accounts) > 0 {
+		accounts := make([]int64, len(params.Arguments.Accounts))
+		for i, accStr := range params.Arguments.Accounts {
+			var accID int64
+			if _, err := fmt.Sscanf(accStr, "%d", &accID); err != nil {
+				return &mcp.CallToolResultFor[struct{}]{
+					Content: []mcp.Content{
+						&mcp.TextContent{Text: fmt.Sprintf("Invalid account ID: %s", accStr)},
+					},
+					IsError: true,
+				}, nil
+			}
+			accounts[i] = accID
+		}
+		apiParams.Accounts = &accounts
+	}
+
+	// Call the API
+	resp, err := s.client.InsightExpenseCategoryWithResponse(ctx, apiParams)
+	if err != nil {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error getting expense category insights: %v", err)},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	if resp.StatusCode() != 200 {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	// Map response to DTO
+	insightResponse := mapInsightGroupToDTO(resp.JSON200)
+	result, _ := json.MarshalIndent(insightResponse, "", "  ")
+	return &mcp.CallToolResultFor[struct{}]{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: string(result)},
+		},
+	}, nil
+}
+
+// handleExpenseTotalInsights returns total expense insights
+func (s *FireflyMCPServer) handleExpenseTotalInsights(
+	ctx context.Context,
+	ss *mcp.ServerSession,
+	params *mcp.CallToolParamsFor[ExpenseTotalInsightsArgs],
+) (*mcp.CallToolResultFor[struct{}], error) {
+	// Validate required dates
+	if params.Arguments.Start == "" || params.Arguments.End == "" {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: "Start and End dates are required"},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	// Parse dates
+	startDate, err := time.Parse("2006-01-02", params.Arguments.Start)
+	if err != nil {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Invalid start date format: %v", err)},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	endDate, err := time.Parse("2006-01-02", params.Arguments.End)
+	if err != nil {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Invalid end date format: %v", err)},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	// Build API parameters
+	apiParams := &client.InsightExpenseTotalParams{
+		Start: openapi_types.Date{Time: startDate},
+		End:   openapi_types.Date{Time: endDate},
+	}
+
+	// Convert account IDs from strings to int64
+	if len(params.Arguments.Accounts) > 0 {
+		accounts := make([]int64, len(params.Arguments.Accounts))
+		for i, accStr := range params.Arguments.Accounts {
+			var accID int64
+			if _, err := fmt.Sscanf(accStr, "%d", &accID); err != nil {
+				return &mcp.CallToolResultFor[struct{}]{
+					Content: []mcp.Content{
+						&mcp.TextContent{Text: fmt.Sprintf("Invalid account ID: %s", accStr)},
+					},
+					IsError: true,
+				}, nil
+			}
+			accounts[i] = accID
+		}
+		apiParams.Accounts = &accounts
+	}
+
+	// Call the API
+	resp, err := s.client.InsightExpenseTotalWithResponse(ctx, apiParams)
+	if err != nil {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error getting expense total insights: %v", err)},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	if resp.StatusCode() != 200 {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	// Map response to DTO
+	insightResponse := mapInsightTotalToDTO(resp.JSON200)
+	result, _ := json.MarshalIndent(insightResponse, "", "  ")
+	return &mcp.CallToolResultFor[struct{}]{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: string(result)},
+		},
+	}, nil
+}
+
+// mapInsightGroupToDTO converts client.InsightGroup to InsightCategoryResponse DTO
+func mapInsightGroupToDTO(group *client.InsightGroup) *InsightCategoryResponse {
+	if group == nil {
+		return &InsightCategoryResponse{
+			Entries: []InsightCategoryEntry{},
+		}
+	}
+
+	response := &InsightCategoryResponse{
+		Entries: make([]InsightCategoryEntry, 0, len(*group)),
+	}
+
+	for _, entry := range *group {
+		// Use difference as the amount since it represents the expense
+		categoryEntry := InsightCategoryEntry{
+			Id:           getStringValue(entry.Id),
+			Name:         getStringValue(entry.Name),
+			Amount:       getStringValue(entry.Difference),
+			CurrencyCode: getStringValue(entry.CurrencyCode),
+		}
+		response.Entries = append(response.Entries, categoryEntry)
+	}
+
+	return response
+}
+
+// mapInsightTotalToDTO converts client.InsightTotal to InsightTotalResponse DTO
+func mapInsightTotalToDTO(total *client.InsightTotal) *InsightTotalResponse {
+	if total == nil {
+		return &InsightTotalResponse{
+			Entries: []InsightTotalEntry{},
+		}
+	}
+
+	response := &InsightTotalResponse{
+		Entries: make([]InsightTotalEntry, 0, len(*total)),
+	}
+
+	for _, entry := range *total {
+		totalEntry := InsightTotalEntry{
+			Amount:       getStringValue(entry.Difference),
+			CurrencyCode: getStringValue(entry.CurrencyCode),
+		}
+		response.Entries = append(response.Entries, totalEntry)
+	}
+
+	return response
 }
 
 // getAccountTypeValue safely extracts AccountTypeProperty value, returns empty string if nil
