@@ -19,6 +19,7 @@ This is a Model Context Protocol (MCP) server implementation for Firefly III per
 - Focuses on essential data fields
 - Includes pagination support
 - Types: `Budget`, `Category`, `Account`, `Transaction`, `TransactionGroup`
+- **IMPORTANT**: When returning data (Account, TransactionGroup, etc.), always use the existing DTOs and map values from the API responses to these DTOs. Never return raw API responses directly.
 
 #### Service Layer (`pkg/fireflyMCP/server.go`)
 - MCP server implementation using `modelcontextprotocol/go-sdk`
@@ -68,8 +69,10 @@ MCP tools map to Firefly III endpoints:
 
 - `list_accounts` → GET /api/v1/accounts
 - `get_account` → GET /api/v1/accounts/{id}
+- `search_accounts` → GET /api/v1/search/accounts
 - `list_transactions` → GET /api/v1/transactions
 - `get_transaction` → GET /api/v1/transactions/{id}
+- `search_transactions` → GET /api/v1/search/transactions
 - `list_budgets` → GET /api/v1/budgets
 - `list_categories` → GET /api/v1/categories
 - `get_summary` → GET /api/v1/summary/basic
@@ -301,7 +304,7 @@ When Firefly III API changes:
 
 ### Current Limitations
 1. Read-only operations (no write support)
-2. Limited to 7 core MCP tools
+2. Limited to 9 core MCP tools
 3. No support for attachments
 4. Basic pagination only
 5. No real-time updates

@@ -612,6 +612,114 @@ func TestIntegration_GetTransaction(t *testing.T) {
 	)
 }
 
+func TestIntegration_SearchTransactions(t *testing.T) {
+	testConfig := loadTestConfig(t)
+	server := createTestServer(t, testConfig)
+
+	testCases := []struct {
+		name      string
+		args      SearchTransactionsArgs
+		expectErr bool
+		errMsg    string
+	}{
+		{
+			name: "ValidSearch",
+			args: SearchTransactionsArgs{
+				Query: "test",
+				Limit: intPtr(5),
+				Page:  intPtr(1),
+			},
+			expectErr: false,
+		},
+		{
+			name: "SearchWithPagination",
+			args: SearchTransactionsArgs{
+				Query: "payment",
+				Limit: intPtr(2),
+				Page:  intPtr(2),
+			},
+			expectErr: false,
+		},
+		{
+			name: "EmptyQuery",
+			args: SearchTransactionsArgs{
+				Query: "",
+			},
+			expectErr: true,
+			errMsg:    "Query parameter is required",
+		},
+		{
+			name: "NoResults",
+			args: SearchTransactionsArgs{
+				Query: "xyznonexistent123",
+				Limit: intPtr(10),
+			},
+			expectErr: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(
+			tc.name, func(t *testing.T) {
+				fmt.Printf("[DEBUG_LOG] Testing MCP search_transactions: %s\n", tc.name)
+
+				session := &mcp.ServerSession{}
+				params := &mcp.CallToolParamsFor[SearchTransactionsArgs]{
+					Name:      "search_transactions",
+					Arguments: tc.args,
+				}
+
+				ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+				defer cancel()
+
+				result, err := server.handleSearchTransactions(ctx, session, params)
+
+				fmt.Printf("[DEBUG_LOG] MCP call result: %v, Error: %v\n", result != nil, err)
+
+				if tc.expectErr {
+					assert.NotNil(t, result)
+					assert.True(t, result.IsError)
+					if tc.errMsg != "" {
+						assert.Contains(t, result.Content[0].(*mcp.TextContent).Text, tc.errMsg)
+					}
+				} else {
+					if err != nil {
+						t.Logf("MCP tool call failed (this might be expected): %v", err)
+					} else {
+						assert.NotNil(t, result)
+						assert.False(t, result.IsError)
+
+						// Parse and validate the response
+						var transactionList TransactionList
+						err := json.Unmarshal([]byte(result.Content[0].(*mcp.TextContent).Text), &transactionList)
+						assert.NoError(t, err, "Failed to parse response")
+
+						// Check pagination info
+						assert.NotNil(t, transactionList.Pagination)
+						t.Logf("Found %d transaction groups out of %d total", transactionList.Pagination.Count, transactionList.Pagination.Total)
+
+						// Verify transaction structure if results exist
+						if len(transactionList.Data) > 0 {
+							firstGroup := transactionList.Data[0]
+							assert.NotEmpty(t, firstGroup.Id, "Transaction group should have an ID")
+							if len(firstGroup.Transactions) > 0 {
+								firstTransaction := firstGroup.Transactions[0]
+								assert.NotEmpty(t, firstTransaction.Description, "Transaction should have a description")
+								assert.NotEmpty(t, firstTransaction.Amount, "Transaction should have an amount")
+							}
+						}
+					}
+				}
+			},
+		)
+	}
+}
+
+// Helper function to create int32 pointer
+func intPtr(i int32) *int32 {
+	return &i
+}
+
 func TestIntegration_GetSummary(t *testing.T) {
 	testConfig := loadTestConfig(t)
 	server := createTestServer(t, testConfig)

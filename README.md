@@ -14,6 +14,7 @@ The MCP server provides the following tools for interacting with Firefly III:
 ### Transaction Management  
 - `list_transactions` - List transactions with optional filtering by type, date range, and limit
 - `get_transaction` - Get detailed information about a specific transaction
+- `search_transactions` - Search for transactions by keyword
 
 ### Budget Management
 - `list_budgets` - List all budgets with optional limit
@@ -121,6 +122,20 @@ Field options: `all`, `iban`, `name`, `number`, `id`
     "start": "2024-01-01",
     "end": "2024-01-31",
     "limit": 10
+  }
+}
+```
+
+#### Search Transactions
+```json
+{
+  "name": "search_transactions",
+  "arguments": {
+    "query": "groceries",
+    "limit": 10,
+    "page": 1,
+    "start": "2024-01-01",
+    "end": "2024-12-31"
   }
 }
 ```

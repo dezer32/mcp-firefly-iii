@@ -67,6 +67,14 @@ type SearchAccountsArgs struct {
 	Page  int    `json:"page,omitempty" mcp:"Page number for pagination (default: 1)"`
 }
 
+type SearchTransactionsArgs struct {
+	Query string `json:"query" mcp:"The search query"`
+	Limit int32  `json:"limit,omitempty" mcp:"Maximum number of transactions to return"`
+	Page  int32  `json:"page,omitempty" mcp:"Page number for pagination (default: 1)"`
+	Start string `json:"start,omitempty" mcp:"Start date (YYYY-MM-DD)"`
+	End   string `json:"end,omitempty" mcp:"End date (YYYY-MM-DD)"`
+}
+
 // NewFireflyMCPServer creates a new Firefly III MCP server
 func NewFireflyMCPServer(config *Config) (*FireflyMCPServer, error) {
 	// Create HTTP client with authentication
@@ -153,6 +161,13 @@ func (s *FireflyMCPServer) registerTools() {
 		}, s.handleGetTransaction,
 	)
 
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "search_transactions",
+			Description: "Search for transactions by keyword",
+		}, s.handleSearchTransactions,
+	)
+
 	// Budget tools
 	mcp.AddTool(
 		s.server, &mcp.Tool{
@@ -180,7 +195,11 @@ func (s *FireflyMCPServer) registerTools() {
 
 // Tool handlers
 
-func (s *FireflyMCPServer) handleListAccounts(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[ListAccountsArgs]) (*mcp.CallToolResultFor[struct{}], error) {
+func (s *FireflyMCPServer) handleListAccounts(
+	ctx context.Context,
+	ss *mcp.ServerSession,
+	params *mcp.CallToolParamsFor[ListAccountsArgs],
+) (*mcp.CallToolResultFor[struct{}], error) {
 	apiParams := &client.ListAccountParams{}
 
 	if params.Arguments.Type != "" {
@@ -227,7 +246,11 @@ func (s *FireflyMCPServer) handleListAccounts(ctx context.Context, ss *mcp.Serve
 	}, nil
 }
 
-func (s *FireflyMCPServer) handleGetAccount(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[GetAccountArgs]) (*mcp.CallToolResultFor[struct{}], error) {
+func (s *FireflyMCPServer) handleGetAccount(
+	ctx context.Context,
+	ss *mcp.ServerSession,
+	params *mcp.CallToolParamsFor[GetAccountArgs],
+) (*mcp.CallToolResultFor[struct{}], error) {
 	if params.Arguments.ID == "" {
 		return &mcp.CallToolResultFor[struct{}]{
 			Content: []mcp.Content{
@@ -267,7 +290,11 @@ func (s *FireflyMCPServer) handleGetAccount(ctx context.Context, ss *mcp.ServerS
 	}, nil
 }
 
-func (s *FireflyMCPServer) handleSearchAccounts(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[SearchAccountsArgs]) (*mcp.CallToolResultFor[struct{}], error) {
+func (s *FireflyMCPServer) handleSearchAccounts(
+	ctx context.Context,
+	ss *mcp.ServerSession,
+	params *mcp.CallToolParamsFor[SearchAccountsArgs],
+) (*mcp.CallToolResultFor[struct{}], error) {
 	// Validate required arguments
 	if params.Arguments.Query == "" {
 		return &mcp.CallToolResultFor[struct{}]{
@@ -333,7 +360,11 @@ func (s *FireflyMCPServer) handleSearchAccounts(ctx context.Context, ss *mcp.Ser
 	}, nil
 }
 
-func (s *FireflyMCPServer) handleListTransactions(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[ListTransactionsArgs]) (*mcp.CallToolResultFor[struct{}], error) {
+func (s *FireflyMCPServer) handleListTransactions(
+	ctx context.Context,
+	ss *mcp.ServerSession,
+	params *mcp.CallToolParamsFor[ListTransactionsArgs],
+) (*mcp.CallToolResultFor[struct{}], error) {
 	apiParams := &client.ListTransactionParams{}
 
 	if params.Arguments.Type != "" {
@@ -394,7 +425,11 @@ func (s *FireflyMCPServer) handleListTransactions(ctx context.Context, ss *mcp.S
 	}, nil
 }
 
-func (s *FireflyMCPServer) handleGetTransaction(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[GetTransactionArgs]) (*mcp.CallToolResultFor[struct{}], error) {
+func (s *FireflyMCPServer) handleGetTransaction(
+	ctx context.Context,
+	ss *mcp.ServerSession,
+	params *mcp.CallToolParamsFor[GetTransactionArgs],
+) (*mcp.CallToolResultFor[struct{}], error) {
 	if params.Arguments.ID == "" {
 		return &mcp.CallToolResultFor[struct{}]{
 			Content: []mcp.Content{
@@ -444,7 +479,63 @@ func (s *FireflyMCPServer) handleGetTransaction(ctx context.Context, ss *mcp.Ser
 	}, nil
 }
 
-func (s *FireflyMCPServer) handleListBudgets(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[ListBudgetsArgs]) (*mcp.CallToolResultFor[struct{}], error) {
+func (s *FireflyMCPServer) handleSearchTransactions(
+	ctx context.Context,
+	ss *mcp.ServerSession,
+	params *mcp.CallToolParamsFor[SearchTransactionsArgs],
+) (*mcp.CallToolResultFor[struct{}], error) {
+	// Validate required arguments
+	if params.Arguments.Query == "" {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: "Query parameter is required"},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	// Build API parameters
+	apiParams := &client.SearchTransactionsParams{
+		Query: params.Arguments.Query,
+		Limit: &params.Arguments.Limit,
+		Page:  &params.Arguments.Page,
+	}
+
+	// Call the API
+	resp, err := s.client.SearchTransactionsWithResponse(ctx, apiParams)
+	if err != nil {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error searching transactions: %v", err)},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	if resp.StatusCode() != 200 {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	// Map response to DTO - reuse existing mapper since response type is TransactionArray
+	transactionList := mapTransactionArrayToTransactionList(resp.ApplicationvndApiJSON200)
+	result, _ := json.MarshalIndent(transactionList, "", "  ")
+	return &mcp.CallToolResultFor[struct{}]{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: string(result)},
+		},
+	}, nil
+}
+
+func (s *FireflyMCPServer) handleListBudgets(
+	ctx context.Context,
+	ss *mcp.ServerSession,
+	params *mcp.CallToolParamsFor[ListBudgetsArgs],
+) (*mcp.CallToolResultFor[struct{}], error) {
 	apiParams := &client.ListBudgetParams{}
 
 	// Set default start date to first day of current month
@@ -513,7 +604,11 @@ func (s *FireflyMCPServer) handleListBudgets(ctx context.Context, ss *mcp.Server
 	}, nil
 }
 
-func (s *FireflyMCPServer) handleListCategories(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[ListCategoriesArgs]) (*mcp.CallToolResultFor[struct{}], error) {
+func (s *FireflyMCPServer) handleListCategories(
+	ctx context.Context,
+	ss *mcp.ServerSession,
+	params *mcp.CallToolParamsFor[ListCategoriesArgs],
+) (*mcp.CallToolResultFor[struct{}], error) {
 	apiParams := &client.ListCategoryParams{}
 
 	if params.Arguments.Limit > 0 {
@@ -555,7 +650,11 @@ func (s *FireflyMCPServer) handleListCategories(ctx context.Context, ss *mcp.Ser
 	}, nil
 }
 
-func (s *FireflyMCPServer) handleGetSummary(ctx context.Context, ss *mcp.ServerSession, params *mcp.CallToolParamsFor[GetSummaryArgs]) (*mcp.CallToolResultFor[struct{}], error) {
+func (s *FireflyMCPServer) handleGetSummary(
+	ctx context.Context,
+	ss *mcp.ServerSession,
+	params *mcp.CallToolParamsFor[GetSummaryArgs],
+) (*mcp.CallToolResultFor[struct{}], error) {
 	apiParams := &client.GetBasicSummaryParams{}
 
 	// Set default start date to first day of current month
@@ -759,47 +858,7 @@ func mapTransactionArrayToTransactionList(transactionArray *client.TransactionAr
 
 	// Map transaction data
 	for i, transactionRead := range transactionArray.Data {
-		group := TransactionGroup{
-			Id:           transactionRead.Id,
-			GroupTitle:   getStringValue(transactionRead.Attributes.GroupTitle),
-			Transactions: make([]Transaction, len(transactionRead.Attributes.Transactions)),
-		}
-
-		// Map individual transactions within the group
-		for j, split := range transactionRead.Attributes.Transactions {
-			transaction := Transaction{
-				Id:              getStringValue(split.TransactionJournalId),
-				Amount:          split.Amount,
-				BillId:          split.BillId,
-				BillName:        split.BillName,
-				BudgetId:        split.BudgetId,
-				BudgetName:      split.BudgetName,
-				CategoryId:      split.CategoryId,
-				CategoryName:    split.CategoryName,
-				CurrencyCode:    getStringValue(split.CurrencyCode),
-				Date:            split.Date,
-				Description:     split.Description,
-				DestinationId:   getStringValue(split.DestinationId),
-				DestinationName: getStringValue(split.DestinationName),
-				DestinationType: string(getAccountTypeValue(split.DestinationType)),
-				Notes:           split.Notes,
-				Reconciled:      split.Reconciled != nil && *split.Reconciled,
-				SourceId:        getStringValue(split.SourceId),
-				SourceName:      getStringValue(split.SourceName),
-				Type:            string(split.Type),
-			}
-
-			// Handle tags
-			if split.Tags != nil && len(*split.Tags) > 0 {
-				transaction.Tags = *split.Tags
-			} else {
-				transaction.Tags = []string{}
-			}
-
-			group.Transactions[j] = transaction
-		}
-
-		transactionList.Data[i] = group
+		transactionList.Data[i] = *mapTransactionReadToTransactionGroup(&transactionRead)
 	}
 
 	// Map pagination
