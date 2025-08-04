@@ -129,6 +129,10 @@ type ListBillTransactionsArgs struct {
 	Page  int    `json:"page,omitempty" mcp:"Page number for pagination (default: 1)"`
 }
 
+type StoreTransactionArgs struct {
+	TransactionStoreRequest
+}
+
 func NewFireflyMCPServer(config *Config) (*FireflyMCPServer, error) {
 	// Create HTTP client with authentication
 	httpClient := &http.Client{
@@ -219,6 +223,13 @@ func (s *FireflyMCPServer) registerTools() {
 			Name:        "search_transactions",
 			Description: "Search for transactions by keyword",
 		}, s.handleSearchTransactions,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "store_transaction",
+			Description: "Create a new transaction in Firefly III",
+		}, s.handleStoreTransaction,
 	)
 
 	// Budget tools
@@ -2014,6 +2025,8 @@ func getRecurrenceType(t *client.RecurrenceTransactionType) string {
 	}
 	return string(*t)
 }
+
+
 
 // fixCurrencyIdFields converts numeric currency_id values to strings in JSON response
 // This fixes the JSON unmarshaling error where API returns numbers but structs expect strings
