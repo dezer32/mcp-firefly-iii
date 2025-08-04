@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dezer32/firefly-iii/pkg/client"
+	"github.com/dezer32/mcp-firefly-iii/pkg/client"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 	"github.com/stretchr/testify/assert"
 )
@@ -61,10 +61,12 @@ func TestMapRecurrenceRepetitionToRecurrenceRepetition(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := mapRecurrenceRepetitionToRecurrenceRepetition(tt.input)
-			assert.Equal(t, tt.expected, result)
-		})
+		t.Run(
+			tt.name, func(t *testing.T) {
+				result := mapRecurrenceRepetitionToRecurrenceRepetition(tt.input)
+				assert.Equal(t, tt.expected, result)
+			},
+		)
 	}
 }
 
@@ -148,10 +150,12 @@ func TestMapRecurrenceTransactionToRecurrenceTransaction(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := mapRecurrenceTransactionToRecurrenceTransaction(tt.input)
-			assert.Equal(t, tt.expected, result)
-		})
+		t.Run(
+			tt.name, func(t *testing.T) {
+				result := mapRecurrenceTransactionToRecurrenceTransaction(tt.input)
+				assert.Equal(t, tt.expected, result)
+			},
+		)
 	}
 }
 
@@ -317,10 +321,12 @@ func TestMapRecurrenceToRecurrence(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := mapRecurrenceToRecurrence(tt.input)
-			assert.Equal(t, tt.expected, result)
-		})
+		t.Run(
+			tt.name, func(t *testing.T) {
+				result := mapRecurrenceToRecurrence(tt.input)
+				assert.Equal(t, tt.expected, result)
+			},
+		)
 	}
 }
 
@@ -470,10 +476,12 @@ func TestMapRecurrenceArrayToRecurrenceList(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := mapRecurrenceArrayToRecurrenceList(tt.input)
-			assert.Equal(t, tt.expected, result)
-		})
+		t.Run(
+			tt.name, func(t *testing.T) {
+				result := mapRecurrenceArrayToRecurrenceList(tt.input)
+				assert.Equal(t, tt.expected, result)
+			},
+		)
 	}
 }
 

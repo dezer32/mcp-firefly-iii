@@ -3,7 +3,7 @@ package fireflyMCP
 import (
 	"time"
 
-	"github.com/dezer32/firefly-iii/pkg/client"
+	"github.com/dezer32/mcp-firefly-iii/pkg/client"
 )
 
 // mapRecurrenceRepetitionToDTO converts client RecurrenceRepetition to DTO

@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/dezer32/firefly-iii/pkg/client"
+	"github.com/dezer32/mcp-firefly-iii/pkg/client"
 	"gopkg.in/yaml.v3"
 )
 
@@ -102,9 +102,11 @@ func main() {
 
 	// Example 2: List accounts
 	fmt.Println("\n=== Listing Accounts ===")
-	accountsResp, err := fireflyClient.ListAccountWithResponse(ctx, &client.ListAccountParams{
-		Limit: &[]int32{int32(config.Limits.Accounts)}[0], // Get accounts from config
-	})
+	accountsResp, err := fireflyClient.ListAccountWithResponse(
+		ctx, &client.ListAccountParams{
+			Limit: &[]int32{int32(config.Limits.Accounts)}[0], // Get accounts from config
+		},
+	)
 	if err != nil {
 		log.Printf("Error listing accounts: %v", err)
 	} else {
@@ -116,9 +118,11 @@ func main() {
 
 	// Example 3: List transactions
 	fmt.Println("\n=== Listing Recent Transactions ===")
-	transactionsResp, err := fireflyClient.ListTransactionWithResponse(ctx, &client.ListTransactionParams{
-		Limit: &[]int32{int32(config.Limits.Transactions)}[0], // Get transactions from config
-	})
+	transactionsResp, err := fireflyClient.ListTransactionWithResponse(
+		ctx, &client.ListTransactionParams{
+			Limit: &[]int32{int32(config.Limits.Transactions)}[0], // Get transactions from config
+		},
+	)
 	if err != nil {
 		log.Printf("Error listing transactions: %v", err)
 	} else {
@@ -130,11 +134,13 @@ func main() {
 
 	// Example 4: Search accounts
 	fmt.Println("\n=== Searching for Accounts ===")
-	searchResp, err := fireflyClient.SearchAccountsWithResponse(ctx, &client.SearchAccountsParams{
-		Query: "checking",
-		Field: client.AccountSearchFieldFilterName,
-		Limit: &[]int32{5}[0],
-	})
+	searchResp, err := fireflyClient.SearchAccountsWithResponse(
+		ctx, &client.SearchAccountsParams{
+			Query: "checking",
+			Field: client.AccountSearchFieldFilterName,
+			Limit: &[]int32{5}[0],
+		},
+	)
 	if err != nil {
 		log.Printf("Error searching accounts: %v", err)
 	} else {

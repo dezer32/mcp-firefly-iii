@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/dezer32/firefly-iii/pkg/client"
+	"github.com/dezer32/mcp-firefly-iii/pkg/client"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )

@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/dezer32/firefly-iii/pkg/fireflyMCP"
+	"github.com/dezer32/mcp-firefly-iii/pkg/fireflyMCP"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

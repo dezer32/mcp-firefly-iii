@@ -1,4 +1,4 @@
-module github.com/dezer32/firefly-iii
+module github.com/dezer32/mcp-firefly-iii
 
 go 1.24.5
 
