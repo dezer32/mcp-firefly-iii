@@ -136,3 +136,14 @@ type BudgetLimitList struct {
 	Data       []BudgetLimit `json:"data"`
 	Pagination Pagination    `json:"pagination"`
 }
+
+type Tag struct {
+	Id          string  `json:"id"`
+	Tag         string  `json:"tag"`
+	Description *string `json:"description"`
+}
+
+type TagList struct {
+	Data       []Tag      `json:"data"`
+	Pagination Pagination `json:"pagination"`
+}

@@ -1325,6 +1325,99 @@ func TestIntegrationExpenseCategoryInsights(t *testing.T) {
 	})
 }
 
+func TestIntegration_ListTags(t *testing.T) {
+	testConfig := loadTestConfig(t)
+	server := createTestServer(t, testConfig)
+
+	t.Run("MCPToolCall", func(t *testing.T) {
+		fmt.Printf("[DEBUG_LOG] Testing MCP tool call for list_tags\n")
+
+		// Create a mock session
+		session := &mcp.ServerSession{}
+
+		// Create tool call parameters
+		params := &mcp.CallToolParamsFor[ListTagsArgs]{
+			Name: "list_tags",
+			Arguments: ListTagsArgs{
+				Limit: 5,
+			},
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+		defer cancel()
+
+		// Call the handler directly
+		result, err := server.handleListTags(ctx, session, params)
+
+		fmt.Printf("[DEBUG_LOG] MCP call result: %v, Error: %v\n", result != nil, err)
+
+		if err != nil {
+			t.Logf("MCP tool call failed (this might be expected): %v", err)
+			assert.Contains(t, err.Error(), "failed to list tags", "Expected specific error message")
+		} else {
+			assert.NotNil(t, result, "Expected non-nil result")
+			assert.False(t, result.IsError, "Expected successful result")
+			t.Logf("Successfully called list_tags MCP tool")
+		}
+	})
+
+	t.Run("MCPToolCallWithPagination", func(t *testing.T) {
+		fmt.Printf("[DEBUG_LOG] Testing MCP tool call for list_tags with pagination\n")
+
+		// Create a mock session
+		session := &mcp.ServerSession{}
+
+		// Create tool call parameters with pagination
+		params := &mcp.CallToolParamsFor[ListTagsArgs]{
+			Name: "list_tags",
+			Arguments: ListTagsArgs{
+				Limit: 10,
+				Page:  1,
+			},
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+		defer cancel()
+
+		// Call the handler directly
+		result, err := server.handleListTags(ctx, session, params)
+
+		fmt.Printf("[DEBUG_LOG] MCP call result: %v, Error: %v\n", result != nil, err)
+
+		if err != nil {
+			t.Fatalf("MCP tool call failed: %v", err)
+		}
+
+		assert.NotNil(t, result, "Expected non-nil result")
+		assert.False(t, result.IsError, "Expected successful result")
+		assert.NotNil(t, result.Content, "Expected content in result")
+		assert.Greater(t, len(result.Content), 0, "Expected at least one content item")
+
+		// Parse the result
+		textContent, ok := result.Content[0].(*mcp.TextContent)
+		assert.True(t, ok, "Expected TextContent type")
+
+		var tagList TagList
+		err = json.Unmarshal([]byte(textContent.Text), &tagList)
+		assert.NoError(t, err, "Failed to unmarshal tag list")
+
+		// Verify the response structure
+		assert.NotNil(t, tagList.Data, "Expected data array")
+		assert.LessOrEqual(t, len(tagList.Data), 10, "Expected at most 10 tags")
+
+		// Log the tags for debugging
+		for i, tag := range tagList.Data {
+			t.Logf("Tag %d: ID=%s, Name=%s", i+1, tag.Id, tag.Tag)
+			if tag.Description != nil {
+				t.Logf("  Description: %s", *tag.Description)
+			}
+			if tag.Date != nil {
+				t.Logf("  Date: %s", *tag.Date)
+			}
+		}
+	})
+}
+
 func TestIntegrationExpenseTotalInsights(t *testing.T) {
 	testConfig := loadTestConfig(t)
 	server := createTestServer(t, testConfig)
@@ -1581,7 +1674,7 @@ func TestIntegration_ListBudgetLimits(t *testing.T) {
 
 		// Create tool call parameters without ID
 		params := &mcp.CallToolParamsFor[ListBudgetLimitsArgs]{
-			Name: "list_budget_limits",
+			Name:      "list_budget_limits",
 			Arguments: ListBudgetLimitsArgs{
 				// ID is missing
 			},

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/dezer32/firefly-iii/pkg/client"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -1431,4 +1432,122 @@ func TestMapBudgetLimitArrayToBudgetLimitList_MultipleLimits(t *testing.T) {
 	// Verify pagination
 	assert.Equal(t, count, result.Pagination.Count)
 	assert.Equal(t, total, result.Pagination.Total)
+}
+
+func TestMapTagArrayToTagList(t *testing.T) {
+	// Test with nil input
+	result := mapTagArrayToTagList(nil)
+	assert.Nil(t, result)
+
+	// Test with empty tag array
+	emptyArray := &client.TagArray{
+		Data: []client.TagRead{},
+		Meta: client.Meta{},
+	}
+	result = mapTagArrayToTagList(emptyArray)
+	assert.NotNil(t, result)
+	assert.Empty(t, result.Data)
+
+	// Test with sample data
+	description := "Test tag description"
+	tagDate := openapi_types.Date{Time: time.Date(2023, 12, 1, 0, 0, 0, 0, time.UTC)}
+	createdAt := time.Date(2023, 11, 1, 10, 0, 0, 0, time.UTC)
+	updatedAt := time.Date(2023, 11, 15, 15, 30, 0, 0, time.UTC)
+	count := 2
+	total := 2
+	currentPage := 1
+	perPage := 10
+	totalPages := 1
+
+	tagArray := &client.TagArray{
+		Data: []client.TagRead{
+			{
+				Id: "1",
+				Attributes: client.TagModel{
+					Tag:         "groceries",
+					Description: &description,
+					Date:        &tagDate,
+					CreatedAt:   &createdAt,
+					UpdatedAt:   &updatedAt,
+				},
+			},
+			{
+				Id: "2",
+				Attributes: client.TagModel{
+					Tag: "vacation",
+					// No optional fields for this tag
+				},
+			},
+		},
+		Meta: client.Meta{
+			Pagination: &struct {
+				Count       *int `json:"count,omitempty"`
+				CurrentPage *int `json:"current_page,omitempty"`
+				PerPage     *int `json:"per_page,omitempty"`
+				Total       *int `json:"total,omitempty"`
+				TotalPages  *int `json:"total_pages,omitempty"`
+			}{
+				Count:       &count,
+				Total:       &total,
+				CurrentPage: &currentPage,
+				PerPage:     &perPage,
+				TotalPages:  &totalPages,
+			},
+		},
+	}
+
+	result = mapTagArrayToTagList(tagArray)
+	assert.NotNil(t, result)
+	assert.Len(t, result.Data, 2)
+
+	// Verify first tag with all fields
+	tag1 := result.Data[0]
+	assert.Equal(t, "1", tag1.Id)
+	assert.Equal(t, "groceries", tag1.Tag)
+	assert.NotNil(t, tag1.Description)
+	assert.Equal(t, description, *tag1.Description)
+	assert.NotNil(t, tag1.Date)
+	assert.Equal(t, "2023-12-01", *tag1.Date)
+	assert.Equal(t, createdAt, tag1.CreatedAt)
+	assert.Equal(t, updatedAt, tag1.UpdatedAt)
+
+	// Verify second tag with minimal fields
+	tag2 := result.Data[1]
+	assert.Equal(t, "2", tag2.Id)
+	assert.Equal(t, "vacation", tag2.Tag)
+	assert.Nil(t, tag2.Description)
+	assert.Nil(t, tag2.Date)
+
+	// Verify pagination
+	assert.Equal(t, count, result.Pagination.Count)
+	assert.Equal(t, total, result.Pagination.Total)
+	assert.Equal(t, currentPage, result.Pagination.CurrentPage)
+	assert.Equal(t, perPage, result.Pagination.PerPage)
+	assert.Equal(t, totalPages, result.Pagination.TotalPages)
+}
+
+func TestMapTagArrayToTagList_NilPagination(t *testing.T) {
+	// Test with nil pagination
+	tagArray := &client.TagArray{
+		Data: []client.TagRead{
+			{
+				Id: "1",
+				Attributes: client.TagModel{
+					Tag: "test",
+				},
+			},
+		},
+		Meta: client.Meta{
+			Pagination: nil,
+		},
+	}
+
+	result := mapTagArrayToTagList(tagArray)
+	assert.NotNil(t, result)
+	assert.Len(t, result.Data, 1)
+	assert.Equal(t, "test", result.Data[0].Tag)
+
+	// Verify pagination has default zero values
+	assert.Equal(t, 0, result.Pagination.Count)
+	assert.Equal(t, 0, result.Pagination.Total)
 }

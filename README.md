@@ -24,6 +24,9 @@ The MCP server provides the following tools for interacting with Firefly III:
 ### Category Management
 - `list_categories` - List all categories with optional limit
 
+### Tag Management
+- `list_tags` - List all tags with optional pagination
+
 ### Financial Summary
 - `get_summary` - Get basic financial summary with optional date range
 
@@ -166,6 +169,17 @@ Field options: `all`, `iban`, `name`, `number`, `id`
     "page": 1,
     "start": "2024-01-01",
     "end": "2024-12-31"
+  }
+}
+```
+
+#### List Tags
+```json
+{
+  "name": "list_tags",
+  "arguments": {
+    "limit": 10,
+    "page": 1
   }
 }
 ```

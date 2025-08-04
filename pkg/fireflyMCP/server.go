@@ -102,6 +102,11 @@ type ListBudgetTransactionsArgs struct {
 	Page  int    `json:"page,omitempty" mcp:"Page number for pagination (default: 1)"`
 }
 
+type ListTagsArgs struct {
+	Limit int `json:"limit,omitempty" mcp:"Maximum number of tags to return"`
+	Page  int `json:"page,omitempty" mcp:"Page number for pagination (default: 1)"`
+}
+
 // NewFireflyMCPServer creates a new Firefly III MCP server
 func NewFireflyMCPServer(config *Config) (*FireflyMCPServer, error) {
 	// Create HTTP client with authentication
@@ -223,6 +228,14 @@ func (s *FireflyMCPServer) registerTools() {
 			Name:        "list_categories",
 			Description: "List all categories in Firefly III",
 		}, s.handleListCategories,
+	)
+
+	// Tag tools
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "list_tags",
+			Description: "List all tags in Firefly III",
+		}, s.handleListTags,
 	)
 
 	// Summary tools
@@ -706,6 +719,52 @@ func (s *FireflyMCPServer) handleListCategories(
 	}, nil
 }
 
+func (s *FireflyMCPServer) handleListTags(
+	ctx context.Context,
+	ss *mcp.ServerSession,
+	params *mcp.CallToolParamsFor[ListTagsArgs],
+) (*mcp.CallToolResultFor[struct{}], error) {
+	apiParams := &client.ListTagParams{}
+
+	if params.Arguments.Limit > 0 {
+		limit := int32(params.Arguments.Limit)
+		apiParams.Limit = &limit
+	}
+
+	if params.Arguments.Page > 0 {
+		page := int32(params.Arguments.Page)
+		apiParams.Page = &page
+	}
+
+	resp, err := s.client.ListTagWithResponse(ctx, apiParams)
+	if err != nil {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error listing tags: %v", err)},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	if resp.StatusCode() != 200 {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	// Map the response to TagList DTO
+	tagList := mapTagArrayToTagList(resp.ApplicationvndApiJSON200)
+	result, _ := json.MarshalIndent(tagList, "", "  ")
+	return &mcp.CallToolResultFor[struct{}]{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: string(result)},
+		},
+	}, nil
+}
+
 func (s *FireflyMCPServer) handleGetSummary(
 	ctx context.Context,
 	ss *mcp.ServerSession,
@@ -847,6 +906,40 @@ func mapCategoryArrayToCategoryList(categoryArray *client.CategoryArray) *Catego
 	}
 
 	return categoryList
+}
+
+// mapTagArrayToTagList converts client.TagArray to TagList DTO
+func mapTagArrayToTagList(tagArray *client.TagArray) *TagList {
+	if tagArray == nil {
+		return nil
+	}
+
+	tagList := &TagList{
+		Data: make([]Tag, len(tagArray.Data)),
+	}
+
+	// Map tag data
+	for i, tagRead := range tagArray.Data {
+		tagList.Data[i] = Tag{
+			Id:          tagRead.Id,
+			Tag:         tagRead.Attributes.Tag,
+			Description: tagRead.Attributes.Description,
+		}
+	}
+
+	// Map pagination
+	if tagArray.Meta.Pagination != nil {
+		pagination := tagArray.Meta.Pagination
+		tagList.Pagination = Pagination{
+			Count:       getIntValue(pagination.Count),
+			Total:       getIntValue(pagination.Total),
+			CurrentPage: getIntValue(pagination.CurrentPage),
+			PerPage:     getIntValue(pagination.PerPage),
+			TotalPages:  getIntValue(pagination.TotalPages),
+		}
+	}
+
+	return tagList
 }
 
 // mapAccountArrayToAccountList converts client.AccountArray to AccountList DTO
