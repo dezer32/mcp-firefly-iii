@@ -147,3 +147,74 @@ type TagList struct {
 	Data       []Tag      `json:"data"`
 	Pagination Pagination `json:"pagination"`
 }
+
+type PaidDate struct {
+	Date                 *time.Time `json:"date"`
+	TransactionGroupId   *string    `json:"transaction_group_id"`
+	TransactionJournalId *string    `json:"transaction_journal_id"`
+}
+
+type Bill struct {
+	Id                string     `json:"id"`
+	Active            bool       `json:"active"`
+	Name              string     `json:"name"`
+	AmountMin         string     `json:"amount_min"`
+	AmountMax         string     `json:"amount_max"`
+	Date              time.Time  `json:"date"`
+	RepeatFreq        string     `json:"repeat_freq"`
+	Skip              int        `json:"skip"`
+	CurrencyCode      string     `json:"currency_code"`
+	Notes             *string    `json:"notes"`
+	NextExpectedMatch *time.Time `json:"next_expected_match"`
+	PaidDates         []PaidDate `json:"paid_dates"`
+}
+
+type BillList struct {
+	Data       []Bill     `json:"data"`
+	Pagination Pagination `json:"pagination"`
+}
+
+type RecurrenceRepetition struct {
+	Id          string  `json:"id"`
+	Type        string  `json:"type"`
+	Moment      string  `json:"moment"`
+	Skip        int     `json:"skip"`
+	Weekend     int     `json:"weekend"`
+	Description *string `json:"description"`
+}
+
+type RecurrenceTransaction struct {
+	Id              string  `json:"id"`
+	Description     string  `json:"description"`
+	Amount          string  `json:"amount"`
+	CurrencyCode    string  `json:"currency_code"`
+	CategoryId      *string `json:"category_id"`
+	CategoryName    *string `json:"category_name"`
+	BudgetId        *string `json:"budget_id"`
+	BudgetName      *string `json:"budget_name"`
+	SourceId        string  `json:"source_id"`
+	SourceName      string  `json:"source_name"`
+	DestinationId   string  `json:"destination_id"`
+	DestinationName string  `json:"destination_name"`
+}
+
+type Recurrence struct {
+	Id              string                  `json:"id"`
+	Type            string                  `json:"type"`
+	Title           string                  `json:"title"`
+	Description     string                  `json:"description"`
+	FirstDate       time.Time               `json:"first_date"`
+	LatestDate      *time.Time              `json:"latest_date"`
+	RepeatUntil     *time.Time              `json:"repeat_until"`
+	NrOfRepetitions *int                    `json:"nr_of_repetitions"`
+	ApplyRules      bool                    `json:"apply_rules"`
+	Active          bool                    `json:"active"`
+	Notes           *string                 `json:"notes"`
+	Repetitions     []RecurrenceRepetition  `json:"repetitions"`
+	Transactions    []RecurrenceTransaction `json:"transactions"`
+}
+
+type RecurrenceList struct {
+	Data       []Recurrence `json:"data"`
+	Pagination Pagination   `json:"pagination"`
+}

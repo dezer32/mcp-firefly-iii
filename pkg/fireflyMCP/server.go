@@ -107,7 +107,28 @@ type ListTagsArgs struct {
 	Page  int `json:"page,omitempty" mcp:"Page number for pagination (default: 1)"`
 }
 
-// NewFireflyMCPServer creates a new Firefly III MCP server
+type ListBillsArgs struct {
+	Start string `json:"start,omitempty" mcp:"Start date (YYYY-MM-DD)"`
+	End   string `json:"end,omitempty" mcp:"End date (YYYY-MM-DD)"`
+	Limit int    `json:"limit,omitempty" mcp:"Maximum number of bills to return"`
+	Page  int    `json:"page,omitempty" mcp:"Page number for pagination (default: 1)"`
+}
+
+type GetBillArgs struct {
+	ID    string `json:"id" mcp:"Bill ID"`
+	Start string `json:"start,omitempty" mcp:"Start date (YYYY-MM-DD) for payment info"`
+	End   string `json:"end,omitempty" mcp:"End date (YYYY-MM-DD) for payment info"`
+}
+
+type ListBillTransactionsArgs struct {
+	ID    string `json:"id" mcp:"Bill ID"`
+	Type  string `json:"type,omitempty" mcp:"Filter by transaction type"`
+	Start string `json:"start,omitempty" mcp:"Start date (YYYY-MM-DD)"`
+	End   string `json:"end,omitempty" mcp:"End date (YYYY-MM-DD)"`
+	Limit int    `json:"limit,omitempty" mcp:"Maximum number of transactions to return"`
+	Page  int    `json:"page,omitempty" mcp:"Page number for pagination (default: 1)"`
+}
+
 func NewFireflyMCPServer(config *Config) (*FireflyMCPServer, error) {
 	// Create HTTP client with authentication
 	httpClient := &http.Client{
@@ -259,6 +280,71 @@ func (s *FireflyMCPServer) registerTools() {
 			Name:        "expense_total_insights",
 			Description: "Get total expense insights for a date range",
 		}, s.handleExpenseTotalInsights,
+	)
+
+	// Bill tools
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "list_bills",
+			Description: "List all bills in Firefly III",
+		}, s.handleListBills,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "get_bill",
+			Description: "Get details of a specific bill",
+		}, s.handleGetBill,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "list_bill_transactions",
+			Description: "List transactions associated with a specific bill",
+		}, s.handleListBillTransactions,
+	)
+
+	// Recurrence tools
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "list_recurrences",
+			Description: "List all recurrences in Firefly III",
+		}, s.handleListRecurrences,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "get_recurrence",
+			Description: "Get details of a specific recurrence",
+		}, s.handleGetRecurrence,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "list_recurrence_transactions",
+			Description: "List transactions created by a specific recurrence",
+		}, s.handleListRecurrenceTransactions,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "list_recurrences",
+			Description: "List all recurrences in Firefly III",
+		}, s.handleListRecurrences,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "get_recurrence",
+			Description: "Get details of a specific recurrence",
+		}, s.handleGetRecurrence,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "list_recurrence_transactions",
+			Description: "List transactions created by a specific recurrence",
+		}, s.handleListRecurrenceTransactions,
 	)
 }
 
@@ -1556,6 +1642,347 @@ func mapBudgetLimitArrayToBudgetLimitList(budgetLimitArray *client.BudgetLimitAr
 	return budgetLimitList
 }
 
+// mapBillToBill converts a single Bill from API to DTO
+func mapBillToBill(billRead *client.BillRead) *Bill {
+	if billRead == nil {
+		return nil
+	}
+
+	bill := &Bill{
+		Id:                billRead.Id,
+		Active:            billRead.Attributes.Active != nil && *billRead.Attributes.Active,
+		Name:              billRead.Attributes.Name,
+		AmountMin:         billRead.Attributes.AmountMin,
+		AmountMax:         billRead.Attributes.AmountMax,
+		Date:              billRead.Attributes.Date,
+		RepeatFreq:        string(billRead.Attributes.RepeatFreq),
+		Skip:              0,
+		CurrencyCode:      getStringValue(billRead.Attributes.CurrencyCode),
+		Notes:             billRead.Attributes.Notes,
+		NextExpectedMatch: billRead.Attributes.NextExpectedMatch,
+		PaidDates:         []PaidDate{},
+	}
+
+	// Handle skip field
+	if billRead.Attributes.Skip != nil {
+		bill.Skip = int(*billRead.Attributes.Skip)
+	}
+
+	// Map paid dates if available
+	if billRead.Attributes.PaidDates != nil {
+		for _, pd := range *billRead.Attributes.PaidDates {
+			paidDate := PaidDate{
+				Date:                 pd.Date,
+				TransactionGroupId:   pd.TransactionGroupId,
+				TransactionJournalId: pd.TransactionJournalId,
+			}
+			bill.PaidDates = append(bill.PaidDates, paidDate)
+		}
+	}
+
+	return bill
+}
+
+// mapBillArrayToBillList converts client.BillArray to BillList DTO
+func mapBillArrayToBillList(billArray *client.BillArray) *BillList {
+	if billArray == nil {
+		return nil
+	}
+
+	billList := &BillList{
+		Data: make([]Bill, 0, len(billArray.Data)),
+	}
+
+	// Map bill data
+	for _, billRead := range billArray.Data {
+		if mappedBill := mapBillToBill(&billRead); mappedBill != nil {
+			billList.Data = append(billList.Data, *mappedBill)
+		}
+	}
+
+	// Map pagination
+	if billArray.Meta.Pagination != nil {
+		pagination := billArray.Meta.Pagination
+		billList.Pagination = Pagination{
+			Count:       getIntValue(pagination.Count),
+			Total:       getIntValue(pagination.Total),
+			CurrentPage: getIntValue(pagination.CurrentPage),
+			PerPage:     getIntValue(pagination.PerPage),
+			TotalPages:  getIntValue(pagination.TotalPages),
+		}
+	}
+
+	return billList
+}
+
+// handleListBills lists all bills in Firefly III
+func (s *FireflyMCPServer) handleListBills(
+	ctx context.Context,
+	ss *mcp.ServerSession,
+	params *mcp.CallToolParamsFor[ListBillsArgs],
+) (*mcp.CallToolResultFor[struct{}], error) {
+	// Prepare API parameters
+	apiParams := &client.ListBillParams{}
+
+	// Set pagination
+	if params.Arguments.Limit > 0 {
+		limit := int32(params.Arguments.Limit)
+		apiParams.Limit = &limit
+	}
+	page := int32(params.Arguments.Page)
+	if page == 0 {
+		page = 1
+	}
+	apiParams.Page = &page
+
+	// Set date filters if provided
+	if params.Arguments.Start != "" {
+		startDate, err := time.Parse("2006-01-02", params.Arguments.Start)
+		if err != nil {
+			return &mcp.CallToolResultFor[struct{}]{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Invalid start date format: %v", err)},
+				},
+				IsError: true,
+			}, nil
+		}
+		date := openapi_types.Date{Time: startDate}
+		apiParams.Start = &date
+	}
+
+	if params.Arguments.End != "" {
+		endDate, err := time.Parse("2006-01-02", params.Arguments.End)
+		if err != nil {
+			return &mcp.CallToolResultFor[struct{}]{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Invalid end date format: %v", err)},
+				},
+				IsError: true,
+			}, nil
+		}
+		date := openapi_types.Date{Time: endDate}
+		apiParams.End = &date
+	}
+
+	// Call the API
+	resp, err := s.client.ListBillWithResponse(ctx, apiParams)
+	if err != nil {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error listing bills: %v", err)},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	if resp.StatusCode() != 200 {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("API error: %s", string(resp.Body))},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	// Map the response
+	billList := mapBillArrayToBillList(resp.ApplicationvndApiJSON200)
+
+	// Convert to JSON for response
+	jsonData, err := json.Marshal(billList)
+	if err != nil {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error marshaling response: %v", err)},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	return &mcp.CallToolResultFor[struct{}]{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: string(jsonData)},
+		},
+	}, nil
+}
+
+// handleGetBill gets a specific bill by ID
+func (s *FireflyMCPServer) handleGetBill(
+	ctx context.Context,
+	ss *mcp.ServerSession,
+	params *mcp.CallToolParamsFor[GetBillArgs],
+) (*mcp.CallToolResultFor[struct{}], error) {
+	// Prepare API parameters
+	apiParams := &client.GetBillParams{}
+
+	// Set date filters if provided
+	if params.Arguments.Start != "" {
+		startDate, err := time.Parse("2006-01-02", params.Arguments.Start)
+		if err != nil {
+			return &mcp.CallToolResultFor[struct{}]{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Invalid start date format: %v", err)},
+				},
+				IsError: true,
+			}, nil
+		}
+		date := openapi_types.Date{Time: startDate}
+		apiParams.Start = &date
+	}
+
+	if params.Arguments.End != "" {
+		endDate, err := time.Parse("2006-01-02", params.Arguments.End)
+		if err != nil {
+			return &mcp.CallToolResultFor[struct{}]{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Invalid end date format: %v", err)},
+				},
+				IsError: true,
+			}, nil
+		}
+		date := openapi_types.Date{Time: endDate}
+		apiParams.End = &date
+	}
+
+	// Call the API
+	resp, err := s.client.GetBillWithResponse(ctx, params.Arguments.ID, apiParams)
+	if err != nil {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error getting bill: %v", err)},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	if resp.StatusCode() != 200 {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("API error: %s", string(resp.Body))},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	// Map the response
+	var bill *Bill
+	if resp.ApplicationvndApiJSON200 != nil {
+		bill = mapBillToBill(&resp.ApplicationvndApiJSON200.Data)
+	}
+
+	// Convert to JSON for response
+	jsonData, err := json.Marshal(bill)
+	if err != nil {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error marshaling response: %v", err)},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	return &mcp.CallToolResultFor[struct{}]{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: string(jsonData)},
+		},
+	}, nil
+}
+
+// handleListBillTransactions lists transactions associated with a specific bill
+func (s *FireflyMCPServer) handleListBillTransactions(
+	ctx context.Context,
+	ss *mcp.ServerSession,
+	params *mcp.CallToolParamsFor[ListBillTransactionsArgs],
+) (*mcp.CallToolResultFor[struct{}], error) {
+	// Prepare API parameters
+	apiParams := &client.ListTransactionByBillParams{}
+
+	// Set pagination
+	if params.Arguments.Limit > 0 {
+		limit := int32(params.Arguments.Limit)
+		apiParams.Limit = &limit
+	}
+	page := int32(params.Arguments.Page)
+	if page == 0 {
+		page = 1
+	}
+	apiParams.Page = &page
+
+	// Set date filters if provided
+	if params.Arguments.Start != "" {
+		startDate, err := time.Parse("2006-01-02", params.Arguments.Start)
+		if err != nil {
+			return &mcp.CallToolResultFor[struct{}]{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Invalid start date format: %v", err)},
+				},
+				IsError: true,
+			}, nil
+		}
+		date := openapi_types.Date{Time: startDate}
+		apiParams.Start = &date
+	}
+
+	if params.Arguments.End != "" {
+		endDate, err := time.Parse("2006-01-02", params.Arguments.End)
+		if err != nil {
+			return &mcp.CallToolResultFor[struct{}]{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Invalid end date format: %v", err)},
+				},
+				IsError: true,
+			}, nil
+		}
+		date := openapi_types.Date{Time: endDate}
+		apiParams.End = &date
+	}
+
+	// Set transaction type filter if provided
+	if params.Arguments.Type != "" {
+		typeFilter := client.TransactionTypeFilter(params.Arguments.Type)
+		apiParams.Type = &typeFilter
+	}
+
+	// Call the API
+	resp, err := s.client.ListTransactionByBillWithResponse(ctx, params.Arguments.ID, apiParams)
+	if err != nil {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error listing bill transactions: %v", err)},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	if resp.StatusCode() != 200 {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("API error: %s", string(resp.Body))},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	// Map the response
+	transactionList := mapTransactionArrayToTransactionList(resp.ApplicationvndApiJSON200)
+
+	// Convert to JSON for response
+	jsonData, err := json.Marshal(transactionList)
+	if err != nil {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error marshaling response: %v", err)},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	return &mcp.CallToolResultFor[struct{}]{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: string(jsonData)},
+		},
+	}, nil
+}
+
 // getAccountTypeValue safely extracts AccountTypeProperty value, returns empty string if nil
 func getAccountTypeValue(ptr *client.AccountTypeProperty) client.AccountTypeProperty {
 	if ptr == nil {
@@ -1578,6 +2005,14 @@ func getStringValue(ptr *string) string {
 		return ""
 	}
 	return *ptr
+}
+
+// getRecurrenceType converts RecurrenceTransactionType to string
+func getRecurrenceType(t *client.RecurrenceTransactionType) string {
+	if t == nil {
+		return ""
+	}
+	return string(*t)
 }
 
 // fixCurrencyIdFields converts numeric currency_id values to strings in JSON response
