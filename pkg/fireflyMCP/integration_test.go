@@ -1502,3 +1502,219 @@ func TestIntegrationExpenseTotalInsights(t *testing.T) {
 		}
 	})
 }
+
+func TestIntegration_ListBudgetLimits(t *testing.T) {
+	testConfig := loadTestConfig(t)
+	server := createTestServer(t, testConfig)
+
+	t.Run("MCPToolCall", func(t *testing.T) {
+		fmt.Printf("[DEBUG_LOG] Testing MCP tool call for list_budget_limits\n")
+
+		// Create a mock session
+		session := &mcp.ServerSession{}
+
+		// Create tool call parameters
+		params := &mcp.CallToolParamsFor[ListBudgetLimitsArgs]{
+			Name: "list_budget_limits",
+			Arguments: ListBudgetLimitsArgs{
+				ID: "1", // Assuming budget with ID 1 exists
+			},
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+		defer cancel()
+
+		// Call the handler directly
+		result, err := server.handleListBudgetLimits(ctx, session, params)
+
+		fmt.Printf("[DEBUG_LOG] MCP call result: %v, Error: %v\n", result != nil, err)
+
+		if err != nil {
+			t.Logf("MCP tool call failed (this might be expected): %v", err)
+			assert.Contains(t, err.Error(), "failed to list budget limits", "Expected specific error message")
+		} else {
+			assert.NotNil(t, result, "Expected non-nil result")
+			assert.False(t, result.IsError, "Expected successful result")
+			t.Logf("Successfully called list_budget_limits MCP tool")
+		}
+	})
+
+	t.Run("MCPToolCallWithDates", func(t *testing.T) {
+		fmt.Printf("[DEBUG_LOG] Testing MCP tool call for list_budget_limits with date parameters\n")
+
+		// Create a mock session
+		session := &mcp.ServerSession{}
+
+		// Create tool call parameters with date range
+		params := &mcp.CallToolParamsFor[ListBudgetLimitsArgs]{
+			Name: "list_budget_limits",
+			Arguments: ListBudgetLimitsArgs{
+				ID:    "1",
+				Start: "2024-01-01",
+				End:   "2024-12-31",
+			},
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+		defer cancel()
+
+		// Call the handler directly
+		result, err := server.handleListBudgetLimits(ctx, session, params)
+
+		fmt.Printf("[DEBUG_LOG] MCP call result with dates: %v, Error: %v\n", result != nil, err)
+
+		if err != nil {
+			t.Logf("MCP tool call with dates failed (this might be expected): %v", err)
+			assert.Contains(t, err.Error(), "failed to list budget limits", "Expected specific error message")
+		} else {
+			assert.NotNil(t, result, "Expected non-nil result")
+			assert.False(t, result.IsError, "Expected successful result")
+			t.Logf("Successfully called list_budget_limits MCP tool with date parameters")
+		}
+	})
+
+	t.Run("MCPToolCallMissingID", func(t *testing.T) {
+		fmt.Printf("[DEBUG_LOG] Testing MCP tool call for list_budget_limits with missing ID\n")
+
+		// Create a mock session
+		session := &mcp.ServerSession{}
+
+		// Create tool call parameters without ID
+		params := &mcp.CallToolParamsFor[ListBudgetLimitsArgs]{
+			Name: "list_budget_limits",
+			Arguments: ListBudgetLimitsArgs{
+				// ID is missing
+			},
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+		defer cancel()
+
+		// Call the handler directly
+		result, err := server.handleListBudgetLimits(ctx, session, params)
+
+		fmt.Printf("[DEBUG_LOG] MCP call with missing ID result: %v, Error: %v\n", result != nil, err)
+
+		assert.NoError(t, err, "MCP handlers should not return Go errors")
+		assert.NotNil(t, result, "Expected non-nil result")
+		assert.True(t, result.IsError, "Expected error result")
+
+		// Verify error message
+		if len(result.Content) > 0 {
+			if textContent, ok := result.Content[0].(*mcp.TextContent); ok {
+				assert.Contains(t, textContent.Text, "Budget ID is required", "Expected required parameter error message")
+			}
+		}
+	})
+}
+
+func TestIntegration_ListBudgetTransactions(t *testing.T) {
+	testConfig := loadTestConfig(t)
+	server := createTestServer(t, testConfig)
+
+	t.Run("MCPToolCall", func(t *testing.T) {
+		fmt.Printf("[DEBUG_LOG] Testing MCP tool call for list_budget_transactions\n")
+
+		// Create a mock session
+		session := &mcp.ServerSession{}
+
+		// Create tool call parameters
+		params := &mcp.CallToolParamsFor[ListBudgetTransactionsArgs]{
+			Name: "list_budget_transactions",
+			Arguments: ListBudgetTransactionsArgs{
+				ID:    "1", // Assuming budget with ID 1 exists
+				Limit: 5,
+				Page:  1,
+			},
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+		defer cancel()
+
+		// Call the handler directly
+		result, err := server.handleListBudgetTransactions(ctx, session, params)
+
+		fmt.Printf("[DEBUG_LOG] MCP call result: %v, Error: %v\n", result != nil, err)
+
+		if err != nil {
+			t.Logf("MCP tool call failed (this might be expected): %v", err)
+			assert.Contains(t, err.Error(), "failed to list budget transactions", "Expected specific error message")
+		} else {
+			assert.NotNil(t, result, "Expected non-nil result")
+			assert.False(t, result.IsError, "Expected successful result")
+			t.Logf("Successfully called list_budget_transactions MCP tool")
+		}
+	})
+
+	t.Run("MCPToolCallWithFilters", func(t *testing.T) {
+		fmt.Printf("[DEBUG_LOG] Testing MCP tool call for list_budget_transactions with filters\n")
+
+		// Create a mock session
+		session := &mcp.ServerSession{}
+
+		// Create tool call parameters with filters
+		params := &mcp.CallToolParamsFor[ListBudgetTransactionsArgs]{
+			Name: "list_budget_transactions",
+			Arguments: ListBudgetTransactionsArgs{
+				ID:    "1",
+				Type:  "withdrawal",
+				Start: "2024-01-01",
+				End:   "2024-12-31",
+				Limit: 10,
+				Page:  1,
+			},
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+		defer cancel()
+
+		// Call the handler directly
+		result, err := server.handleListBudgetTransactions(ctx, session, params)
+
+		fmt.Printf("[DEBUG_LOG] MCP call result with filters: %v, Error: %v\n", result != nil, err)
+
+		if err != nil {
+			t.Logf("MCP tool call with filters failed (this might be expected): %v", err)
+			assert.Contains(t, err.Error(), "failed to list budget transactions", "Expected specific error message")
+		} else {
+			assert.NotNil(t, result, "Expected non-nil result")
+			assert.False(t, result.IsError, "Expected successful result")
+			t.Logf("Successfully called list_budget_transactions MCP tool with filters")
+		}
+	})
+
+	t.Run("MCPToolCallMissingID", func(t *testing.T) {
+		fmt.Printf("[DEBUG_LOG] Testing MCP tool call for list_budget_transactions with missing ID\n")
+
+		// Create a mock session
+		session := &mcp.ServerSession{}
+
+		// Create tool call parameters without ID
+		params := &mcp.CallToolParamsFor[ListBudgetTransactionsArgs]{
+			Name: "list_budget_transactions",
+			Arguments: ListBudgetTransactionsArgs{
+				// ID is missing
+				Limit: 5,
+			},
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
+		defer cancel()
+
+		// Call the handler directly
+		result, err := server.handleListBudgetTransactions(ctx, session, params)
+
+		fmt.Printf("[DEBUG_LOG] MCP call with missing ID result: %v, Error: %v\n", result != nil, err)
+
+		assert.NoError(t, err, "MCP handlers should not return Go errors")
+		assert.NotNil(t, result, "Expected non-nil result")
+		assert.True(t, result.IsError, "Expected error result")
+
+		// Verify error message
+		if len(result.Content) > 0 {
+			if textContent, ok := result.Content[0].(*mcp.TextContent); ok {
+				assert.Contains(t, textContent.Text, "Budget ID is required", "Expected required parameter error message")
+			}
+		}
+	})
+}

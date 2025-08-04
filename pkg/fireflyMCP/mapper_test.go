@@ -1199,3 +1199,236 @@ func TestMapInsightTotalToDTO_MultipleCurrencies(t *testing.T) {
 	assert.Equal(t, differenceGBP, result.Entries[2].Amount)
 	assert.Equal(t, currencyCodeGBP, result.Entries[2].CurrencyCode)
 }
+
+func TestMapBudgetLimitArrayToBudgetLimitList(t *testing.T) {
+	// Test with nil input
+	result := mapBudgetLimitArrayToBudgetLimitList(nil)
+	assert.Nil(t, result)
+
+	// Test with empty budget limit array
+	emptyArray := &client.BudgetLimitArray{
+		Data: []client.BudgetLimitRead{},
+		Meta: client.Meta{},
+	}
+	result = mapBudgetLimitArrayToBudgetLimitList(emptyArray)
+	assert.NotNil(t, result)
+	assert.Empty(t, result.Data)
+
+	// Test with sample data
+	amount := "500.00"
+	start := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2023, 1, 31, 23, 59, 59, 0, time.UTC)
+	currencyCode := "EUR"
+	currencySymbol := "€"
+	spent := "150.50"
+	budgetId := "5"
+	count := 1
+	total := 1
+	currentPage := 1
+	perPage := 10
+	totalPages := 1
+
+	budgetLimitArray := &client.BudgetLimitArray{
+		Data: []client.BudgetLimitRead{
+			{
+				Id: "10",
+				Attributes: client.BudgetLimit{
+					Amount:         amount,
+					BudgetId:       &budgetId,
+					CurrencyCode:   &currencyCode,
+					CurrencySymbol: &currencySymbol,
+					End:            end,
+					Start:          start,
+					Spent:          &spent,
+				},
+				Type: "budget_limits",
+			},
+		},
+		Meta: client.Meta{
+			Pagination: &struct {
+				Count       *int `json:"count,omitempty"`
+				CurrentPage *int `json:"current_page,omitempty"`
+				PerPage     *int `json:"per_page,omitempty"`
+				Total       *int `json:"total,omitempty"`
+				TotalPages  *int `json:"total_pages,omitempty"`
+			}{
+				Count:       &count,
+				Total:       &total,
+				CurrentPage: &currentPage,
+				PerPage:     &perPage,
+				TotalPages:  &totalPages,
+			},
+		},
+	}
+
+	result = mapBudgetLimitArrayToBudgetLimitList(budgetLimitArray)
+
+	// Verify the mapping
+	assert.NotNil(t, result)
+	assert.Len(t, result.Data, 1)
+
+	budgetLimit := result.Data[0]
+	assert.Equal(t, "10", budgetLimit.Id)
+	assert.Equal(t, amount, budgetLimit.Amount)
+	assert.Equal(t, start, budgetLimit.Start)
+	assert.Equal(t, end, budgetLimit.End)
+	assert.Equal(t, "5", budgetLimit.BudgetId)
+	assert.Equal(t, currencyCode, budgetLimit.CurrencyCode)
+	assert.Equal(t, currencySymbol, budgetLimit.CurrencySymbol)
+
+	// Verify spent data
+	assert.Len(t, budgetLimit.Spent, 1)
+	assert.Equal(t, spent, budgetLimit.Spent[0].Sum)
+	assert.Equal(t, currencyCode, budgetLimit.Spent[0].CurrencyCode)
+	assert.Equal(t, currencySymbol, budgetLimit.Spent[0].CurrencySymbol)
+
+	// Verify pagination
+	assert.Equal(t, count, result.Pagination.Count)
+	assert.Equal(t, total, result.Pagination.Total)
+	assert.Equal(t, currentPage, result.Pagination.CurrentPage)
+	assert.Equal(t, perPage, result.Pagination.PerPage)
+	assert.Equal(t, totalPages, result.Pagination.TotalPages)
+}
+
+func TestMapBudgetLimitArrayToBudgetLimitList_NilFields(t *testing.T) {
+	// Test with nil optional fields
+	amount := "1000.00"
+	start := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2023, 12, 31, 23, 59, 59, 0, time.UTC)
+	budgetId := "10"
+
+	budgetLimitArray := &client.BudgetLimitArray{
+		Data: []client.BudgetLimitRead{
+			{
+				Id: "20",
+				Attributes: client.BudgetLimit{
+					Amount:         amount,
+					BudgetId:       &budgetId,
+					CurrencyCode:   nil,
+					CurrencySymbol: nil,
+					End:            end,
+					Start:          start,
+					Spent:          nil,
+				},
+				Type: "budget_limits",
+			},
+		},
+		Meta: client.Meta{
+			Pagination: nil,
+		},
+	}
+
+	result := mapBudgetLimitArrayToBudgetLimitList(budgetLimitArray)
+
+	// Verify the mapping
+	assert.NotNil(t, result)
+	assert.Len(t, result.Data, 1)
+
+	budgetLimit := result.Data[0]
+	assert.Equal(t, "20", budgetLimit.Id)
+	assert.Equal(t, amount, budgetLimit.Amount)
+	assert.Equal(t, "10", budgetLimit.BudgetId)
+	assert.Equal(t, "", budgetLimit.CurrencyCode)
+	assert.Equal(t, "", budgetLimit.CurrencySymbol)
+
+	// Verify spent data is empty when nil
+	assert.Empty(t, budgetLimit.Spent)
+
+	// Verify pagination has zero values when nil
+	assert.Equal(t, 0, result.Pagination.Count)
+	assert.Equal(t, 0, result.Pagination.Total)
+	assert.Equal(t, 0, result.Pagination.CurrentPage)
+	assert.Equal(t, 0, result.Pagination.PerPage)
+	assert.Equal(t, 0, result.Pagination.TotalPages)
+}
+
+func TestMapBudgetLimitArrayToBudgetLimitList_MultipleLimits(t *testing.T) {
+	// Test with multiple budget limits
+	amount1 := "300.00"
+	amount2 := "600.00"
+	start := time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2023, 1, 31, 23, 59, 59, 0, time.UTC)
+	currencyCode := "USD"
+	currencySymbol := "$"
+	spent1 := "100.00"
+	spent2 := "450.75"
+	budgetId1 := "15"
+	budgetId2 := "16"
+	count := 2
+	total := 2
+	currentPage := 1
+	perPage := 10
+	totalPages := 1
+
+	budgetLimitArray := &client.BudgetLimitArray{
+		Data: []client.BudgetLimitRead{
+			{
+				Id: "30",
+				Attributes: client.BudgetLimit{
+					Amount:         amount1,
+					BudgetId:       &budgetId1,
+					CurrencyCode:   &currencyCode,
+					CurrencySymbol: &currencySymbol,
+					End:            end,
+					Start:          start,
+					Spent:          &spent1,
+				},
+				Type: "budget_limits",
+			},
+			{
+				Id: "31",
+				Attributes: client.BudgetLimit{
+					Amount:         amount2,
+					BudgetId:       &budgetId2,
+					CurrencyCode:   &currencyCode,
+					CurrencySymbol: &currencySymbol,
+					End:            end,
+					Start:          start,
+					Spent:          &spent2,
+				},
+				Type: "budget_limits",
+			},
+		},
+		Meta: client.Meta{
+			Pagination: &struct {
+				Count       *int `json:"count,omitempty"`
+				CurrentPage *int `json:"current_page,omitempty"`
+				PerPage     *int `json:"per_page,omitempty"`
+				Total       *int `json:"total,omitempty"`
+				TotalPages  *int `json:"total_pages,omitempty"`
+			}{
+				Count:       &count,
+				Total:       &total,
+				CurrentPage: &currentPage,
+				PerPage:     &perPage,
+				TotalPages:  &totalPages,
+			},
+		},
+	}
+
+	result := mapBudgetLimitArrayToBudgetLimitList(budgetLimitArray)
+
+	// Verify the mapping
+	assert.NotNil(t, result)
+	assert.Len(t, result.Data, 2)
+
+	// Verify first budget limit
+	budgetLimit1 := result.Data[0]
+	assert.Equal(t, "30", budgetLimit1.Id)
+	assert.Equal(t, amount1, budgetLimit1.Amount)
+	assert.Equal(t, "15", budgetLimit1.BudgetId)
+	assert.Len(t, budgetLimit1.Spent, 1)
+	assert.Equal(t, spent1, budgetLimit1.Spent[0].Sum)
+
+	// Verify second budget limit
+	budgetLimit2 := result.Data[1]
+	assert.Equal(t, "31", budgetLimit2.Id)
+	assert.Equal(t, amount2, budgetLimit2.Amount)
+	assert.Equal(t, "16", budgetLimit2.BudgetId)
+	assert.Len(t, budgetLimit2.Spent, 1)
+	assert.Equal(t, spent2, budgetLimit2.Spent[0].Sum)
+
+	// Verify pagination
+	assert.Equal(t, count, result.Pagination.Count)
+	assert.Equal(t, total, result.Pagination.Total)
+}

@@ -18,6 +18,8 @@ The MCP server provides the following tools for interacting with Firefly III:
 
 ### Budget Management
 - `list_budgets` - List all budgets with optional limit
+- `list_budget_limits` - List budget limits for a specific budget with optional date range
+- `list_budget_transactions` - List transactions for a specific budget with optional filters
 
 ### Category Management
 - `list_categories` - List all categories with optional limit
@@ -175,6 +177,33 @@ Field options: `all`, `iban`, `name`, `number`, `id`
   "arguments": {
     "start": "2024-01-01",
     "end": "2024-01-31"
+  }
+}
+```
+
+#### List Budget Limits
+```json
+{
+  "name": "list_budget_limits",
+  "arguments": {
+    "id": "1",
+    "start": "2024-01-01",
+    "end": "2024-12-31"
+  }
+}
+```
+
+#### List Budget Transactions
+```json
+{
+  "name": "list_budget_transactions",
+  "arguments": {
+    "id": "1",
+    "type": "withdrawal",
+    "start": "2024-01-01",
+    "end": "2024-12-31",
+    "limit": 10,
+    "page": 1
   }
 }
 ```

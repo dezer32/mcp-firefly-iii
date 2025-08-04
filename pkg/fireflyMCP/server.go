@@ -87,6 +87,21 @@ type ExpenseTotalInsightsArgs struct {
 	Accounts []string `json:"accounts,omitempty" mcp:"Account IDs to include in results"`
 }
 
+type ListBudgetLimitsArgs struct {
+	ID    string `json:"id" mcp:"Budget ID"`
+	Start string `json:"start,omitempty" mcp:"Start date (YYYY-MM-DD)"`
+	End   string `json:"end,omitempty" mcp:"End date (YYYY-MM-DD)"`
+}
+
+type ListBudgetTransactionsArgs struct {
+	ID    string `json:"id" mcp:"Budget ID"`
+	Type  string `json:"type,omitempty" mcp:"Filter by transaction type"`
+	Start string `json:"start,omitempty" mcp:"Start date (YYYY-MM-DD)"`
+	End   string `json:"end,omitempty" mcp:"End date (YYYY-MM-DD)"`
+	Limit int    `json:"limit,omitempty" mcp:"Maximum number of transactions to return"`
+	Page  int    `json:"page,omitempty" mcp:"Page number for pagination (default: 1)"`
+}
+
 // NewFireflyMCPServer creates a new Firefly III MCP server
 func NewFireflyMCPServer(config *Config) (*FireflyMCPServer, error) {
 	// Create HTTP client with authentication
@@ -186,6 +201,20 @@ func (s *FireflyMCPServer) registerTools() {
 			Name:        "list_budgets",
 			Description: "List all budgets in Firefly III",
 		}, s.handleListBudgets,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "list_budget_limits",
+			Description: "List budget limits for a specific budget with optional date range",
+		}, s.handleListBudgetLimits,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "list_budget_transactions",
+			Description: "List transactions for a specific budget with optional filters",
+		}, s.handleListBudgetTransactions,
 	)
 
 	// Category tools
@@ -1160,6 +1189,180 @@ func (s *FireflyMCPServer) handleExpenseTotalInsights(
 	}, nil
 }
 
+// handleListBudgetLimits returns budget limits for a specific budget
+func (s *FireflyMCPServer) handleListBudgetLimits(
+	ctx context.Context,
+	ss *mcp.ServerSession,
+	params *mcp.CallToolParamsFor[ListBudgetLimitsArgs],
+) (*mcp.CallToolResultFor[struct{}], error) {
+	// Validate required budget ID
+	if params.Arguments.ID == "" {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: "Budget ID is required"},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	// Build API parameters
+	apiParams := &client.ListBudgetLimitByBudgetParams{}
+
+	// Parse optional start date
+	if params.Arguments.Start != "" {
+		startDate, err := time.Parse("2006-01-02", params.Arguments.Start)
+		if err != nil {
+			return &mcp.CallToolResultFor[struct{}]{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Invalid start date format: %v", err)},
+				},
+				IsError: true,
+			}, nil
+		}
+		date := openapi_types.Date{Time: startDate}
+		apiParams.Start = &date
+	}
+
+	// Parse optional end date
+	if params.Arguments.End != "" {
+		endDate, err := time.Parse("2006-01-02", params.Arguments.End)
+		if err != nil {
+			return &mcp.CallToolResultFor[struct{}]{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Invalid end date format: %v", err)},
+				},
+				IsError: true,
+			}, nil
+		}
+		date := openapi_types.Date{Time: endDate}
+		apiParams.End = &date
+	}
+
+	// Call the API
+	resp, err := s.client.ListBudgetLimitByBudgetWithResponse(ctx, params.Arguments.ID, apiParams)
+	if err != nil {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error listing budget limits: %v", err)},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	if resp.StatusCode() != 200 {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	// Map response to DTO
+	budgetLimitList := mapBudgetLimitArrayToBudgetLimitList(resp.ApplicationvndApiJSON200)
+	result, _ := json.MarshalIndent(budgetLimitList, "", "  ")
+	return &mcp.CallToolResultFor[struct{}]{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: string(result)},
+		},
+	}, nil
+}
+
+func (s *FireflyMCPServer) handleListBudgetTransactions(
+	ctx context.Context,
+	ss *mcp.ServerSession,
+	params *mcp.CallToolParamsFor[ListBudgetTransactionsArgs],
+) (*mcp.CallToolResultFor[struct{}], error) {
+	// Validate required budget ID
+	if params.Arguments.ID == "" {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: "Budget ID is required"},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	// Build API parameters
+	apiParams := &client.ListTransactionByBudgetParams{}
+
+	// Set pagination parameters
+	if params.Arguments.Limit > 0 {
+		limit := int32(params.Arguments.Limit)
+		apiParams.Limit = &limit
+	}
+
+	if params.Arguments.Page > 0 {
+		page := int32(params.Arguments.Page)
+		apiParams.Page = &page
+	}
+
+	// Parse optional start date
+	if params.Arguments.Start != "" {
+		startDate, err := time.Parse("2006-01-02", params.Arguments.Start)
+		if err != nil {
+			return &mcp.CallToolResultFor[struct{}]{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Invalid start date format: %v", err)},
+				},
+				IsError: true,
+			}, nil
+		}
+		date := openapi_types.Date{Time: startDate}
+		apiParams.Start = &date
+	}
+
+	// Parse optional end date
+	if params.Arguments.End != "" {
+		endDate, err := time.Parse("2006-01-02", params.Arguments.End)
+		if err != nil {
+			return &mcp.CallToolResultFor[struct{}]{
+				Content: []mcp.Content{
+					&mcp.TextContent{Text: fmt.Sprintf("Invalid end date format: %v", err)},
+				},
+				IsError: true,
+			}, nil
+		}
+		date := openapi_types.Date{Time: endDate}
+		apiParams.End = &date
+	}
+
+	// Set transaction type filter if provided
+	if params.Arguments.Type != "" {
+		typeFilter := client.TransactionTypeFilter(params.Arguments.Type)
+		apiParams.Type = &typeFilter
+	}
+
+	// Call the API
+	resp, err := s.client.ListTransactionByBudgetWithResponse(ctx, params.Arguments.ID, apiParams)
+	if err != nil {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error listing budget transactions: %v", err)},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	if resp.StatusCode() != 200 {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
+			},
+			IsError: true,
+		}, nil
+	}
+
+	// Map response to DTO
+	transactionList := mapTransactionArrayToTransactionList(resp.ApplicationvndApiJSON200)
+	result, _ := json.MarshalIndent(transactionList, "", "  ")
+	return &mcp.CallToolResultFor[struct{}]{
+		Content: []mcp.Content{
+			&mcp.TextContent{Text: string(result)},
+		},
+	}, nil
+}
+
 // mapInsightGroupToDTO converts client.InsightGroup to InsightCategoryResponse DTO
 func mapInsightGroupToDTO(group *client.InsightGroup) *InsightCategoryResponse {
 	if group == nil {
@@ -1207,6 +1410,57 @@ func mapInsightTotalToDTO(total *client.InsightTotal) *InsightTotalResponse {
 	}
 
 	return response
+}
+
+// mapBudgetLimitArrayToBudgetLimitList converts client.BudgetLimitArray to BudgetLimitList DTO
+func mapBudgetLimitArrayToBudgetLimitList(budgetLimitArray *client.BudgetLimitArray) *BudgetLimitList {
+	if budgetLimitArray == nil {
+		return nil
+	}
+
+	budgetLimitList := &BudgetLimitList{
+		Data: make([]BudgetLimit, len(budgetLimitArray.Data)),
+	}
+
+	// Map budget limit data
+	for i, budgetLimitRead := range budgetLimitArray.Data {
+		budgetLimit := BudgetLimit{
+			Id:             budgetLimitRead.Id,
+			Amount:         budgetLimitRead.Attributes.Amount,
+			Start:          budgetLimitRead.Attributes.Start,
+			End:            budgetLimitRead.Attributes.End,
+			BudgetId:       getStringValue(budgetLimitRead.Attributes.BudgetId),
+			CurrencyCode:   getStringValue(budgetLimitRead.Attributes.CurrencyCode),
+			CurrencySymbol: getStringValue(budgetLimitRead.Attributes.CurrencySymbol),
+			Spent:          make([]BudgetSpent, 0),
+		}
+
+		// Map spent data if available
+		if budgetLimitRead.Attributes.Spent != nil {
+			budgetSpent := BudgetSpent{
+				Sum:            getStringValue(budgetLimitRead.Attributes.Spent),
+				CurrencyCode:   getStringValue(budgetLimitRead.Attributes.CurrencyCode),
+				CurrencySymbol: getStringValue(budgetLimitRead.Attributes.CurrencySymbol),
+			}
+			budgetLimit.Spent = append(budgetLimit.Spent, budgetSpent)
+		}
+
+		budgetLimitList.Data[i] = budgetLimit
+	}
+
+	// Map pagination
+	if budgetLimitArray.Meta.Pagination != nil {
+		pagination := budgetLimitArray.Meta.Pagination
+		budgetLimitList.Pagination = Pagination{
+			Count:       getIntValue(pagination.Count),
+			Total:       getIntValue(pagination.Total),
+			CurrentPage: getIntValue(pagination.CurrentPage),
+			PerPage:     getIntValue(pagination.PerPage),
+			TotalPages:  getIntValue(pagination.TotalPages),
+		}
+	}
+
+	return budgetLimitList
 }
 
 // getAccountTypeValue safely extracts AccountTypeProperty value, returns empty string if nil

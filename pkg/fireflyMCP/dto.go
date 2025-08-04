@@ -114,3 +114,25 @@ type InsightCategoryResponse struct {
 type InsightTotalResponse struct {
 	Entries []InsightTotalEntry `json:"entries"`
 }
+
+type BudgetSpent struct {
+	Sum            string `json:"sum"`
+	CurrencyCode   string `json:"currency_code"`
+	CurrencySymbol string `json:"currency_symbol"`
+}
+
+type BudgetLimit struct {
+	Id             string        `json:"id"`
+	Amount         string        `json:"amount"`
+	Start          time.Time     `json:"start"`
+	End            time.Time     `json:"end"`
+	BudgetId       string        `json:"budget_id"`
+	CurrencyCode   string        `json:"currency_code"`
+	CurrencySymbol string        `json:"currency_symbol"`
+	Spent          []BudgetSpent `json:"spent"`
+}
+
+type BudgetLimitList struct {
+	Data       []BudgetLimit `json:"data"`
+	Pagination Pagination    `json:"pagination"`
+}
