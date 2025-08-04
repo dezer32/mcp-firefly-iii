@@ -63,7 +63,7 @@ func TestMapRecurrenceRepetitionToRecurrenceRepetition(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(
 			tt.name, func(t *testing.T) {
-				result := mapRecurrenceRepetitionToRecurrenceRepetition(tt.input)
+				result := mapRecurrenceRepetitionToDTO(tt.input)
 				assert.Equal(t, tt.expected, result)
 			},
 		)
@@ -80,10 +80,9 @@ func TestMapRecurrenceTransactionToRecurrenceTransaction(t *testing.T) {
 			name: "Complete transaction",
 			input: &client.RecurrenceTransaction{
 				Id:              ptr("789"),
-				Description:     ptr("Monthly rent"),
-				Amount:          ptr("1250.00"),
+				Description:     "Monthly rent",
+				Amount:          "1250.00",
 				CurrencyCode:    ptr("USD"),
-				CurrencySymbol:  ptr("$"),
 				CategoryId:      ptr("10"),
 				CategoryName:    ptr("Housing"),
 				BudgetId:        ptr("20"),
@@ -98,7 +97,6 @@ func TestMapRecurrenceTransactionToRecurrenceTransaction(t *testing.T) {
 				Description:     "Monthly rent",
 				Amount:          "1250.00",
 				CurrencyCode:    "USD",
-				CurrencySymbol:  "$",
 				CategoryId:      ptr("10"),
 				CategoryName:    ptr("Housing"),
 				BudgetId:        ptr("20"),
@@ -113,10 +111,9 @@ func TestMapRecurrenceTransactionToRecurrenceTransaction(t *testing.T) {
 			name: "Transaction without category and budget",
 			input: &client.RecurrenceTransaction{
 				Id:              ptr("999"),
-				Description:     ptr("Utility payment"),
-				Amount:          ptr("75.50"),
+				Description:     "Utility payment",
+				Amount:          "75.50",
 				CurrencyCode:    ptr("EUR"),
-				CurrencySymbol:  ptr("€"),
 				CategoryId:      nil,
 				CategoryName:    nil,
 				BudgetId:        nil,
@@ -131,7 +128,6 @@ func TestMapRecurrenceTransactionToRecurrenceTransaction(t *testing.T) {
 				Description:     "Utility payment",
 				Amount:          "75.50",
 				CurrencyCode:    "EUR",
-				CurrencySymbol:  "€",
 				CategoryId:      nil,
 				CategoryName:    nil,
 				BudgetId:        nil,
@@ -152,7 +148,7 @@ func TestMapRecurrenceTransactionToRecurrenceTransaction(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(
 			tt.name, func(t *testing.T) {
-				result := mapRecurrenceTransactionToRecurrenceTransaction(tt.input)
+				result := mapRecurrenceTransactionToDTO(tt.input)
 				assert.Equal(t, tt.expected, result)
 			},
 		)
@@ -203,11 +199,10 @@ func TestMapRecurrenceToRecurrence(t *testing.T) {
 						Transactions: &[]client.RecurrenceTransaction{
 							{
 								Id:              ptr("102"),
-								Description:     ptr("Rent payment"),
-								Amount:          ptr("1250.00"),
+								Description:     "Rent payment",
+								Amount:          "1250.00",
 								CurrencyCode:    ptr("USD"),
-								CurrencySymbol:  ptr("$"),
-								CategoryId:      ptr("10"),
+												CategoryId:      ptr("10"),
 								CategoryName:    ptr("Housing"),
 								BudgetId:        ptr("20"),
 								BudgetName:      ptr("Monthly Budget"),
@@ -248,8 +243,7 @@ func TestMapRecurrenceToRecurrence(t *testing.T) {
 						Description:     "Rent payment",
 						Amount:          "1250.00",
 						CurrencyCode:    "USD",
-						CurrencySymbol:  "$",
-						CategoryId:      ptr("10"),
+								CategoryId:      ptr("10"),
 						CategoryName:    ptr("Housing"),
 						BudgetId:        ptr("20"),
 						BudgetName:      ptr("Monthly Budget"),
@@ -323,7 +317,13 @@ func TestMapRecurrenceToRecurrence(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(
 			tt.name, func(t *testing.T) {
-				result := mapRecurrenceToRecurrence(tt.input)
+				var result Recurrence
+				if tt.input != nil {
+					r := mapRecurrenceToRecurrence(&tt.input.Data)
+					if r != nil {
+						result = *r
+					}
+				}
 				assert.Equal(t, tt.expected, result)
 			},
 		)
@@ -366,8 +366,14 @@ func TestMapRecurrenceArrayToRecurrenceList(t *testing.T) {
 						},
 					},
 				},
-				Meta: &client.Meta{
-					Pagination: &client.MetaPagination{
+				Meta: client.Meta{
+					Pagination: &struct {
+						Count       *int `json:"count,omitempty"`
+						CurrentPage *int `json:"current_page,omitempty"`
+						PerPage     *int `json:"per_page,omitempty"`
+						Total       *int `json:"total,omitempty"`
+						TotalPages  *int `json:"total_pages,omitempty"`
+					}{
 						Count:       ptr(2),
 						CurrentPage: ptr(1),
 						PerPage:     ptr(10),
@@ -414,8 +420,14 @@ func TestMapRecurrenceArrayToRecurrenceList(t *testing.T) {
 			name: "Empty array",
 			input: &client.RecurrenceArray{
 				Data: []client.RecurrenceRead{},
-				Meta: &client.Meta{
-					Pagination: &client.MetaPagination{
+				Meta: client.Meta{
+					Pagination: &struct {
+						Count       *int `json:"count,omitempty"`
+						CurrentPage *int `json:"current_page,omitempty"`
+						PerPage     *int `json:"per_page,omitempty"`
+						Total       *int `json:"total,omitempty"`
+						TotalPages  *int `json:"total_pages,omitempty"`
+					}{
 						Count:       ptr(0),
 						CurrentPage: ptr(1),
 						PerPage:     ptr(10),
@@ -455,7 +467,7 @@ func TestMapRecurrenceArrayToRecurrenceList(t *testing.T) {
 						},
 					},
 				},
-				Meta: nil,
+				Meta: client.Meta{},
 			},
 			expected: RecurrenceList{
 				Data: []Recurrence{

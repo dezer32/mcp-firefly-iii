@@ -8,6 +8,10 @@ import (
 
 // mapRecurrenceRepetitionToDTO converts client RecurrenceRepetition to DTO
 func mapRecurrenceRepetitionToDTO(rep *client.RecurrenceRepetition) RecurrenceRepetition {
+	if rep == nil {
+		return RecurrenceRepetition{}
+	}
+
 	result := RecurrenceRepetition{
 		Id:          getStringValue(rep.Id),
 		Type:        string(rep.Type),
@@ -29,6 +33,10 @@ func mapRecurrenceRepetitionToDTO(rep *client.RecurrenceRepetition) RecurrenceRe
 
 // mapRecurrenceTransactionToDTO converts client RecurrenceTransaction to DTO
 func mapRecurrenceTransactionToDTO(trans *client.RecurrenceTransaction) RecurrenceTransaction {
+	if trans == nil {
+		return RecurrenceTransaction{}
+	}
+
 	return RecurrenceTransaction{
 		Id:              getStringValue(trans.Id),
 		Description:     trans.Description,
@@ -108,14 +116,17 @@ func mapRecurrenceToRecurrence(recurrenceRead *client.RecurrenceRead) *Recurrenc
 }
 
 // mapRecurrenceArrayToRecurrenceList converts client.RecurrenceArray to RecurrenceList DTO
-func mapRecurrenceArrayToRecurrenceList(recurrenceArray *client.RecurrenceArray) *RecurrenceList {
-	if recurrenceArray == nil {
-		return nil
+func mapRecurrenceArrayToRecurrenceList(recurrenceArray *client.RecurrenceArray) RecurrenceList {
+	recurrenceList := RecurrenceList{
+		Data: []Recurrence{},
 	}
 
-	recurrenceList := &RecurrenceList{
-		Data: make([]Recurrence, 0, len(recurrenceArray.Data)),
+	if recurrenceArray == nil {
+		return recurrenceList
 	}
+
+	// Reinitialize with correct capacity
+	recurrenceList.Data = make([]Recurrence, 0, len(recurrenceArray.Data))
 
 	// Map recurrence data
 	for _, recurrenceRead := range recurrenceArray.Data {
