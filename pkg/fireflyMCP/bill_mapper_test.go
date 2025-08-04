@@ -67,7 +67,7 @@ func TestMapBillToBill(t *testing.T) {
 	assert.Equal(t, repeatFreq, result.RepeatFreq)
 	assert.Equal(t, int(skip), result.Skip)
 	assert.Equal(t, currencyCode, result.CurrencyCode)
-	assert.Equal(t, currencySymbol, result.CurrencySymbol)
+	// CurrencySymbol is not part of Bill DTO
 	assert.Equal(t, &notes, result.Notes)
 	assert.Equal(t, &nextExpectedMatch, result.NextExpectedMatch)
 
@@ -104,7 +104,7 @@ func TestMapBillToBill_MinimalData(t *testing.T) {
 	assert.Equal(t, "weekly", result2.RepeatFreq)
 	assert.Equal(t, 0, result2.Skip) // default 0
 	assert.Empty(t, result2.CurrencyCode)
-	assert.Empty(t, result2.CurrencySymbol)
+	// CurrencySymbol is not part of Bill DTO
 	assert.Nil(t, result2.Notes)
 	assert.Nil(t, result2.NextExpectedMatch)
 	assert.Empty(t, result2.PaidDates)

@@ -1506,17 +1506,14 @@ func TestMapTagArrayToTagList(t *testing.T) {
 	assert.Equal(t, "groceries", tag1.Tag)
 	assert.NotNil(t, tag1.Description)
 	assert.Equal(t, description, *tag1.Description)
-	assert.NotNil(t, tag1.Date)
-	assert.Equal(t, "2023-12-01", *tag1.Date)
-	assert.Equal(t, createdAt, tag1.CreatedAt)
-	assert.Equal(t, updatedAt, tag1.UpdatedAt)
+	// Tag DTO doesn't have Date, CreatedAt, or UpdatedAt fields
 
 	// Verify second tag with minimal fields
 	tag2 := result.Data[1]
 	assert.Equal(t, "2", tag2.Id)
 	assert.Equal(t, "vacation", tag2.Tag)
 	assert.Nil(t, tag2.Description)
-	assert.Nil(t, tag2.Date)
+	// Tag DTO doesn't have Date field
 
 	// Verify pagination
 	assert.Equal(t, count, result.Pagination.Count)

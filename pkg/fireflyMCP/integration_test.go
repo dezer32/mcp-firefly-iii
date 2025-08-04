@@ -1492,12 +1492,8 @@ func TestIntegration_ListTags(t *testing.T) {
 				if tag.Description != nil {
 					t.Logf("  Description: %s", *tag.Description)
 				}
-				if tag.Date != nil {
-					t.Logf("  Date: %s", *tag.Date)
-				}
 			}
-		},
-	)
+		})
 }
 
 func TestIntegrationExpenseTotalInsights(t *testing.T) {
