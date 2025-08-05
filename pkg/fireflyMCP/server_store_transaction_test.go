@@ -216,10 +216,10 @@ func TestMapTransactionStoreRequestToAPI_Coverage(t *testing.T) {
 
 	// Test with empty optional fields
 	req2 := &TransactionStoreRequest{
-		ErrorIfDuplicateHash: nil,
-		ApplyRules:          nil,
-		FireWebhooks:        nil,
-		GroupTitle:          nil,
+		ErrorIfDuplicateHash: false,
+		ApplyRules:           false,
+		FireWebhooks:         false,
+		GroupTitle:           "",
 		Transactions: []TransactionSplitRequest{
 			{
 				Type:                "deposit",

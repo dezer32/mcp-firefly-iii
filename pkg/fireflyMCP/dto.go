@@ -221,38 +221,38 @@ type RecurrenceList struct {
 
 // TransactionStoreRequest represents the request body for creating a new transaction
 type TransactionStoreRequest struct {
-	ErrorIfDuplicateHash *bool                    `json:"error_if_duplicate_hash,omitempty"` // Break if transaction already exists
-	ApplyRules           *bool                    `json:"apply_rules,omitempty"`             // Whether to apply rules when submitting
-	FireWebhooks         *bool                    `json:"fire_webhooks,omitempty"`           // Whether to fire webhooks (default: true)
-	GroupTitle           *string                  `json:"group_title,omitempty"`             // Title for split transactions
-	Transactions         []TransactionSplitRequest `json:"transactions"`                       // Array of transactions (required)
+	ErrorIfDuplicateHash bool                      `json:"error_if_duplicate_hash"` // Break if transaction already exists
+	ApplyRules           bool                      `json:"apply_rules"`             // Whether to apply rules when submitting
+	FireWebhooks         bool                      `json:"fire_webhooks"`           // Whether to fire webhooks (default: true)
+	GroupTitle           string                    `json:"group_title"`             // Title for split transactions
+	Transactions         []TransactionSplitRequest `json:"transactions"`            // Array of transactions (required)
 }
 
 // TransactionSplitRequest represents a single transaction in a transaction group
 type TransactionSplitRequest struct {
-	Type                     string  `json:"type"`                                    // Transaction type: withdrawal, deposit, transfer (required)
-	Date                     string  `json:"date"`                                    // Transaction date YYYY-MM-DD or datetime (required)
-	Amount                   string  `json:"amount"`                                  // Transaction amount (required)
-	Description              string  `json:"description"`                             // Transaction description (required)
-	SourceId                 *string `json:"source_id,omitempty"`                     // Source account ID
-	SourceName               *string `json:"source_name,omitempty"`                   // Source account name
-	DestinationId            *string `json:"destination_id,omitempty"`                // Destination account ID
-	DestinationName          *string `json:"destination_name,omitempty"`              // Destination account name
-	CategoryId               *string `json:"category_id,omitempty"`                   // Category ID
-	CategoryName             *string `json:"category_name,omitempty"`                 // Category name
-	BudgetId                 *string `json:"budget_id,omitempty"`                     // Budget ID
-	BudgetName               *string `json:"budget_name,omitempty"`                   // Budget name
-	Tags                     []string `json:"tags,omitempty"`                         // Transaction tags
-	CurrencyId               *string `json:"currency_id,omitempty"`                   // Currency ID
-	CurrencyCode             *string `json:"currency_code,omitempty"`                 // Currency code
-	ForeignAmount            *string `json:"foreign_amount,omitempty"`                // Amount in foreign currency
-	ForeignCurrencyId        *string `json:"foreign_currency_id,omitempty"`           // Foreign currency ID
-	ForeignCurrencyCode      *string `json:"foreign_currency_code,omitempty"`         // Foreign currency code
-	BillId                   *string `json:"bill_id,omitempty"`                       // Bill ID
-	BillName                 *string `json:"bill_name,omitempty"`                     // Bill name
-	PiggyBankId              *string `json:"piggy_bank_id,omitempty"`                 // Piggy bank ID
-	PiggyBankName            *string `json:"piggy_bank_name,omitempty"`               // Piggy bank name
-	Notes                    *string `json:"notes,omitempty"`                         // Transaction notes
-	Reconciled               *bool   `json:"reconciled,omitempty"`                    // Whether transaction is reconciled
-	Order                    *int    `json:"order,omitempty"`                         // Order in the list
+	Type                string   `json:"type"`                            // Transaction type: withdrawal, deposit, transfer (required)
+	Date                string   `json:"date"`                            // Transaction date YYYY-MM-DD or datetime (required)
+	Amount              string   `json:"amount"`                          // Transaction amount (required)
+	Description         string   `json:"description"`                     // Transaction description (required)
+	SourceId            *string  `json:"source_id,omitempty"`             // Source account ID
+	SourceName          *string  `json:"source_name,omitempty"`           // Source account name
+	DestinationId       *string  `json:"destination_id,omitempty"`        // Destination account ID
+	DestinationName     *string  `json:"destination_name,omitempty"`      // Destination account name
+	CategoryId          *string  `json:"category_id,omitempty"`           // Category ID
+	CategoryName        *string  `json:"category_name,omitempty"`         // Category name
+	BudgetId            *string  `json:"budget_id,omitempty"`             // Budget ID
+	BudgetName          *string  `json:"budget_name,omitempty"`           // Budget name
+	Tags                []string `json:"tags,omitempty"`                  // Transaction tags
+	CurrencyId          *string  `json:"currency_id,omitempty"`           // Currency ID
+	CurrencyCode        *string  `json:"currency_code,omitempty"`         // Currency code
+	ForeignAmount       *string  `json:"foreign_amount,omitempty"`        // Amount in foreign currency
+	ForeignCurrencyId   *string  `json:"foreign_currency_id,omitempty"`   // Foreign currency ID
+	ForeignCurrencyCode *string  `json:"foreign_currency_code,omitempty"` // Foreign currency code
+	BillId              *string  `json:"bill_id,omitempty"`               // Bill ID
+	BillName            *string  `json:"bill_name,omitempty"`             // Bill name
+	PiggyBankId         *string  `json:"piggy_bank_id,omitempty"`         // Piggy bank ID
+	PiggyBankName       *string  `json:"piggy_bank_name,omitempty"`       // Piggy bank name
+	Notes               *string  `json:"notes,omitempty"`                 // Transaction notes
+	Reconciled          *bool    `json:"reconciled,omitempty"`            // Whether transaction is reconciled
+	Order               *int     `json:"order,omitempty"`                 // Order in the list
 }

@@ -66,10 +66,10 @@ func TestMapTransactionStoreRequestToAPI(t *testing.T) {
 		order := 1
 
 		req := &TransactionStoreRequest{
-			ErrorIfDuplicateHash: &errorIfDup,
-			ApplyRules:           &applyRules,
-			FireWebhooks:         &fireWebhooks,
-			GroupTitle:           &groupTitle,
+			ErrorIfDuplicateHash: errorIfDup,
+			ApplyRules:           applyRules,
+			FireWebhooks:         fireWebhooks,
+			GroupTitle:           groupTitle,
 			Transactions: []TransactionSplitRequest{
 				{
 					Type:                "withdrawal",
@@ -175,7 +175,7 @@ func TestMapTransactionStoreRequestToAPI(t *testing.T) {
 		// Test with multiple transactions in a split
 		groupTitle := "Split transaction"
 		req := &TransactionStoreRequest{
-			GroupTitle: &groupTitle,
+			GroupTitle: groupTitle,
 			Transactions: []TransactionSplitRequest{
 				{
 					Type:        "withdrawal",

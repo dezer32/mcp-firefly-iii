@@ -15,6 +15,7 @@ The MCP server provides the following tools for interacting with Firefly III:
 - `list_transactions` - List transactions with optional filtering by type, date range, and limit
 - `get_transaction` - Get detailed information about a specific transaction
 - `search_transactions` - Search for transactions by keyword
+- `store_transaction` - Create a new transaction with support for splits, categorization, and rules
 
 ### Budget Management
 - `list_budgets` - List all budgets with optional limit
@@ -84,6 +85,56 @@ mcp:
 ## Usage
 
 The server communicates over stdin/stdout using the MCP protocol. It can be integrated with MCP-compatible clients.
+
+### Store Transaction Parameters
+
+The `store_transaction` tool creates new transactions in Firefly III. It accepts the following parameters:
+
+#### Request Structure
+- `error_if_duplicate_hash` (boolean, optional) - Break if transaction already exists based on hash
+- `apply_rules` (boolean, optional) - Whether to apply Firefly III rules when submitting
+- `fire_webhooks` (boolean, optional) - Whether to fire webhooks (default: true)
+- `group_title` (string, optional) - Title for split transactions
+- `transactions` (array, required) - Array of transaction splits
+
+#### Transaction Split Parameters
+
+Each transaction in the `transactions` array requires:
+
+**Required Fields:**
+- `type` (string) - Transaction type: `withdrawal`, `deposit`, or `transfer`
+- `date` (string) - Transaction date in `YYYY-MM-DD` format or ISO 8601 datetime
+- `amount` (string) - Transaction amount as a positive decimal string
+- `description` (string) - Transaction description
+
+**Account Fields (at least one source/destination required):**
+- `source_id` (string, optional) - Source account ID
+- `source_name` (string, optional) - Source account name (creates new if doesn't exist)
+- `destination_id` (string, optional) - Destination account ID  
+- `destination_name` (string, optional) - Destination account name (creates new if doesn't exist)
+
+**Categorization Fields (optional):**
+- `category_id` (string) - Category ID
+- `category_name` (string) - Category name (creates new if doesn't exist)
+- `budget_id` (string) - Budget ID
+- `budget_name` (string) - Budget name
+- `tags` (array of strings) - Transaction tags
+
+**Currency Fields (optional):**
+- `currency_id` (string) - Currency ID
+- `currency_code` (string) - Currency code (e.g., "USD", "EUR")
+- `foreign_amount` (string) - Amount in foreign currency
+- `foreign_currency_id` (string) - Foreign currency ID
+- `foreign_currency_code` (string) - Foreign currency code
+
+**Other Fields (optional):**
+- `bill_id` (string) - Bill ID
+- `bill_name` (string) - Bill name
+- `piggy_bank_id` (string) - Piggy bank ID
+- `piggy_bank_name` (string) - Piggy bank name
+- `notes` (string) - Transaction notes
+- `reconciled` (boolean) - Whether transaction is reconciled
+- `order` (integer) - Order in the transaction split list
 
 ### Tool Examples
 
@@ -169,6 +220,29 @@ Field options: `all`, `iban`, `name`, `number`, `id`
     "page": 1,
     "start": "2024-01-01",
     "end": "2024-12-31"
+  }
+}
+```
+
+#### Store Transaction
+```json
+{
+  "name": "store_transaction",
+  "arguments": {
+    "apply_rules": true,
+    "fire_webhooks": true,
+    "transactions": [
+      {
+        "type": "withdrawal",
+        "date": "2024-01-15",
+        "amount": "45.99",
+        "description": "Grocery shopping",
+        "source_id": "1",
+        "destination_name": "Local Supermarket",
+        "category_name": "Groceries",
+        "tags": ["food", "weekly-shopping"]
+      }
+    ]
   }
 }
 ```

@@ -53,11 +53,11 @@ func TestIntegrationStoreTransaction(t *testing.T) {
 				TransactionStoreRequest: TransactionStoreRequest{
 					Transactions: []TransactionSplitRequest{
 						{
-							Type:        "withdrawal",
-							Date:        currentDate,
-							Amount:      "25.50",
-							Description: uniqueDescription + " - withdrawal",
-							SourceId:    &assetAccountId,
+							Type:            "withdrawal",
+							Date:            currentDate,
+							Amount:          "25.50",
+							Description:     uniqueDescription + " - withdrawal",
+							SourceId:        &assetAccountId,
 							DestinationName: getStringPtr("Test Grocery Store"),
 						},
 					},
@@ -79,12 +79,12 @@ func TestIntegrationStoreTransaction(t *testing.T) {
 				TransactionStoreRequest: TransactionStoreRequest{
 					Transactions: []TransactionSplitRequest{
 						{
-							Type:            "deposit",
-							Date:            currentDate,
-							Amount:          "1000.00",
-							Description:     uniqueDescription + " - deposit",
-							SourceName:      getStringPtr("Test Employer"),
-							DestinationId:   &assetAccountId,
+							Type:          "deposit",
+							Date:          currentDate,
+							Amount:        "1000.00",
+							Description:   uniqueDescription + " - deposit",
+							SourceName:    getStringPtr("Test Employer"),
+							DestinationId: &assetAccountId,
 						},
 					},
 				},
@@ -102,7 +102,7 @@ func TestIntegrationStoreTransaction(t *testing.T) {
 			name: "CreateSplitTransaction",
 			args: StoreTransactionArgs{
 				TransactionStoreRequest: TransactionStoreRequest{
-					GroupTitle: getStringPtr("Split transaction test"),
+					GroupTitle: "Split transaction test",
 					Transactions: []TransactionSplitRequest{
 						{
 							Type:            "withdrawal",
@@ -137,8 +137,8 @@ func TestIntegrationStoreTransaction(t *testing.T) {
 			name: "CreateWithOptionalFields",
 			args: StoreTransactionArgs{
 				TransactionStoreRequest: TransactionStoreRequest{
-					ApplyRules:   getBoolPtr(false),
-					FireWebhooks: getBoolPtr(true),
+					ApplyRules:   false,
+					FireWebhooks: true,
 					Transactions: []TransactionSplitRequest{
 						{
 							Type:            "withdrawal",
