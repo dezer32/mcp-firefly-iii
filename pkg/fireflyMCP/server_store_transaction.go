@@ -72,7 +72,12 @@ func (s *FireflyMCPServer) handleStoreTransaction(
 		if !validTypes[txn.Type] {
 			return &mcp.CallToolResultFor[struct{}]{
 				Content: []mcp.Content{
-					&mcp.TextContent{Text: fmt.Sprintf("Error: transaction[%d].type must be one of: withdrawal, deposit, transfer", i)},
+					&mcp.TextContent{
+						Text: fmt.Sprintf(
+							"Error: transaction[%d].type must be one of: withdrawal, deposit, transfer",
+							i,
+						),
+					},
 				},
 				IsError: true,
 			}, nil
@@ -84,7 +89,12 @@ func (s *FireflyMCPServer) handleStoreTransaction(
 			if _, err := time.Parse(time.RFC3339, txn.Date); err != nil {
 				return &mcp.CallToolResultFor[struct{}]{
 					Content: []mcp.Content{
-						&mcp.TextContent{Text: fmt.Sprintf("Error: transaction[%d].date must be in format YYYY-MM-DD or RFC3339", i)},
+						&mcp.TextContent{
+							Text: fmt.Sprintf(
+								"Error: transaction[%d].date must be in format YYYY-MM-DD or RFC3339",
+								i,
+							),
+						},
 					},
 					IsError: true,
 				}, nil
@@ -177,18 +187,11 @@ func mapTransactionStoreRequestToAPI(req *TransactionStoreRequest) *client.Store
 		Transactions: make([]client.TransactionSplitStore, len(req.Transactions)),
 	}
 
-	// Map optional fields
-	if req.ErrorIfDuplicateHash != nil {
-		apiReq.ErrorIfDuplicateHash = req.ErrorIfDuplicateHash
-	}
-	if req.ApplyRules != nil {
-		apiReq.ApplyRules = req.ApplyRules
-	}
-	if req.FireWebhooks != nil {
-		apiReq.FireWebhooks = req.FireWebhooks
-	}
-	if req.GroupTitle != nil {
-		apiReq.GroupTitle = req.GroupTitle
+	apiReq.ErrorIfDuplicateHash = &req.ErrorIfDuplicateHash
+	apiReq.ApplyRules = &req.ApplyRules
+	apiReq.FireWebhooks = &req.FireWebhooks
+	if req.GroupTitle != "" {
+		apiReq.GroupTitle = &req.GroupTitle
 	}
 
 	// Map transactions
