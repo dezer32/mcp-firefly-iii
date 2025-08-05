@@ -15,7 +15,7 @@ import (
 func (s *FireflyMCPServer) handleStoreTransaction(
 	ctx context.Context,
 	ss *mcp.ServerSession,
-	params *mcp.CallToolParamsFor[StoreTransactionArgs],
+	params *mcp.CallToolParamsFor[TransactionStoreRequest],
 ) (*mcp.CallToolResultFor[struct{}], error) {
 	// Validate required fields
 	if len(params.Arguments.Transactions) == 0 {
@@ -103,7 +103,7 @@ func (s *FireflyMCPServer) handleStoreTransaction(
 	}
 
 	// Convert DTO to API model
-	apiRequest := mapTransactionStoreRequestToAPI(&params.Arguments.TransactionStoreRequest)
+	apiRequest := mapTransactionStoreRequestToAPI(&params.Arguments)
 
 	// Call the API
 	resp, err := s.client.StoreTransactionWithResponse(ctx, &client.StoreTransactionParams{}, *apiRequest)

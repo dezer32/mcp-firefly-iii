@@ -221,38 +221,38 @@ type RecurrenceList struct {
 
 // TransactionStoreRequest represents the request body for creating a new transaction
 type TransactionStoreRequest struct {
-	ErrorIfDuplicateHash bool                      `json:"error_if_duplicate_hash"` // Break if transaction already exists
-	ApplyRules           bool                      `json:"apply_rules"`             // Whether to apply rules when submitting
-	FireWebhooks         bool                      `json:"fire_webhooks"`           // Whether to fire webhooks (default: true)
-	GroupTitle           string                    `json:"group_title"`             // Title for split transactions
-	Transactions         []TransactionSplitRequest `json:"transactions"`            // Array of transactions (required)
+	ErrorIfDuplicateHash bool                      `json:"error_if_duplicate_hash" mcp:"Break if transaction with same hash already exists (default: false)"` // Break if transaction already exists
+	ApplyRules           bool                      `json:"apply_rules" mcp:"Whether to apply processing rules when creating transaction (default: false)"`             // Whether to apply rules when submitting
+	FireWebhooks         bool                      `json:"fire_webhooks" mcp:"Whether to fire webhooks for this transaction (default: true)"`           // Whether to fire webhooks (default: true)
+	GroupTitle           string                    `json:"group_title" mcp:"Title for the transaction group (for split transactions)"`             // Title for split transactions
+	Transactions         []TransactionSplitRequest `json:"transactions" mcp:"Array of transactions to create (required, at least one)"`            // Array of transactions (required)
 }
 
 // TransactionSplitRequest represents a single transaction in a transaction group
 type TransactionSplitRequest struct {
-	Type                string   `json:"type"`                            // Transaction type: withdrawal, deposit, transfer (required)
-	Date                string   `json:"date"`                            // Transaction date YYYY-MM-DD or datetime (required)
-	Amount              string   `json:"amount"`                          // Transaction amount (required)
-	Description         string   `json:"description"`                     // Transaction description (required)
-	SourceId            *string  `json:"source_id,omitempty"`             // Source account ID
-	SourceName          *string  `json:"source_name,omitempty"`           // Source account name
-	DestinationId       *string  `json:"destination_id,omitempty"`        // Destination account ID
-	DestinationName     *string  `json:"destination_name,omitempty"`      // Destination account name
-	CategoryId          *string  `json:"category_id,omitempty"`           // Category ID
-	CategoryName        *string  `json:"category_name,omitempty"`         // Category name
-	BudgetId            *string  `json:"budget_id,omitempty"`             // Budget ID
-	BudgetName          *string  `json:"budget_name,omitempty"`           // Budget name
-	Tags                []string `json:"tags,omitempty"`                  // Transaction tags
-	CurrencyId          *string  `json:"currency_id,omitempty"`           // Currency ID
-	CurrencyCode        *string  `json:"currency_code,omitempty"`         // Currency code
-	ForeignAmount       *string  `json:"foreign_amount,omitempty"`        // Amount in foreign currency
-	ForeignCurrencyId   *string  `json:"foreign_currency_id,omitempty"`   // Foreign currency ID
-	ForeignCurrencyCode *string  `json:"foreign_currency_code,omitempty"` // Foreign currency code
-	BillId              *string  `json:"bill_id,omitempty"`               // Bill ID
-	BillName            *string  `json:"bill_name,omitempty"`             // Bill name
-	PiggyBankId         *string  `json:"piggy_bank_id,omitempty"`         // Piggy bank ID
-	PiggyBankName       *string  `json:"piggy_bank_name,omitempty"`       // Piggy bank name
-	Notes               *string  `json:"notes,omitempty"`                 // Transaction notes
-	Reconciled          *bool    `json:"reconciled,omitempty"`            // Whether transaction is reconciled
-	Order               *int     `json:"order,omitempty"`                 // Order in the list
+	Type                string   `json:"type" mcp:"Transaction type: withdrawal, deposit, transfer (required)"`                            // Transaction type: withdrawal, deposit, transfer (required)
+	Date                string   `json:"date" mcp:"Transaction date (YYYY-MM-DD or YYYY-MM-DD HH:MM:SS) (required)"`                            // Transaction date YYYY-MM-DD or datetime (required)
+	Amount              string   `json:"amount" mcp:"Transaction amount as string (e.g. '100.00') (required)"`                          // Transaction amount (required)
+	Description         string   `json:"description" mcp:"Transaction description (required)"`                     // Transaction description (required)
+	SourceId            *string  `json:"source_id,omitempty" mcp:"Source account ID (use either source_id or source_name)"`             // Source account ID
+	SourceName          *string  `json:"source_name,omitempty" mcp:"Source account name (use either source_id or source_name)"`           // Source account name
+	DestinationId       *string  `json:"destination_id,omitempty" mcp:"Destination account ID (use either destination_id or destination_name)"`        // Destination account ID
+	DestinationName     *string  `json:"destination_name,omitempty" mcp:"Destination account name (use either destination_id or destination_name)"`      // Destination account name
+	CategoryId          *string  `json:"category_id,omitempty" mcp:"Category ID (use either category_id or category_name)"`           // Category ID
+	CategoryName        *string  `json:"category_name,omitempty" mcp:"Category name (use either category_id or category_name)"`         // Category name
+	BudgetId            *string  `json:"budget_id,omitempty" mcp:"Budget ID (use either budget_id or budget_name)"`             // Budget ID
+	BudgetName          *string  `json:"budget_name,omitempty" mcp:"Budget name (use either budget_id or budget_name)"`           // Budget name
+	Tags                []string `json:"tags,omitempty" mcp:"Array of tag names to attach to transaction"`                  // Transaction tags
+	CurrencyId          *string  `json:"currency_id,omitempty" mcp:"Currency ID for the transaction"`           // Currency ID
+	CurrencyCode        *string  `json:"currency_code,omitempty" mcp:"Currency code (e.g. 'USD', 'EUR')"`         // Currency code
+	ForeignAmount       *string  `json:"foreign_amount,omitempty" mcp:"Amount in foreign currency as string"`        // Amount in foreign currency
+	ForeignCurrencyId   *string  `json:"foreign_currency_id,omitempty" mcp:"Foreign currency ID"`   // Foreign currency ID
+	ForeignCurrencyCode *string  `json:"foreign_currency_code,omitempty" mcp:"Foreign currency code (e.g. 'USD', 'EUR')"` // Foreign currency code
+	BillId              *string  `json:"bill_id,omitempty" mcp:"Bill ID to link this transaction to"`               // Bill ID
+	BillName            *string  `json:"bill_name,omitempty" mcp:"Bill name to link this transaction to"`             // Bill name
+	PiggyBankId         *string  `json:"piggy_bank_id,omitempty" mcp:"Piggy bank ID for savings transfers"`         // Piggy bank ID
+	PiggyBankName       *string  `json:"piggy_bank_name,omitempty" mcp:"Piggy bank name for savings transfers"`       // Piggy bank name
+	Notes               *string  `json:"notes,omitempty" mcp:"Additional notes or comments for the transaction"`                 // Transaction notes
+	Reconciled          *bool    `json:"reconciled,omitempty" mcp:"Whether the transaction has been reconciled (default: false)"`            // Whether transaction is reconciled
+	Order               *int     `json:"order,omitempty" mcp:"Order of this split in the transaction group"`                 // Order in the list
 }
