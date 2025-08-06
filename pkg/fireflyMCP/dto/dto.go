@@ -1,4 +1,4 @@
-package fireflyMCP
+package dto
 
 import "time"
 
