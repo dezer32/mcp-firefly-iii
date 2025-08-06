@@ -2,9 +2,6 @@ package fireflyMCP
 
 import (
 	"context"
-	"fmt"
-	"net/http"
-	"time"
 
 	"github.com/dezer32/mcp-firefly-iii/pkg/client"
 	"github.com/dezer32/mcp-firefly-iii/pkg/fireflyMCP/handlers"
@@ -22,50 +19,10 @@ type FireflyMCPServer struct {
 }
 
 // NewServer creates a new FireflyMCPServer instance
+// Deprecated: Use NewServerWithOptions for more flexible configuration
 func NewServer(config *Config) (*FireflyMCPServer, error) {
-	// Create HTTP client with timeout
-	httpClient := &http.Client{
-		Timeout: time.Duration(config.Client.Timeout) * time.Second,
-	}
-
-	// Create Firefly III client with request editor for authentication
-	fireflyClient, err := client.NewClientWithResponses(
-		config.Server.URL,
-		client.WithHTTPClient(httpClient),
-		client.WithRequestEditorFn(
-			func(ctx context.Context, req *http.Request) error {
-				req.Header.Set("Authorization", "Bearer "+config.API.Token)
-				return nil
-			},
-		),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Firefly III client: %w", err)
-	}
-
-	// Create MCP server
-	mcpServer := mcp.NewServer(
-		&mcp.Implementation{
-			Name:    config.MCP.Name,
-			Version: config.MCP.Version,
-		}, nil,
-	)
-
-	// Create handler registry
-	handlerRegistry := handlers.NewHandlerRegistry(fireflyClient, config)
-
-	server := &FireflyMCPServer{
-		Server:   mcpServer,
-		Client:   fireflyClient,
-		Config:   config,
-		Handlers: handlerRegistry,
-		Chain:    nil, // No middleware chain in legacy constructor
-	}
-
-	// Register all tools through the handler registry
-	handlerRegistry.RegisterAll(mcpServer)
-
-	return server, nil
+	// Use the new functional options pattern internally
+	return NewServerWithOptions(WithConfig(config))
 }
 
 // Run starts the MCP server with the given transport
