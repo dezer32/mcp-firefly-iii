@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/dezer32/mcp-firefly-iii/pkg/fireflyMCP"
+	"github.com/dezer32/mcp-firefly-iii/pkg/fireflyMCP/di"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -21,10 +22,10 @@ func main() {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	// Create MCP server
-	server, err := fireflyMCP.NewFireflyMCPServer(config)
+	// Create MCP server using dependency injection
+	server, err := di.InitializeServer(config)
 	if err != nil {
-		log.Fatalf("Failed to create MCP server: %v", err)
+		log.Fatalf("Failed to initialize MCP server: %v", err)
 	}
 
 	// Run the server over stdin/stdout
