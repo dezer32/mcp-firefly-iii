@@ -14,17 +14,17 @@ func MapAccountArrayToAccountList(accountArray *client.AccountArray) *dto.Accoun
 	}
 
 	return MapArrayToList(
-		accountArray,
-		func(accountRead client.AccountRead) dto.Account {
-			return dto.Account{
-				Id:     accountRead.Id,
-				Active: accountRead.Attributes.Active != nil && *accountRead.Attributes.Active,
-				Name:   accountRead.Attributes.Name,
-				Notes:  accountRead.Attributes.Notes,
-				Type:   string(accountRead.Attributes.Type),
-			}
-		},
-		func() *dto.AccountList { return &dto.AccountList{} },
+	accountArray,
+	func(accountRead client.AccountRead) dto.Account {
+	return dto.NewAccountBuilder().
+	WithId(accountRead.Id).
+	WithActive(accountRead.Attributes.Active != nil && *accountRead.Attributes.Active).
+	WithName(accountRead.Attributes.Name).
+	WithNotes(accountRead.Attributes.Notes).
+	WithType(string(accountRead.Attributes.Type)).
+	 Build()
+	},
+	func() *dto.AccountList { return &dto.AccountList{} },
 	)
 }
 
@@ -36,13 +36,14 @@ func MapAccountSingleToAccount(accountSingle *client.AccountSingle) *dto.Account
 		return nil
 	}
 
-	return &dto.Account{
-		Id:     accountSingle.Data.Id,
-		Active: accountSingle.Data.Attributes.Active != nil && *accountSingle.Data.Attributes.Active,
-		Name:   accountSingle.Data.Attributes.Name,
-		Notes:  accountSingle.Data.Attributes.Notes,
-		Type:   string(accountSingle.Data.Attributes.Type),
-	}
+	account := dto.NewAccountBuilder().
+		WithId(accountSingle.Data.Id).
+		WithActive(accountSingle.Data.Attributes.Active != nil && *accountSingle.Data.Attributes.Active).
+		WithName(accountSingle.Data.Attributes.Name).
+		WithNotes(accountSingle.Data.Attributes.Notes).
+		WithType(string(accountSingle.Data.Attributes.Type)).
+		Build()
+	return &account
 }
 
 // MapAccountReadToAccount converts client.AccountRead to Account DTO.
@@ -53,11 +54,12 @@ func MapAccountReadToAccount(accountRead *client.AccountRead) *dto.Account {
 		return nil
 	}
 
-	return &dto.Account{
-		Id:     accountRead.Id,
-		Active: accountRead.Attributes.Active != nil && *accountRead.Attributes.Active,
-		Name:   accountRead.Attributes.Name,
-		Notes:  accountRead.Attributes.Notes,
-		Type:   string(accountRead.Attributes.Type),
-	}
+	account := dto.NewAccountBuilder().
+		WithId(accountRead.Id).
+		WithActive(accountRead.Attributes.Active != nil && *accountRead.Attributes.Active).
+		WithName(accountRead.Attributes.Name).
+		WithNotes(accountRead.Attributes.Notes).
+		WithType(string(accountRead.Attributes.Type)).
+		Build()
+	return &account
 }

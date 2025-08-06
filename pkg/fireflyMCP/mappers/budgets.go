@@ -16,31 +16,28 @@ func MapBudgetArrayToBudgetList(budgetArray *client.BudgetArray) *dto.BudgetList
 	return MapArrayToList(
 		budgetArray,
 		func(budgetRead client.BudgetRead) dto.Budget {
-			budget := dto.Budget{
-				Id:     budgetRead.Id,
-				Active: GetBoolValue(budgetRead.Attributes.Active),
-				Name:   budgetRead.Attributes.Name,
-				Notes:  budgetRead.Attributes.Notes,
-				Spent: dto.Spent{
-					Sum:          "0",
-					CurrencyCode: "",
-				},
-			}
+			builder := dto.NewBudgetBuilder().
+				WithId(budgetRead.Id).
+				WithActive(GetBoolValue(budgetRead.Attributes.Active)).
+				WithName(budgetRead.Attributes.Name).
+				WithNotes(budgetRead.Attributes.Notes)
 
 			// Map spent information if available
+			sum := "0"
+			currencyCode := ""
 			if budgetRead.Attributes.Spent != nil && len(*budgetRead.Attributes.Spent) > 0 {
 				for _, spent := range *budgetRead.Attributes.Spent {
 					if spent.Sum != nil {
-						budget.Spent.Sum = *spent.Sum
+						sum = *spent.Sum
 					}
 					if spent.CurrencyCode != nil {
-						budget.Spent.CurrencyCode = *spent.CurrencyCode
+						currencyCode = *spent.CurrencyCode
 					}
 					break // Take first spent entry
 				}
 			}
 
-			return budget
+			return builder.WithSpent(dto.NewSpentFromValues(sum, currencyCode)).Build()
 		},
 		func() *dto.BudgetList { return &dto.BudgetList{} },
 	)
@@ -88,13 +85,13 @@ func MapBudgetLimitArrayToBudgetLimitList(limitArray *client.BudgetLimitArray) *
 	// Map pagination
 	if limitArray.Meta.Pagination != nil {
 		pagination := limitArray.Meta.Pagination
-		limitList.Pagination = dto.Pagination{
-			Count:       GetIntValue(pagination.Count),
-			Total:       GetIntValue(pagination.Total),
-			CurrentPage: GetIntValue(pagination.CurrentPage),
-			PerPage:     GetIntValue(pagination.PerPage),
-			TotalPages:  GetIntValue(pagination.TotalPages),
-		}
+		limitList.Pagination = dto.NewPaginationBuilder().
+			WithCount(GetIntValue(pagination.Count)).
+			WithTotal(GetIntValue(pagination.Total)).
+			WithCurrentPage(GetIntValue(pagination.CurrentPage)).
+			WithPerPage(GetIntValue(pagination.PerPage)).
+			WithTotalPages(GetIntValue(pagination.TotalPages)).
+			Build()
 	}
 
 	return limitList

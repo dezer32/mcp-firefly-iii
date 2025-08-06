@@ -14,11 +14,11 @@ func MapCategoryArrayToCategoryList(categoryArray *client.CategoryArray) *dto.Ca
 	return MapArrayToList(
 		categoryArray,
 		func(categoryRead client.CategoryRead) dto.Category {
-			return dto.Category{
-				Id:    categoryRead.Id,
-				Name:  categoryRead.Attributes.Name,
-				Notes: categoryRead.Attributes.Notes,
-			}
+			return dto.NewCategoryBuilder().
+				WithId(categoryRead.Id).
+				WithName(categoryRead.Attributes.Name).
+				WithNotes(categoryRead.Attributes.Notes).
+				Build()
 		},
 		func() *dto.CategoryList { return &dto.CategoryList{} },
 	)

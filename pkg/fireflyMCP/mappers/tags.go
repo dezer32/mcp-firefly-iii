@@ -10,18 +10,18 @@ func MapTagArrayToTagList(tagArray *client.TagArray) *dto.TagList {
 	if tagArray == nil {
 		return &dto.TagList{
 			Data:       []dto.Tag{},
-			Pagination: dto.Pagination{},
+			Pagination: dto.NewPaginationBuilder().Build(),
 		}
 	}
 
 	return MapArrayToList(
 		tagArray,
 		func(tagRead client.TagRead) dto.Tag {
-			return dto.Tag{
-				Id:          tagRead.Id,
-				Tag:         tagRead.Attributes.Tag,
-				Description: tagRead.Attributes.Description,
-			}
+			return dto.NewTagBuilder().
+				WithId(tagRead.Id).
+				WithTag(tagRead.Attributes.Tag).
+				WithDescription(tagRead.Attributes.Description).
+				Build()
 		},
 		func() *dto.TagList { return &dto.TagList{} },
 	)
@@ -30,14 +30,15 @@ func MapTagArrayToTagList(tagArray *client.TagArray) *dto.TagList {
 // MapTagReadToTag maps a client.TagRead to a dto.Tag
 func MapTagReadToTag(tagRead *client.TagRead) *dto.Tag {
 	if tagRead == nil {
-		return &dto.Tag{}
+		emptyTag := dto.NewTagBuilder().Build()
+		return &emptyTag
 	}
 
-	tag := &dto.Tag{
-		Id:          tagRead.Id,
-		Tag:         tagRead.Attributes.Tag,
-		Description: tagRead.Attributes.Description,
-	}
+	tag := dto.NewTagBuilder().
+		WithId(tagRead.Id).
+		WithTag(tagRead.Attributes.Tag).
+		WithDescription(tagRead.Attributes.Description).
+		Build()
 
-	return tag
+	return &tag
 }

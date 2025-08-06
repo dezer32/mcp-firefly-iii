@@ -1,8 +1,6 @@
 package mappers
 
 import (
-	"time"
-	
 	"github.com/dezer32/mcp-firefly-iii/pkg/client"
 	"github.com/dezer32/mcp-firefly-iii/pkg/fireflyMCP/dto"
 )
@@ -20,7 +18,7 @@ func MapBillArrayToBillList(billArray *client.BillArray) *dto.BillList {
 			if billPtr != nil {
 				return *billPtr
 			}
-			return dto.Bill{}
+			return dto.NewBillBuilder().Build()
 		},
 		func() *dto.BillList { return &dto.BillList{} },
 	)
@@ -32,47 +30,47 @@ func MapBillReadToBill(billRead *client.BillRead) *dto.Bill {
 		return nil
 	}
 
-	bill := &dto.Bill{
-		Id:           billRead.Id,
-		Active:       GetBoolValue(billRead.Attributes.Active),
-		Name:         billRead.Attributes.Name,
-		AmountMin:    billRead.Attributes.AmountMin,
-		AmountMax:    billRead.Attributes.AmountMax,
-		Date:         time.Time{},
-		RepeatFreq:   string(billRead.Attributes.RepeatFreq),
-		Skip:         0,
-		CurrencyCode: GetStringValue(billRead.Attributes.CurrencyCode),
-		Notes:        billRead.Attributes.Notes,
-		PaidDates:    []dto.PaidDate{},
-	}
-
-	// Handle date - Date is already a time.Time, not a pointer
-	bill.Date = billRead.Attributes.Date
+	// Start building the Bill
+	builder := dto.NewBillBuilder().
+		WithId(billRead.Id).
+		WithActive(GetBoolValue(billRead.Attributes.Active)).
+		WithName(billRead.Attributes.Name).
+		WithAmountMin(billRead.Attributes.AmountMin).
+		WithAmountMax(billRead.Attributes.AmountMax).
+		WithDate(billRead.Attributes.Date).
+		WithRepeatFreq(string(billRead.Attributes.RepeatFreq)).
+		WithCurrencyCode(GetStringValue(billRead.Attributes.CurrencyCode)).
+		WithNotes(billRead.Attributes.Notes)
 
 	// Handle skip
+	skip := 0
 	if billRead.Attributes.Skip != nil {
-		bill.Skip = int(*billRead.Attributes.Skip)
+		skip = int(*billRead.Attributes.Skip)
 	}
+	builder = builder.WithSkip(skip)
 
 	// Handle next expected match
 	if billRead.Attributes.NextExpectedMatch != nil {
-		bill.NextExpectedMatch = billRead.Attributes.NextExpectedMatch
+		builder = builder.WithNextExpectedMatch(billRead.Attributes.NextExpectedMatch)
 	}
 
 	// Handle paid dates
+	paidDates := []dto.PaidDate{}
 	if billRead.Attributes.PaidDates != nil {
 		for _, pd := range *billRead.Attributes.PaidDates {
-			paidDate := dto.PaidDate{
-				Date:                 nil,
-				TransactionGroupId:   pd.TransactionGroupId,
-				TransactionJournalId: pd.TransactionJournalId,
-			}
+			paidDateBuilder := dto.NewPaidDateBuilder().
+				WithTransactionGroupId(pd.TransactionGroupId).
+				WithTransactionJournalId(pd.TransactionJournalId)
+			
 			if pd.Date != nil {
-				paidDate.Date = pd.Date
+				paidDateBuilder = paidDateBuilder.WithDate(pd.Date)
 			}
-			bill.PaidDates = append(bill.PaidDates, paidDate)
+			
+			paidDates = append(paidDates, paidDateBuilder.Build())
 		}
 	}
+	builder = builder.WithPaidDates(paidDates)
 
-	return bill
+	bill := builder.Build()
+	return &bill
 }

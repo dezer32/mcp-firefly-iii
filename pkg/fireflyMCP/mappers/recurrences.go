@@ -60,60 +60,65 @@ func MapRecurrenceToRecurrence(recurrenceRead *client.RecurrenceRead) *dto.Recur
 		return nil
 	}
 
-	recurrence := &dto.Recurrence{
-		Id:              recurrenceRead.Id,
-		Type:            string(GetRecurrenceType(recurrenceRead.Attributes.Type)),
-		Title:           GetStringValue(recurrenceRead.Attributes.Title),
-		Description:     GetStringValue(recurrenceRead.Attributes.Description),
-		FirstDate:       time.Time{},
-		LatestDate:      nil,
-		RepeatUntil:     nil,
-		NrOfRepetitions: nil,
-		ApplyRules:      false,
-		Active:          false,
-		Notes:           recurrenceRead.Attributes.Notes,
-		Repetitions:     []dto.RecurrenceRepetition{},
-		Transactions:    []dto.RecurrenceTransaction{},
-	}
+	builder := dto.NewRecurrenceBuilder().
+		WithId(recurrenceRead.Id).
+		WithType(string(GetRecurrenceType(recurrenceRead.Attributes.Type))).
+		WithTitle(GetStringValue(recurrenceRead.Attributes.Title)).
+		WithDescription(GetStringValue(recurrenceRead.Attributes.Description)).
+		WithNotes(recurrenceRead.Attributes.Notes)
 
 	// Handle dates
+	firstDate := time.Time{}
 	if recurrenceRead.Attributes.FirstDate != nil {
-		recurrence.FirstDate = recurrenceRead.Attributes.FirstDate.Time
+		firstDate = recurrenceRead.Attributes.FirstDate.Time
 	}
+	builder = builder.WithFirstDate(firstDate)
+	
 	if recurrenceRead.Attributes.LatestDate != nil {
-		recurrence.LatestDate = &recurrenceRead.Attributes.LatestDate.Time
+		builder = builder.WithLatestDate(&recurrenceRead.Attributes.LatestDate.Time)
 	}
 	if recurrenceRead.Attributes.RepeatUntil != nil {
-		recurrence.RepeatUntil = &recurrenceRead.Attributes.RepeatUntil.Time
+		builder = builder.WithRepeatUntil(&recurrenceRead.Attributes.RepeatUntil.Time)
 	}
 
 	// Handle other fields
 	if recurrenceRead.Attributes.NrOfRepetitions != nil {
 		nr := int(*recurrenceRead.Attributes.NrOfRepetitions)
-		recurrence.NrOfRepetitions = &nr
+		builder = builder.WithNrOfRepetitions(&nr)
 	}
+	
+	applyRules := false
 	if recurrenceRead.Attributes.ApplyRules != nil {
-		recurrence.ApplyRules = *recurrenceRead.Attributes.ApplyRules
+		applyRules = *recurrenceRead.Attributes.ApplyRules
 	}
+	builder = builder.WithApplyRules(applyRules)
+	
+	active := false
 	if recurrenceRead.Attributes.Active != nil {
-		recurrence.Active = *recurrenceRead.Attributes.Active
+		active = *recurrenceRead.Attributes.Active
 	}
+	builder = builder.WithActive(active)
 
 	// Map repetitions
+	repetitions := []dto.RecurrenceRepetition{}
 	if recurrenceRead.Attributes.Repetitions != nil {
 		for _, rep := range *recurrenceRead.Attributes.Repetitions {
-			recurrence.Repetitions = append(recurrence.Repetitions, MapRecurrenceRepetitionToDTO(&rep))
+			repetitions = append(repetitions, MapRecurrenceRepetitionToDTO(&rep))
 		}
 	}
+	builder = builder.WithRepetitions(repetitions)
 
 	// Map transactions
+	transactions := []dto.RecurrenceTransaction{}
 	if recurrenceRead.Attributes.Transactions != nil {
 		for _, trans := range *recurrenceRead.Attributes.Transactions {
-			recurrence.Transactions = append(recurrence.Transactions, MapRecurrenceTransactionToDTO(&trans))
+			transactions = append(transactions, MapRecurrenceTransactionToDTO(&trans))
 		}
 	}
+	builder = builder.WithTransactions(transactions)
 
-	return recurrence
+	recurrence := builder.Build()
+	return &recurrence
 }
 
 // MapRecurrenceArrayToRecurrenceList converts client.RecurrenceArray to RecurrenceList DTO
@@ -139,13 +144,13 @@ func MapRecurrenceArrayToRecurrenceList(recurrenceArray *client.RecurrenceArray)
 	// Map pagination
 	if recurrenceArray.Meta.Pagination != nil {
 		pagination := recurrenceArray.Meta.Pagination
-		recurrenceList.Pagination = dto.Pagination{
-			Count:       GetIntValue(pagination.Count),
-			Total:       GetIntValue(pagination.Total),
-			CurrentPage: GetIntValue(pagination.CurrentPage),
-			PerPage:     GetIntValue(pagination.PerPage),
-			TotalPages:  GetIntValue(pagination.TotalPages),
-		}
+		recurrenceList.Pagination = dto.NewPaginationBuilder().
+			WithCount(GetIntValue(pagination.Count)).
+			WithTotal(GetIntValue(pagination.Total)).
+			WithCurrentPage(GetIntValue(pagination.CurrentPage)).
+			WithPerPage(GetIntValue(pagination.PerPage)).
+			WithTotalPages(GetIntValue(pagination.TotalPages)).
+			Build()
 	}
 
 	return recurrenceList

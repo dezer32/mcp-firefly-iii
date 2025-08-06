@@ -35,15 +35,6 @@ type DTOFactory interface {
 	
 	// Summary creation methods
 	CreateBasicSummary(key, title, currencyCode, monetaryValue string) (*BasicSummary, error)
-	
-	// List creation methods with pagination
-	CreateAccountList(accounts []Account, pagination Pagination) (*AccountList, error)
-	CreateBudgetList(budgets []Budget, pagination Pagination) (*BudgetList, error)
-	CreateCategoryList(categories []Category, pagination Pagination) (*CategoryList, error)
-	CreateTagList(tags []Tag, pagination Pagination) (*TagList, error)
-	CreateBillList(bills []Bill, pagination Pagination) (*BillList, error)
-	CreateRecurrenceList(recurrences []Recurrence, pagination Pagination) (*RecurrenceList, error)
-	CreateTransactionList(groups []TransactionGroup, pagination Pagination) (*TransactionList, error)
 }
 
 // dtoFactory is the default implementation of DTOFactory
@@ -94,13 +85,13 @@ func (f *dtoFactory) safeString(s *string) *string {
 
 // CreateAccount creates a new Account DTO with validation
 func (f *dtoFactory) CreateAccount(id, name, accountType string, active bool, notes *string) (*Account, error) {
-	account := &Account{
-		Id:     id,
-		Name:   name,
-		Type:   accountType,
-		Active: active,
-		Notes:  f.safeString(notes),
-	}
+	account := NewAccountBuilder().
+		WithId(id).
+		WithName(name).
+		WithType(accountType).
+		WithActive(active).
+		WithNotes(f.safeString(notes)).
+		Build()
 	
 	if f.validateOnCreate {
 		if err := account.Validate(); err != nil {
@@ -108,18 +99,18 @@ func (f *dtoFactory) CreateAccount(id, name, accountType string, active bool, no
 		}
 	}
 	
-	return account, nil
+	return &account, nil
 }
 
 // CreateBudget creates a new Budget DTO with validation
 func (f *dtoFactory) CreateBudget(id, name string, active bool, notes interface{}, spent Spent) (*Budget, error) {
-	budget := &Budget{
-		Id:     id,
-		Name:   name,
-		Active: active,
-		Notes:  notes,
-		Spent:  spent,
-	}
+	budget := NewBudgetBuilder().
+		WithId(id).
+		WithName(name).
+		WithActive(active).
+		WithNotes(notes).
+		WithSpent(spent).
+		Build()
 	
 	if f.validateOnCreate {
 		if err := budget.Validate(); err != nil {
@@ -127,16 +118,16 @@ func (f *dtoFactory) CreateBudget(id, name string, active bool, notes interface{
 		}
 	}
 	
-	return budget, nil
+	return &budget, nil
 }
 
 // CreateCategory creates a new Category DTO with validation
 func (f *dtoFactory) CreateCategory(id, name string, notes interface{}) (*Category, error) {
-	category := &Category{
-		Id:    id,
-		Name:  name,
-		Notes: notes,
-	}
+	category := NewCategoryBuilder().
+		WithId(id).
+		WithName(name).
+		WithNotes(notes).
+		Build()
 	
 	if f.validateOnCreate {
 		if err := category.Validate(); err != nil {
@@ -144,16 +135,16 @@ func (f *dtoFactory) CreateCategory(id, name string, notes interface{}) (*Catego
 		}
 	}
 	
-	return category, nil
+	return &category, nil
 }
 
 // CreateTag creates a new Tag DTO with validation
 func (f *dtoFactory) CreateTag(id, tag string, description *string) (*Tag, error) {
-	t := &Tag{
-		Id:          id,
-		Tag:         tag,
-		Description: f.safeString(description),
-	}
+	t := NewTagBuilder().
+		WithId(id).
+		WithTag(tag).
+		WithDescription(f.safeString(description)).
+		Build()
 	
 	if f.validateOnCreate {
 		if err := t.Validate(); err != nil {
@@ -161,25 +152,25 @@ func (f *dtoFactory) CreateTag(id, tag string, description *string) (*Tag, error
 		}
 	}
 	
-	return t, nil
+	return &t, nil
 }
 
 // CreateBill creates a new Bill DTO with validation
 func (f *dtoFactory) CreateBill(id, name, amountMin, amountMax, repeatFreq, currencyCode string, date time.Time, skip int, active bool, notes *string, nextExpectedMatch *time.Time, paidDates []PaidDate) (*Bill, error) {
-	bill := &Bill{
-		Id:                id,
-		Name:              name,
-		AmountMin:         amountMin,
-		AmountMax:         amountMax,
-		RepeatFreq:        repeatFreq,
-		CurrencyCode:      currencyCode,
-		Date:              date,
-		Skip:              skip,
-		Active:            active,
-		Notes:             f.safeString(notes),
-		NextExpectedMatch: nextExpectedMatch,
-		PaidDates:         paidDates,
-	}
+	bill := NewBillBuilder().
+		WithId(id).
+		WithName(name).
+		WithAmountMin(amountMin).
+		WithAmountMax(amountMax).
+		WithRepeatFreq(repeatFreq).
+		WithCurrencyCode(currencyCode).
+		WithDate(date).
+		WithSkip(skip).
+		WithActive(active).
+		WithNotes(f.safeString(notes)).
+		WithNextExpectedMatch(nextExpectedMatch).
+		WithPaidDates(paidDates).
+		Build()
 	
 	if f.validateOnCreate {
 		if err := bill.Validate(); err != nil {
@@ -187,25 +178,25 @@ func (f *dtoFactory) CreateBill(id, name, amountMin, amountMax, repeatFreq, curr
 		}
 	}
 	
-	return bill, nil
+	return &bill, nil
 }
 
 // CreateTransaction creates a new Transaction DTO with validation
 func (f *dtoFactory) CreateTransaction(id, amount, description, sourceId, sourceName, destId, destName, txType, currencyCode, destType string, date time.Time) (*Transaction, error) {
-	transaction := &Transaction{
-		Id:              id,
-		Amount:          amount,
-		Description:     description,
-		SourceId:        sourceId,
-		SourceName:      sourceName,
-		DestinationId:   destId,
-		DestinationName: destName,
-		Type:            txType,
-		CurrencyCode:    currencyCode,
-		DestinationType: destType,
-		Date:            date,
-		Tags:            []string{}, // Initialize with empty array
-	}
+	transaction := NewTransactionBuilder().
+		WithId(id).
+		WithAmount(amount).
+		WithDescription(description).
+		WithSourceId(sourceId).
+		WithSourceName(sourceName).
+		WithDestinationId(destId).
+		WithDestinationName(destName).
+		WithType(txType).
+		WithCurrencyCode(currencyCode).
+		WithDestinationType(destType).
+		WithDate(date).
+		WithTags([]string{}). // Initialize with empty array
+		Build()
 	
 	if f.validateOnCreate {
 		if err := transaction.Validate(); err != nil {
@@ -213,20 +204,22 @@ func (f *dtoFactory) CreateTransaction(id, amount, description, sourceId, source
 		}
 	}
 	
-	return transaction, nil
+	return &transaction, nil
 }
 
 // CreateTransactionGroup creates a new TransactionGroup DTO with validation
 func (f *dtoFactory) CreateTransactionGroup(id, groupTitle string, transactions []Transaction) (*TransactionGroup, error) {
-	group := &TransactionGroup{
-		Id:           id,
-		GroupTitle:   groupTitle,
-		Transactions: transactions,
+	builder := NewTransactionGroupBuilder().
+		WithId(id).
+		WithGroupTitle(groupTitle)
+		
+	if transactions != nil {
+		builder.WithTransactions(transactions)
+	} else {
+		builder.WithTransactions([]Transaction{})
 	}
 	
-	if transactions == nil {
-		group.Transactions = []Transaction{}
-	}
+	group := builder.Build()
 	
 	if f.validateOnCreate {
 		if err := group.Validate(); err != nil {
@@ -234,22 +227,22 @@ func (f *dtoFactory) CreateTransactionGroup(id, groupTitle string, transactions 
 		}
 	}
 	
-	return group, nil
+	return &group, nil
 }
 
 // CreateRecurrence creates a new Recurrence DTO with validation
 func (f *dtoFactory) CreateRecurrence(id, recType, title, description string, firstDate time.Time, active, applyRules bool) (*Recurrence, error) {
-	recurrence := &Recurrence{
-		Id:          id,
-		Type:        recType,
-		Title:       title,
-		Description: description,
-		FirstDate:   firstDate,
-		Active:      active,
-		ApplyRules:  applyRules,
-		Repetitions: []RecurrenceRepetition{}, // Initialize empty
-		Transactions: []RecurrenceTransaction{}, // Initialize empty
-	}
+	recurrence := NewRecurrenceBuilder().
+		WithId(id).
+		WithType(recType).
+		WithTitle(title).
+		WithDescription(description).
+		WithFirstDate(firstDate).
+		WithActive(active).
+		WithApplyRules(applyRules).
+		WithRepetitions([]RecurrenceRepetition{}). // Initialize empty
+		WithTransactions([]RecurrenceTransaction{}). // Initialize empty
+		Build()
 	
 	// Note: Validation will fail if repetitions and transactions are empty
 	// These should be added after creation
@@ -258,257 +251,59 @@ func (f *dtoFactory) CreateRecurrence(id, recType, title, description string, fi
 		// The caller should validate after adding these
 	}
 	
-	return recurrence, nil
+	return &recurrence, nil
 }
 
 // CreateInsightCategoryEntry creates a new InsightCategoryEntry DTO
 func (f *dtoFactory) CreateInsightCategoryEntry(id, name, amount, currencyCode string) (*InsightCategoryEntry, error) {
-	entry := &InsightCategoryEntry{
-		Id:           id,
-		Name:         name,
-		Amount:       amount,
-		CurrencyCode: currencyCode,
+	// For now, create directly as builder is not yet implemented for this type
+	entry := InsightCategoryEntry{
+		id:           id,
+		name:         name,
+		amount:       amount,
+		currencyCode: currencyCode,
 	}
 	
 	if f.validateOnCreate {
-		// Add validation if InsightCategoryEntry implements Validatable
-		if validator, ok := interface{}(entry).(Validatable); ok {
-			if err := validator.Validate(); err != nil {
-				return nil, fmt.Errorf("insight category entry validation failed: %w", err)
-			}
+		if err := entry.Validate(); err != nil {
+			return nil, fmt.Errorf("insight category entry validation failed: %w", err)
 		}
 	}
 	
-	return entry, nil
+	return &entry, nil
 }
 
 // CreateInsightTotalEntry creates a new InsightTotalEntry DTO
 func (f *dtoFactory) CreateInsightTotalEntry(amount, currencyCode string) (*InsightTotalEntry, error) {
-	entry := &InsightTotalEntry{
-		Amount:       amount,
-		CurrencyCode: currencyCode,
+	// For now, create directly as builder is not yet implemented for this type
+	entry := InsightTotalEntry{
+		amount:       amount,
+		currencyCode: currencyCode,
 	}
 	
-	if f.validateOnCreate {
-		// Add validation if InsightTotalEntry implements Validatable
-		if validator, ok := interface{}(entry).(Validatable); ok {
-			if err := validator.Validate(); err != nil {
-				return nil, fmt.Errorf("insight total entry validation failed: %w", err)
-			}
-		}
-	}
+	// InsightTotalEntry doesn't have Validate method yet
+	// Add validation if needed
 	
-	return entry, nil
+	return &entry, nil
 }
 
 // CreateBasicSummary creates a new BasicSummary DTO
 func (f *dtoFactory) CreateBasicSummary(key, title, currencyCode, monetaryValue string) (*BasicSummary, error) {
-	summary := &BasicSummary{
-		Key:           key,
-		Title:         title,
-		CurrencyCode:  currencyCode,
-		MonetaryValue: monetaryValue,
+	// For now, create directly as builder is not yet implemented for this type
+	summary := BasicSummary{
+		key:           key,
+		title:         title,
+		currencyCode:  currencyCode,
+		monetaryValue: monetaryValue,
 	}
 	
 	if f.validateOnCreate {
-		// Add validation if BasicSummary implements Validatable
-		if validator, ok := interface{}(summary).(Validatable); ok {
-			if err := validator.Validate(); err != nil {
-				return nil, fmt.Errorf("basic summary validation failed: %w", err)
-			}
+		if err := summary.Validate(); err != nil {
+			return nil, fmt.Errorf("basic summary validation failed: %w", err)
 		}
 	}
 	
-	return summary, nil
-}
-
-// CreateAccountList creates a new AccountList with pagination
-func (f *dtoFactory) CreateAccountList(accounts []Account, pagination Pagination) (*AccountList, error) {
-	if accounts == nil {
-		accounts = []Account{}
-	}
-	
-	list := &AccountList{
-		Data:       accounts,
-		Pagination: pagination,
-	}
-	
-	if f.validateOnCreate {
-		if err := pagination.Validate(); err != nil {
-			return nil, fmt.Errorf("pagination validation failed: %w", err)
-		}
-		
-		// Validate each account
-		for i, account := range accounts {
-			if err := account.Validate(); err != nil {
-				return nil, fmt.Errorf("account %d validation failed: %w", i, err)
-			}
-		}
-	}
-	
-	return list, nil
-}
-
-// CreateBudgetList creates a new BudgetList with pagination
-func (f *dtoFactory) CreateBudgetList(budgets []Budget, pagination Pagination) (*BudgetList, error) {
-	if budgets == nil {
-		budgets = []Budget{}
-	}
-	
-	list := &BudgetList{
-		Data:       budgets,
-		Pagination: pagination,
-	}
-	
-	if f.validateOnCreate {
-		if err := pagination.Validate(); err != nil {
-			return nil, fmt.Errorf("pagination validation failed: %w", err)
-		}
-		
-		// Validate each budget
-		for i, budget := range budgets {
-			if err := budget.Validate(); err != nil {
-				return nil, fmt.Errorf("budget %d validation failed: %w", i, err)
-			}
-		}
-	}
-	
-	return list, nil
-}
-
-// CreateCategoryList creates a new CategoryList with pagination
-func (f *dtoFactory) CreateCategoryList(categories []Category, pagination Pagination) (*CategoryList, error) {
-	if categories == nil {
-		categories = []Category{}
-	}
-	
-	list := &CategoryList{
-		Data:       categories,
-		Pagination: pagination,
-	}
-	
-	if f.validateOnCreate {
-		if err := pagination.Validate(); err != nil {
-			return nil, fmt.Errorf("pagination validation failed: %w", err)
-		}
-		
-		// Validate each category
-		for i, category := range categories {
-			if err := category.Validate(); err != nil {
-				return nil, fmt.Errorf("category %d validation failed: %w", i, err)
-			}
-		}
-	}
-	
-	return list, nil
-}
-
-// CreateTagList creates a new TagList with pagination
-func (f *dtoFactory) CreateTagList(tags []Tag, pagination Pagination) (*TagList, error) {
-	if tags == nil {
-		tags = []Tag{}
-	}
-	
-	list := &TagList{
-		Data:       tags,
-		Pagination: pagination,
-	}
-	
-	if f.validateOnCreate {
-		if err := pagination.Validate(); err != nil {
-			return nil, fmt.Errorf("pagination validation failed: %w", err)
-		}
-		
-		// Validate each tag
-		for i, tag := range tags {
-			if err := tag.Validate(); err != nil {
-				return nil, fmt.Errorf("tag %d validation failed: %w", i, err)
-			}
-		}
-	}
-	
-	return list, nil
-}
-
-// CreateBillList creates a new BillList with pagination
-func (f *dtoFactory) CreateBillList(bills []Bill, pagination Pagination) (*BillList, error) {
-	if bills == nil {
-		bills = []Bill{}
-	}
-	
-	list := &BillList{
-		Data:       bills,
-		Pagination: pagination,
-	}
-	
-	if f.validateOnCreate {
-		if err := pagination.Validate(); err != nil {
-			return nil, fmt.Errorf("pagination validation failed: %w", err)
-		}
-		
-		// Validate each bill
-		for i, bill := range bills {
-			if err := bill.Validate(); err != nil {
-				return nil, fmt.Errorf("bill %d validation failed: %w", i, err)
-			}
-		}
-	}
-	
-	return list, nil
-}
-
-// CreateRecurrenceList creates a new RecurrenceList with pagination
-func (f *dtoFactory) CreateRecurrenceList(recurrences []Recurrence, pagination Pagination) (*RecurrenceList, error) {
-	if recurrences == nil {
-		recurrences = []Recurrence{}
-	}
-	
-	list := &RecurrenceList{
-		Data:       recurrences,
-		Pagination: pagination,
-	}
-	
-	if f.validateOnCreate {
-		if err := pagination.Validate(); err != nil {
-			return nil, fmt.Errorf("pagination validation failed: %w", err)
-		}
-		
-		// Validate each recurrence
-		for i, recurrence := range recurrences {
-			if err := recurrence.Validate(); err != nil {
-				return nil, fmt.Errorf("recurrence %d validation failed: %w", i, err)
-			}
-		}
-	}
-	
-	return list, nil
-}
-
-// CreateTransactionList creates a new TransactionList with pagination
-func (f *dtoFactory) CreateTransactionList(groups []TransactionGroup, pagination Pagination) (*TransactionList, error) {
-	if groups == nil {
-		groups = []TransactionGroup{}
-	}
-	
-	list := &TransactionList{
-		Data:       groups,
-		Pagination: pagination,
-	}
-	
-	if f.validateOnCreate {
-		if err := pagination.Validate(); err != nil {
-			return nil, fmt.Errorf("pagination validation failed: %w", err)
-		}
-		
-		// Validate each transaction group
-		for i, group := range groups {
-			if err := group.Validate(); err != nil {
-				return nil, fmt.Errorf("transaction group %d validation failed: %w", i, err)
-			}
-		}
-	}
-	
-	return list, nil
+	return &summary, nil
 }
 
 // DefaultFactory is the default factory instance with validation enabled

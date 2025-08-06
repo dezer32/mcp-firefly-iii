@@ -11,7 +11,6 @@ type MCPEntity interface {
 // Pageable is an interface for entities that support pagination
 type Pageable interface {
 	GetPagination() Pagination
-	GetData() []MCPEntity
 	GetCount() int
 }
 
@@ -21,451 +20,370 @@ type Validatable interface {
 }
 
 // Ensure Account implements MCPEntity
-var _ MCPEntity = (*Account)(nil)
+var _ MCPEntity = Account{}
 
-// GetID returns the account ID
-func (a *Account) GetID() string {
-	return a.Id
+// GetID returns the account ID (implements MCPEntity)
+func (a Account) GetID() string {
+	return a.GetId()
 }
 
-// GetName returns the account name
-func (a *Account) GetName() string {
-	return a.Name
-}
+// GetName is already implemented in dto.go
 
 // Ensure Budget implements MCPEntity
-var _ MCPEntity = (*Budget)(nil)
+var _ MCPEntity = Budget{}
 
-// GetID returns the budget ID
-func (b *Budget) GetID() string {
-	return b.Id
+// GetID returns the budget ID (implements MCPEntity)
+func (b Budget) GetID() string {
+	return b.GetId()
 }
 
-// GetName returns the budget name
-func (b *Budget) GetName() string {
-	return b.Name
-}
+// GetName is already implemented in dto.go
 
 // Ensure Category implements MCPEntity
-var _ MCPEntity = (*Category)(nil)
+var _ MCPEntity = Category{}
 
-// GetID returns the category ID
-func (c *Category) GetID() string {
-	return c.Id
+// GetID returns the category ID (implements MCPEntity)
+func (c Category) GetID() string {
+	return c.GetId()
 }
 
-// GetName returns the category name
-func (c *Category) GetName() string {
-	return c.Name
-}
+// GetName is already implemented in dto.go
 
 // Ensure Tag implements MCPEntity
-var _ MCPEntity = (*Tag)(nil)
+var _ MCPEntity = Tag{}
 
-// GetID returns the tag ID
-func (t *Tag) GetID() string {
-	return t.Id
+// GetID returns the tag ID (implements MCPEntity)
+func (t Tag) GetID() string {
+	return t.GetId()
 }
 
-// GetName returns the tag name
-func (t *Tag) GetName() string {
-	return t.Tag
+// GetName returns the tag name (implements MCPEntity)
+func (t Tag) GetName() string {
+	return t.GetTag()
 }
 
 // Ensure Bill implements MCPEntity
-var _ MCPEntity = (*Bill)(nil)
+var _ MCPEntity = Bill{}
 
-// GetID returns the bill ID
-func (b *Bill) GetID() string {
-	return b.Id
+// GetID returns the bill ID (implements MCPEntity)
+func (b Bill) GetID() string {
+	return b.GetId()
 }
 
-// GetName returns the bill name
-func (b *Bill) GetName() string {
-	return b.Name
-}
+// GetName is already implemented in dto.go
 
 // Ensure Transaction implements MCPEntity
-var _ MCPEntity = (*Transaction)(nil)
+var _ MCPEntity = Transaction{}
 
-// GetID returns the transaction ID
-func (t *Transaction) GetID() string {
-	return t.Id
+// GetID returns the transaction ID (implements MCPEntity)
+func (t Transaction) GetID() string {
+	return t.GetId()
 }
 
-// GetName returns the transaction description
-func (t *Transaction) GetName() string {
-	return t.Description
+// GetName returns the transaction description (implements MCPEntity)
+func (t Transaction) GetName() string {
+	return t.GetDescription()
 }
 
 // Ensure TransactionGroup implements MCPEntity
-var _ MCPEntity = (*TransactionGroup)(nil)
+var _ MCPEntity = TransactionGroup{}
 
-// GetID returns the transaction group ID
-func (tg *TransactionGroup) GetID() string {
-	return tg.Id
+// GetID returns the transaction group ID (implements MCPEntity)
+func (g TransactionGroup) GetID() string {
+	return g.GetId()
 }
 
-// GetName returns the transaction group title
-func (tg *TransactionGroup) GetName() string {
-	return tg.GroupTitle
+// GetName returns the transaction group title (implements MCPEntity)
+func (g TransactionGroup) GetName() string {
+	return g.GetGroupTitle()
 }
 
 // Ensure Recurrence implements MCPEntity
-var _ MCPEntity = (*Recurrence)(nil)
+var _ MCPEntity = Recurrence{}
 
-// GetID returns the recurrence ID
-func (r *Recurrence) GetID() string {
-	return r.Id
+// GetID returns the recurrence ID (implements MCPEntity)
+func (r Recurrence) GetID() string {
+	return r.GetId()
 }
 
-// GetName returns the recurrence title
-func (r *Recurrence) GetName() string {
-	return r.Title
+// GetName returns the recurrence title (implements MCPEntity)
+func (r Recurrence) GetName() string {
+	return r.GetTitle()
 }
 
 // Ensure BasicSummary implements MCPEntity
-var _ MCPEntity = (*BasicSummary)(nil)
+var _ MCPEntity = BasicSummary{}
 
-// GetID returns the summary key as ID
-func (bs *BasicSummary) GetID() string {
-	return bs.Key
+// GetID returns the basic summary key as ID (implements MCPEntity)
+func (s BasicSummary) GetID() string {
+	return s.GetKey()
 }
 
-// GetName returns the summary title
-func (bs *BasicSummary) GetName() string {
-	return bs.Title
+// GetName returns the basic summary title (implements MCPEntity)
+func (s BasicSummary) GetName() string {
+	return s.GetTitle()
 }
 
 // Ensure InsightCategoryEntry implements MCPEntity
-var _ MCPEntity = (*InsightCategoryEntry)(nil)
+var _ MCPEntity = InsightCategoryEntry{}
 
-// GetID returns the insight category ID
-func (ice *InsightCategoryEntry) GetID() string {
-	return ice.Id
+// GetID returns the insight category entry ID (implements MCPEntity)
+func (e InsightCategoryEntry) GetID() string {
+	return e.GetId()
 }
 
-// GetName returns the insight category name
-func (ice *InsightCategoryEntry) GetName() string {
-	return ice.Name
-}
-
-// Pageable implementations for list types
+// GetName is already implemented in dto.go
 
 // Ensure AccountList implements Pageable
-var _ Pageable = (*AccountList)(nil)
+var _ Pageable = AccountList{}
 
-// GetPagination returns the pagination info
-func (al *AccountList) GetPagination() Pagination {
-	return al.Pagination
-}
-
-// GetData returns the accounts as MCPEntity slice
-func (al *AccountList) GetData() []MCPEntity {
-	result := make([]MCPEntity, len(al.Data))
-	for i := range al.Data {
-		result[i] = &al.Data[i]
-	}
-	return result
-}
-
-// GetCount returns the number of items in the list
-func (al *AccountList) GetCount() int {
-	return len(al.Data)
+// GetCount returns the number of items in the list (implements Pageable)
+func (l AccountList) GetCount() int {
+	return l.GetPagination().GetCount()
 }
 
 // Ensure BudgetList implements Pageable
-var _ Pageable = (*BudgetList)(nil)
+var _ Pageable = BudgetList{}
 
-// GetPagination returns the pagination info
-func (bl *BudgetList) GetPagination() Pagination {
-	return bl.Pagination
-}
-
-// GetData returns the budgets as MCPEntity slice
-func (bl *BudgetList) GetData() []MCPEntity {
-	result := make([]MCPEntity, len(bl.Data))
-	for i := range bl.Data {
-		result[i] = &bl.Data[i]
-	}
-	return result
-}
-
-// GetCount returns the number of items in the list
-func (bl *BudgetList) GetCount() int {
-	return len(bl.Data)
+// GetCount returns the number of items in the list (implements Pageable)
+func (l BudgetList) GetCount() int {
+	return l.GetPagination().GetCount()
 }
 
 // Ensure CategoryList implements Pageable
-var _ Pageable = (*CategoryList)(nil)
+var _ Pageable = CategoryList{}
 
-// GetPagination returns the pagination info
-func (cl *CategoryList) GetPagination() Pagination {
-	return cl.Pagination
+// GetCount returns the number of items in the list (implements Pageable)
+func (l CategoryList) GetCount() int {
+	return l.GetPagination().GetCount()
 }
 
-// GetData returns the categories as MCPEntity slice
-func (cl *CategoryList) GetData() []MCPEntity {
-	result := make([]MCPEntity, len(cl.Data))
-	for i := range cl.Data {
-		result[i] = &cl.Data[i]
-	}
-	return result
+// Ensure TransactionList implements Pageable
+var _ Pageable = TransactionList{}
+
+// GetCount returns the number of items in the list (implements Pageable)
+func (l TransactionList) GetCount() int {
+	return l.GetPagination().GetCount()
 }
 
-// GetCount returns the number of items in the list
-func (cl *CategoryList) GetCount() int {
-	return len(cl.Data)
-}
-
-// Ensure TagList implements Pageable
-var _ Pageable = (*TagList)(nil)
-
-// GetPagination returns the pagination info
-func (tl *TagList) GetPagination() Pagination {
-	return tl.Pagination
-}
-
-// GetData returns the tags as MCPEntity slice
-func (tl *TagList) GetData() []MCPEntity {
-	result := make([]MCPEntity, len(tl.Data))
-	for i := range tl.Data {
-		result[i] = &tl.Data[i]
-	}
-	return result
-}
-
-// GetCount returns the number of items in the list
-func (tl *TagList) GetCount() int {
-	return len(tl.Data)
-}
-
-// Ensure BillList implements Pageable
-var _ Pageable = (*BillList)(nil)
-
-// GetPagination returns the pagination info
-func (bl *BillList) GetPagination() Pagination {
-	return bl.Pagination
-}
-
-// GetData returns the bills as MCPEntity slice
-func (bl *BillList) GetData() []MCPEntity {
-	result := make([]MCPEntity, len(bl.Data))
-	for i := range bl.Data {
-		result[i] = &bl.Data[i]
-	}
-	return result
-}
-
-// GetCount returns the number of items in the list
-func (bl *BillList) GetCount() int {
-	return len(bl.Data)
-}
-
-// Ensure RecurrenceList implements Pageable
-var _ Pageable = (*RecurrenceList)(nil)
-
-// GetPagination returns the pagination info
-func (rl *RecurrenceList) GetPagination() Pagination {
-	return rl.Pagination
-}
-
-// GetData returns the recurrences as MCPEntity slice
-func (rl *RecurrenceList) GetData() []MCPEntity {
-	result := make([]MCPEntity, len(rl.Data))
-	for i := range rl.Data {
-		result[i] = &rl.Data[i]
-	}
-	return result
-}
-
-// GetCount returns the number of items in the list
-func (rl *RecurrenceList) GetCount() int {
-	return len(rl.Data)
-}
-
-// Validatable implementations
+// Validation implementations
 
 // Validate validates an Account
-func (a *Account) Validate() error {
-	if a.Id == "" {
-		return fmt.Errorf("account ID cannot be empty")
+func (a Account) Validate() error {
+	if a.GetId() == "" {
+		return fmt.Errorf("account ID is required")
 	}
-	if a.Name == "" {
-		return fmt.Errorf("account name cannot be empty")
+	if a.GetName() == "" {
+		return fmt.Errorf("account name is required")
 	}
-	if a.Type == "" {
-		return fmt.Errorf("account type cannot be empty")
+	if a.GetType() == "" {
+		return fmt.Errorf("account type is required")
 	}
 	return nil
 }
 
 // Validate validates a Budget
-func (b *Budget) Validate() error {
-	if b.Id == "" {
-		return fmt.Errorf("budget ID cannot be empty")
+func (b Budget) Validate() error {
+	if b.GetId() == "" {
+		return fmt.Errorf("budget ID is required")
 	}
-	if b.Name == "" {
-		return fmt.Errorf("budget name cannot be empty")
+	if b.GetName() == "" {
+		return fmt.Errorf("budget name is required")
 	}
 	return nil
 }
 
 // Validate validates a Category
-func (c *Category) Validate() error {
-	if c.Id == "" {
-		return fmt.Errorf("category ID cannot be empty")
+func (c Category) Validate() error {
+	if c.GetId() == "" {
+		return fmt.Errorf("category ID is required")
 	}
-	if c.Name == "" {
-		return fmt.Errorf("category name cannot be empty")
+	if c.GetName() == "" {
+		return fmt.Errorf("category name is required")
 	}
 	return nil
 }
 
 // Validate validates a Tag
-func (t *Tag) Validate() error {
-	if t.Id == "" {
-		return fmt.Errorf("tag ID cannot be empty")
+func (t Tag) Validate() error {
+	if t.GetId() == "" {
+		return fmt.Errorf("tag ID is required")
 	}
-	if t.Tag == "" {
-		return fmt.Errorf("tag name cannot be empty")
+	if t.GetTag() == "" {
+		return fmt.Errorf("tag name is required")
 	}
 	return nil
 }
 
 // Validate validates a Bill
-func (b *Bill) Validate() error {
-	if b.Id == "" {
-		return fmt.Errorf("bill ID cannot be empty")
+func (b Bill) Validate() error {
+	if b.GetId() == "" {
+		return fmt.Errorf("bill ID is required")
 	}
-	if b.Name == "" {
-		return fmt.Errorf("bill name cannot be empty")
+	if b.GetName() == "" {
+		return fmt.Errorf("bill name is required")
 	}
-	if b.AmountMin == "" {
-		return fmt.Errorf("bill minimum amount cannot be empty")
+	if b.GetAmountMin() == "" {
+		return fmt.Errorf("bill minimum amount is required")
 	}
-	if b.AmountMax == "" {
-		return fmt.Errorf("bill maximum amount cannot be empty")
+	if b.GetAmountMax() == "" {
+		return fmt.Errorf("bill maximum amount is required")
 	}
-	if b.RepeatFreq == "" {
-		return fmt.Errorf("bill repeat frequency cannot be empty")
+	if b.GetCurrencyCode() == "" {
+		return fmt.Errorf("bill currency code is required")
 	}
 	return nil
 }
 
 // Validate validates a Transaction
-func (t *Transaction) Validate() error {
-	if t.Id == "" {
-		return fmt.Errorf("transaction ID cannot be empty")
+func (t Transaction) Validate() error {
+	if t.GetId() == "" {
+		return fmt.Errorf("transaction ID is required")
 	}
-	if t.Amount == "" {
-		return fmt.Errorf("transaction amount cannot be empty")
+	if t.GetAmount() == "" {
+		return fmt.Errorf("transaction amount is required")
 	}
-	if t.Description == "" {
-		return fmt.Errorf("transaction description cannot be empty")
+	if t.GetDescription() == "" {
+		return fmt.Errorf("transaction description is required")
 	}
-	if t.Type == "" {
-		return fmt.Errorf("transaction type cannot be empty")
+	if t.GetType() == "" {
+		return fmt.Errorf("transaction type is required")
 	}
-	if t.SourceId == "" {
-		return fmt.Errorf("transaction source ID cannot be empty")
+	if t.GetSourceId() == "" {
+		return fmt.Errorf("transaction source ID is required")
 	}
-	if t.DestinationId == "" {
-		return fmt.Errorf("transaction destination ID cannot be empty")
+	if t.GetDestinationId() == "" {
+		return fmt.Errorf("transaction destination ID is required")
 	}
 	return nil
 }
 
 // Validate validates a TransactionGroup
-func (tg *TransactionGroup) Validate() error {
-	if tg.Id == "" {
-		return fmt.Errorf("transaction group ID cannot be empty")
+func (g TransactionGroup) Validate() error {
+	if g.GetId() == "" {
+		return fmt.Errorf("transaction group ID is required")
 	}
-	if len(tg.Transactions) == 0 {
-		return fmt.Errorf("transaction group must contain at least one transaction")
+	if len(g.GetTransactions()) == 0 {
+		return fmt.Errorf("transaction group must have at least one transaction")
 	}
-	for i, t := range tg.Transactions {
+	for i, t := range g.GetTransactions() {
 		if err := t.Validate(); err != nil {
-			return fmt.Errorf("transaction %d validation failed: %w", i, err)
+			return fmt.Errorf("transaction %d: %w", i, err)
 		}
 	}
 	return nil
 }
 
 // Validate validates a Recurrence
-func (r *Recurrence) Validate() error {
-	if r.Id == "" {
-		return fmt.Errorf("recurrence ID cannot be empty")
+func (r Recurrence) Validate() error {
+	if r.GetId() == "" {
+		return fmt.Errorf("recurrence ID is required")
 	}
-	if r.Title == "" {
-		return fmt.Errorf("recurrence title cannot be empty")
+	if r.GetTitle() == "" {
+		return fmt.Errorf("recurrence title is required")
 	}
-	if r.Type == "" {
-		return fmt.Errorf("recurrence type cannot be empty")
+	if r.GetType() == "" {
+		return fmt.Errorf("recurrence type is required")
 	}
-	if len(r.Repetitions) == 0 {
+	if len(r.GetRepetitions()) == 0 {
 		return fmt.Errorf("recurrence must have at least one repetition")
 	}
-	if len(r.Transactions) == 0 {
+	if len(r.GetTransactions()) == 0 {
 		return fmt.Errorf("recurrence must have at least one transaction")
 	}
 	return nil
 }
 
-// Validate validates a TransactionStoreRequest
-func (tsr *TransactionStoreRequest) Validate() error {
-	if len(tsr.Transactions) == 0 {
-		return fmt.Errorf("transaction store request must contain at least one transaction")
+// Validate validates a BasicSummary
+func (s BasicSummary) Validate() error {
+	if s.GetKey() == "" {
+		return fmt.Errorf("summary key is required")
 	}
-	for i, t := range tsr.Transactions {
-		if err := t.Validate(); err != nil {
-			return fmt.Errorf("transaction %d validation failed: %w", i, err)
+	if s.GetTitle() == "" {
+		return fmt.Errorf("summary title is required")
+	}
+	return nil
+}
+
+// Validate validates an InsightCategoryEntry
+func (e InsightCategoryEntry) Validate() error {
+	if e.GetId() == "" {
+		return fmt.Errorf("insight category entry ID is required")
+	}
+	if e.GetName() == "" {
+		return fmt.Errorf("insight category entry name is required")
+	}
+	return nil
+}
+
+// Validate validates a Pagination
+func (p Pagination) Validate() error {
+	if p.GetPerPage() <= 0 {
+		return fmt.Errorf("per page must be positive")
+	}
+	if p.GetCurrentPage() <= 0 {
+		return fmt.Errorf("current page must be positive")
+	}
+	if p.GetTotalPages() < 0 {
+		return fmt.Errorf("total pages cannot be negative")
+	}
+	if p.GetTotal() < 0 {
+		return fmt.Errorf("total cannot be negative")
+	}
+	if p.GetCount() < 0 {
+		return fmt.Errorf("count cannot be negative")
+	}
+	return nil
+}
+
+// Validate validates an AccountList
+func (l AccountList) Validate() error {
+	if err := l.GetPagination().Validate(); err != nil {
+		return fmt.Errorf("pagination: %w", err)
+	}
+	for i, a := range l.GetData() {
+		if err := a.Validate(); err != nil {
+			return fmt.Errorf("account %d: %w", i, err)
 		}
 	}
 	return nil
 }
 
-// Validate validates a TransactionSplitRequest
-func (tsr *TransactionSplitRequest) Validate() error {
-	if tsr.Type == "" {
-		return fmt.Errorf("transaction type is required")
+// Validate validates a BudgetList
+func (l BudgetList) Validate() error {
+	if err := l.GetPagination().Validate(); err != nil {
+		return fmt.Errorf("pagination: %w", err)
 	}
-	if tsr.Type != "withdrawal" && tsr.Type != "deposit" && tsr.Type != "transfer" {
-		return fmt.Errorf("transaction type must be one of: withdrawal, deposit, transfer")
+	for i, b := range l.GetData() {
+		if err := b.Validate(); err != nil {
+			return fmt.Errorf("budget %d: %w", i, err)
+		}
 	}
-	if tsr.Date == "" {
-		return fmt.Errorf("transaction date is required")
-	}
-	if tsr.Amount == "" {
-		return fmt.Errorf("transaction amount is required")
-	}
-	if tsr.Description == "" {
-		return fmt.Errorf("transaction description is required")
-	}
-	
-	// At least one source identifier must be provided
-	if tsr.SourceId == nil && tsr.SourceName == nil {
-		return fmt.Errorf("either source_id or source_name must be provided")
-	}
-	
-	// At least one destination identifier must be provided
-	if tsr.DestinationId == nil && tsr.DestinationName == nil {
-		return fmt.Errorf("either destination_id or destination_name must be provided")
-	}
-	
 	return nil
 }
 
-// Validate validates a Pagination
-func (p *Pagination) Validate() error {
-	if p.PerPage <= 0 {
-		return fmt.Errorf("per_page must be greater than 0")
+// Validate validates a CategoryList
+func (l CategoryList) Validate() error {
+	if err := l.GetPagination().Validate(); err != nil {
+		return fmt.Errorf("pagination: %w", err)
 	}
-	if p.CurrentPage <= 0 {
-		return fmt.Errorf("current_page must be greater than 0")
+	for i, c := range l.GetData() {
+		if err := c.Validate(); err != nil {
+			return fmt.Errorf("category %d: %w", i, err)
+		}
 	}
-	if p.CurrentPage > p.TotalPages && p.TotalPages > 0 {
-		return fmt.Errorf("current_page cannot be greater than total_pages")
+	return nil
+}
+
+// Validate validates a TransactionList
+func (l TransactionList) Validate() error {
+	if err := l.GetPagination().Validate(); err != nil {
+		return fmt.Errorf("pagination: %w", err)
+	}
+	for i, g := range l.GetData() {
+		if err := g.Validate(); err != nil {
+			return fmt.Errorf("transaction group %d: %w", i, err)
+		}
 	}
 	return nil
 }

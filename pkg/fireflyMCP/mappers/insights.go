@@ -7,62 +7,60 @@ import (
 
 // MapInsightGroupArrayToInsightCategoryList maps a client.InsightGroup to a dto.InsightCategoryResponse
 func MapInsightGroupArrayToInsightCategoryList(insightGroup *client.InsightGroup) *dto.InsightCategoryResponse {
+	responseBuilder := dto.NewInsightCategoryResponseBuilder()
+	
 	if insightGroup == nil {
-		return &dto.InsightCategoryResponse{
-			Entries: []dto.InsightCategoryEntry{},
-		}
+		result := responseBuilder.Build()
+		return &result
 	}
 
-	entries := make([]dto.InsightCategoryEntry, 0)
 	for _, group := range *insightGroup {
 		// Each group has an ID, name, difference and currency code
-		entry := dto.InsightCategoryEntry{}
+		entryBuilder := dto.NewInsightCategoryEntryBuilder()
 		
 		if group.Id != nil {
-			entry.Id = *group.Id
+			entryBuilder = entryBuilder.WithId(*group.Id)
 		}
 		if group.Name != nil {
-			entry.Name = *group.Name
+			entryBuilder = entryBuilder.WithName(*group.Name)
 		}
 		if group.Difference != nil {
-			entry.Amount = *group.Difference
+			entryBuilder = entryBuilder.WithAmount(*group.Difference)
 		}
 		if group.CurrencyCode != nil {
-			entry.CurrencyCode = *group.CurrencyCode
+			entryBuilder = entryBuilder.WithCurrencyCode(*group.CurrencyCode)
 		}
 		
-		entries = append(entries, entry)
+		responseBuilder = responseBuilder.AddEntry(entryBuilder.Build())
 	}
 
-	return &dto.InsightCategoryResponse{
-		Entries: entries,
-	}
+	result := responseBuilder.Build()
+	return &result
 }
 
 // MapInsightTotalArrayToInsightTotalList maps a client.InsightTotal to a dto.InsightTotalResponse
 func MapInsightTotalArrayToInsightTotalList(insightTotal *client.InsightTotal) *dto.InsightTotalResponse {
+	responseBuilder := dto.NewInsightTotalResponseBuilder()
+	
 	if insightTotal == nil {
-		return &dto.InsightTotalResponse{
-			Entries: []dto.InsightTotalEntry{},
-		}
+		result := responseBuilder.Build()
+		return &result
 	}
 
-	entries := make([]dto.InsightTotalEntry, 0)
 	for _, totalEntry := range *insightTotal {
 		// Each entry has difference and currency code
-		entry := dto.InsightTotalEntry{}
+		entryBuilder := dto.NewInsightTotalEntryBuilder()
 		
 		if totalEntry.Difference != nil {
-			entry.Amount = *totalEntry.Difference
+			entryBuilder = entryBuilder.WithAmount(*totalEntry.Difference)
 		}
 		if totalEntry.CurrencyCode != nil {
-			entry.CurrencyCode = *totalEntry.CurrencyCode
+			entryBuilder = entryBuilder.WithCurrencyCode(*totalEntry.CurrencyCode)
 		}
 		
-		entries = append(entries, entry)
+		responseBuilder = responseBuilder.AddEntry(entryBuilder.Build())
 	}
 
-	return &dto.InsightTotalResponse{
-		Entries: entries,
-	}
+	result := responseBuilder.Build()
+	return &result
 }

@@ -107,48 +107,49 @@ func MapArrayToList[A any, S any, D any, L any](
 // mapPaginationUsingReflection maps pagination using reflection to handle any pagination struct
 func mapPaginationUsingReflection(pagination interface{}) dto.Pagination {
 	if pagination == nil {
-		return dto.Pagination{}
+		return dto.NewPaginationBuilder().Build()
 	}
 
-	result := dto.Pagination{}
 	paginationValue := reflect.ValueOf(pagination)
 
 	// Handle pointer
 	if paginationValue.Kind() == reflect.Ptr {
 		if paginationValue.IsNil() {
-			return result
+			return dto.NewPaginationBuilder().Build()
 		}
 		paginationValue = paginationValue.Elem()
 	}
 
-	// Map fields
+	// Map fields using builder
+	builder := dto.NewPaginationBuilder()
+	
 	if field := paginationValue.FieldByName("Count"); field.IsValid() {
 		if ptr, ok := field.Interface().(*int); ok {
-			result.Count = GetIntValue(ptr)
+			builder = builder.WithCount(GetIntValue(ptr))
 		}
 	}
 	if field := paginationValue.FieldByName("Total"); field.IsValid() {
 		if ptr, ok := field.Interface().(*int); ok {
-			result.Total = GetIntValue(ptr)
+			builder = builder.WithTotal(GetIntValue(ptr))
 		}
 	}
 	if field := paginationValue.FieldByName("CurrentPage"); field.IsValid() {
 		if ptr, ok := field.Interface().(*int); ok {
-			result.CurrentPage = GetIntValue(ptr)
+			builder = builder.WithCurrentPage(GetIntValue(ptr))
 		}
 	}
 	if field := paginationValue.FieldByName("PerPage"); field.IsValid() {
 		if ptr, ok := field.Interface().(*int); ok {
-			result.PerPage = GetIntValue(ptr)
+			builder = builder.WithPerPage(GetIntValue(ptr))
 		}
 	}
 	if field := paginationValue.FieldByName("TotalPages"); field.IsValid() {
 		if ptr, ok := field.Interface().(*int); ok {
-			result.TotalPages = GetIntValue(ptr)
+			builder = builder.WithTotalPages(GetIntValue(ptr))
 		}
 	}
 
-	return result
+	return builder.Build()
 }
 
 // MapPaginationToDTO is a simple helper that maps pagination fields

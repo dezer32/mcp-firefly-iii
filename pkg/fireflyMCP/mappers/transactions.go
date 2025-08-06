@@ -13,34 +13,33 @@ func MapTransactionArrayToTransactionList(transactionArray *client.TransactionAr
 		return nil
 	}
 
-	transactionList := &dto.TransactionList{
-		Data: []dto.TransactionGroup{},
-	}
+	listBuilder := dto.NewTransactionListBuilder()
 
 	// Map transaction data - each TransactionRead becomes a TransactionGroup
 	for _, transactionRead := range transactionArray.Data {
-		group := dto.TransactionGroup{
-			Id:           transactionRead.Id,
-			GroupTitle:   GetStringValue(transactionRead.Attributes.GroupTitle),
-			Transactions: []dto.Transaction{},
-		}
+		groupBuilder := dto.NewTransactionGroupBuilder().
+			WithId(transactionRead.Id).
+			WithGroupTitle(GetStringValue(transactionRead.Attributes.GroupTitle))
 
+		transactions := []dto.Transaction{}
 		for _, split := range transactionRead.Attributes.Transactions {
 			transaction := mapTransactionSplitToTransaction(&split)
 			if transaction != nil {
-				group.Transactions = append(group.Transactions, *transaction)
+				transactions = append(transactions, *transaction)
 			}
 		}
+		groupBuilder = groupBuilder.WithTransactions(transactions)
 
-		transactionList.Data = append(transactionList.Data, group)
+		listBuilder = listBuilder.AddTransactionGroup(groupBuilder.Build())
 	}
 
 	// Map pagination
 	if transactionArray.Meta.Pagination != nil {
-		transactionList.Pagination = mapPaginationToDTO(transactionArray.Meta.Pagination)
+		listBuilder = listBuilder.WithPagination(mapPaginationToDTO(transactionArray.Meta.Pagination))
 	}
 
-	return transactionList
+	transactionList := listBuilder.Build()
+	return &transactionList
 }
 
 // MapTransactionReadToTransactionGroup converts a TransactionRead to TransactionGroup DTO.
@@ -51,20 +50,21 @@ func MapTransactionReadToTransactionGroup(transactionRead *client.TransactionRea
 		return nil
 	}
 
-	group := &dto.TransactionGroup{
-		Id:           transactionRead.Id,
-		GroupTitle:   GetStringValue(transactionRead.Attributes.GroupTitle),
-		Transactions: make([]dto.Transaction, 0),
-	}
+	groupBuilder := dto.NewTransactionGroupBuilder().
+		WithId(transactionRead.Id).
+		WithGroupTitle(GetStringValue(transactionRead.Attributes.GroupTitle))
 
 	// Map all transaction splits
+	transactions := []dto.Transaction{}
 	for _, split := range transactionRead.Attributes.Transactions {
 		if txn := mapTransactionSplitToTransaction(&split); txn != nil {
-			group.Transactions = append(group.Transactions, *txn)
+			transactions = append(transactions, *txn)
 		}
 	}
+	groupBuilder = groupBuilder.WithTransactions(transactions)
 
-	return group
+	group := groupBuilder.Build()
+	return &group
 }
 
 // mapTransactionSplitToTransaction converts a TransactionSplit to Transaction DTO
@@ -73,42 +73,42 @@ func mapTransactionSplitToTransaction(split *client.TransactionSplit) *dto.Trans
 		return nil
 	}
 
-	transaction := &dto.Transaction{
-		Id:              GetStringValue(split.TransactionJournalId),
-		Amount:          split.Amount,
-		Date:            split.Date,
-		Description:     split.Description,
-		SourceId:        GetStringValue(split.SourceId),
-		SourceName:      GetStringValue(split.SourceName),
-		DestinationId:   GetStringValue(split.DestinationId),
-		DestinationName: GetStringValue(split.DestinationName),
-		Type:            string(split.Type),
-		CategoryId:      split.CategoryId,
-		CategoryName:    split.CategoryName,
-		BudgetId:        split.BudgetId,
-		BudgetName:      split.BudgetName,
-		Notes:           split.Notes,
-		Reconciled:      GetBoolValue(split.Reconciled),
-		CurrencyCode:    GetStringValue(split.CurrencyCode),
-		DestinationType: GetAccountTypeString(split.DestinationType),
-	}
+	builder := dto.NewTransactionBuilder().
+		WithId(GetStringValue(split.TransactionJournalId)).
+		WithAmount(split.Amount).
+		WithDate(split.Date).
+		WithDescription(split.Description).
+		WithSourceId(GetStringValue(split.SourceId)).
+		WithSourceName(GetStringValue(split.SourceName)).
+		WithDestinationId(GetStringValue(split.DestinationId)).
+		WithDestinationName(GetStringValue(split.DestinationName)).
+		WithType(string(split.Type)).
+		WithCategoryId(split.CategoryId).
+		WithCategoryName(split.CategoryName).
+		WithBudgetId(split.BudgetId).
+		WithBudgetName(split.BudgetName).
+		WithNotes(split.Notes).
+		WithReconciled(GetBoolValue(split.Reconciled)).
+		WithCurrencyCode(GetStringValue(split.CurrencyCode)).
+		WithDestinationType(GetAccountTypeString(split.DestinationType))
 
 	// Map tags if present
+	tags := []string{}
 	if split.Tags != nil && len(*split.Tags) > 0 {
-		transaction.Tags = *split.Tags
-	} else {
-		transaction.Tags = []string{}
+		tags = *split.Tags
 	}
+	builder = builder.WithTags(tags)
 
 	// Handle bill fields
 	if split.BillId != nil {
-		transaction.BillId = split.BillId
+		builder = builder.WithBillId(split.BillId)
 	}
 	if split.BillName != nil {
-		transaction.BillName = split.BillName
+		builder = builder.WithBillName(split.BillName)
 	}
 
-	return transaction
+	transaction := builder.Build()
+	return &transaction
 }
 
 // MapTransactionArrayToTransactionGroupList is an alias for MapTransactionArrayToTransactionList
@@ -118,15 +118,6 @@ func MapTransactionArrayToTransactionGroupList(transactionArray *client.Transact
 
 // mapPaginationToDTO converts client pagination to Pagination DTO
 func mapPaginationToDTO(pagination interface{}) dto.Pagination {
-	// Return empty pagination if nil
-	if pagination == nil {
-		return dto.Pagination{}
-	}
-	
-	// Try to cast to the correct type - note the actual type in client may vary
-	// We'll need to check what the actual type is
-	return dto.Pagination{
-		// These fields will be populated based on the actual pagination structure
-		// For now, return empty pagination
-	}
+	// Use the generic mapper from generic.go
+	return MapPaginationToDTO(pagination)
 }
