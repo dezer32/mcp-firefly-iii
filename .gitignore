@@ -1,4 +1,5 @@
 .idea
+config.yaml
 example-binary
 /mcp-server
 /TASK.md
