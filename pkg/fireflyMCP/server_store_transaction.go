@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/dezer32/mcp-firefly-iii/pkg/client"
@@ -105,6 +106,16 @@ func (s *FireflyMCPServer) handleStoreTransaction(
 	// Convert DTO to API model
 	apiRequest := mapTransactionStoreRequestToAPI(&params.Arguments)
 
+	// Check if client is properly initialized
+	if s.client == nil || s.client.ClientInterface == nil {
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: "Error: API client not properly initialized"},
+			},
+			IsError: true,
+		}, nil
+	}
+
 	// Call the API
 	resp, err := s.client.StoreTransactionWithResponse(ctx, &client.StoreTransactionParams{}, *apiRequest)
 	if err != nil {
@@ -115,21 +126,63 @@ func (s *FireflyMCPServer) handleStoreTransaction(
 			IsError: true,
 		}, nil
 	}
+	
+	// Debug: Check content type
+	contentType := resp.HTTPResponse.Header.Get("Content-Type")
+	if !strings.Contains(contentType, "application/json") && !strings.Contains(contentType, "application/vnd.api+json") {
+		bodyPreview := string(resp.Body)
+		if len(bodyPreview) > 500 {
+			bodyPreview = bodyPreview[:500] + "..."
+		}
+		return &mcp.CallToolResultFor[struct{}]{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: fmt.Sprintf("Error: Expected JSON response but got %s (status: %d, body preview: %s)", 
+					contentType, resp.StatusCode(), bodyPreview)},
+			},
+			IsError: true,
+		}, nil
+	}
 
 	// Handle different response codes
 	switch resp.StatusCode() {
-	case 200:
+	case 200, 201:
 		// Success - convert response to DTO
-		if resp.ApplicationvndApiJSON200 == nil {
-			return &mcp.CallToolResultFor[struct{}]{
-				Content: []mcp.Content{
-					&mcp.TextContent{Text: "Error: received empty response from server"},
-				},
-				IsError: true,
-			}, nil
+		// The generated client only populates ApplicationvndApiJSON200 for status 200 when it can parse it
+		// Sometimes the parsing fails, so we need to handle the raw body
+		var transactionSingle client.TransactionSingle
+		
+		if resp.ApplicationvndApiJSON200 != nil {
+			// Already parsed successfully
+			transactionSingle = *resp.ApplicationvndApiJSON200
+		} else {
+			// Parse the body manually for both 200 and 201
+			if len(resp.Body) == 0 {
+				return &mcp.CallToolResultFor[struct{}]{
+					Content: []mcp.Content{
+						&mcp.TextContent{Text: fmt.Sprintf("Error: empty response body for status %d", resp.StatusCode())},
+					},
+					IsError: true,
+				}, nil
+			}
+			
+			// Try to parse the response body
+			if err := json.Unmarshal(resp.Body, &transactionSingle); err != nil {
+				// Debug: Log the body content for debugging
+				bodyPreview := string(resp.Body)
+				if len(bodyPreview) > 200 {
+					bodyPreview = bodyPreview[:200] + "..."
+				}
+				return &mcp.CallToolResultFor[struct{}]{
+					Content: []mcp.Content{
+						&mcp.TextContent{Text: fmt.Sprintf("Error parsing response (status %d): %v (body: %s)", 
+							resp.StatusCode(), err, bodyPreview)},
+					},
+					IsError: true,
+				}, nil
+			}
 		}
 
-		transactionGroup := mapTransactionReadToTransactionGroup(&resp.ApplicationvndApiJSON200.Data)
+		transactionGroup := mapTransactionReadToTransactionGroup(&transactionSingle.Data)
 
 		// Marshal to JSON
 		jsonData, err := json.MarshalIndent(transactionGroup, "", "  ")
@@ -187,9 +240,16 @@ func mapTransactionStoreRequestToAPI(req *TransactionStoreRequest) *client.Store
 		Transactions: make([]client.TransactionSplitStore, len(req.Transactions)),
 	}
 
-	apiReq.ErrorIfDuplicateHash = &req.ErrorIfDuplicateHash
-	apiReq.ApplyRules = &req.ApplyRules
-	apiReq.FireWebhooks = &req.FireWebhooks
+	// Only set boolean fields if they are true (to match API expectations)
+	if req.ErrorIfDuplicateHash {
+		apiReq.ErrorIfDuplicateHash = &req.ErrorIfDuplicateHash
+	}
+	if req.ApplyRules {
+		apiReq.ApplyRules = &req.ApplyRules
+	}
+	if req.FireWebhooks {
+		apiReq.FireWebhooks = &req.FireWebhooks
+	}
 	if req.GroupTitle != "" {
 		apiReq.GroupTitle = &req.GroupTitle
 	}
@@ -281,8 +341,14 @@ func mapTransactionStoreRequestToAPI(req *TransactionStoreRequest) *client.Store
 		if txn.Reconciled != nil {
 			apiTxn.Reconciled = txn.Reconciled
 		}
+		
+		// Order is required by Firefly III API, default to index if not provided
 		if txn.Order != nil {
 			order := int32(*txn.Order)
+			apiTxn.Order = &order
+		} else {
+			// Use the transaction index as the default order
+			order := int32(i)
 			apiTxn.Order = &order
 		}
 
