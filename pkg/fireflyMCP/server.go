@@ -146,6 +146,8 @@ func NewFireflyMCPServer(config *Config) (*FireflyMCPServer, error) {
 		client.WithRequestEditorFn(
 			func(ctx context.Context, req *http.Request) error {
 				req.Header.Set("Authorization", "Bearer "+config.API.Token)
+				req.Header.Set("Accept", "application/vnd.api+json")
+				req.Header.Set("Content-Type", "application/json")
 				return nil
 			},
 		),
