@@ -3,6 +3,7 @@ package fireflyMCP
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/dezer32/mcp-firefly-iii/pkg/client"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -10,30 +11,29 @@ import (
 )
 
 func TestHandleStoreTransaction_Validation(t *testing.T) {
+	currentDate := time.Now().Format("2006-01-02")
+	currentDateRFC3339 := time.Now().Format(time.RFC3339)
+	
 	tests := []struct {
 		name          string
-		args          StoreTransactionArgs
+		args          TransactionStoreRequest
 		expectedError string
 	}{
 		{
 			name: "Empty transactions array",
-			args: StoreTransactionArgs{
-				TransactionStoreRequest: TransactionStoreRequest{
-					Transactions: []TransactionSplitRequest{},
-				},
+			args: TransactionStoreRequest{
+				Transactions: []TransactionSplitRequest{},
 			},
 			expectedError: "transactions array is required and must not be empty",
 		},
 		{
 			name: "Missing type field",
-			args: StoreTransactionArgs{
-				TransactionStoreRequest: TransactionStoreRequest{
-					Transactions: []TransactionSplitRequest{
-						{
-							Date:        "2024-01-15",
-							Amount:      "100.50",
-							Description: "Test",
-						},
+			args: TransactionStoreRequest{
+				Transactions: []TransactionSplitRequest{
+					{
+						Date:        currentDate,
+						Amount:      "100.50",
+						Description: "Test",
 					},
 				},
 			},
@@ -41,15 +41,13 @@ func TestHandleStoreTransaction_Validation(t *testing.T) {
 		},
 		{
 			name: "Invalid transaction type",
-			args: StoreTransactionArgs{
-				TransactionStoreRequest: TransactionStoreRequest{
-					Transactions: []TransactionSplitRequest{
-						{
-							Type:        "invalid",
-							Date:        "2024-01-15",
-							Amount:      "100.50",
-							Description: "Test",
-						},
+			args: TransactionStoreRequest{
+				Transactions: []TransactionSplitRequest{
+					{
+						Type:        "invalid",
+						Date:        currentDate,
+						Amount:      "100.50",
+						Description: "Test",
 					},
 				},
 			},
@@ -57,14 +55,12 @@ func TestHandleStoreTransaction_Validation(t *testing.T) {
 		},
 		{
 			name: "Missing date field",
-			args: StoreTransactionArgs{
-				TransactionStoreRequest: TransactionStoreRequest{
-					Transactions: []TransactionSplitRequest{
-						{
-							Type:        "withdrawal",
-							Amount:      "100.50",
-							Description: "Test",
-						},
+			args: TransactionStoreRequest{
+				Transactions: []TransactionSplitRequest{
+					{
+						Type:        "withdrawal",
+						Amount:      "100.50",
+						Description: "Test",
 					},
 				},
 			},
@@ -72,15 +68,13 @@ func TestHandleStoreTransaction_Validation(t *testing.T) {
 		},
 		{
 			name: "Invalid date format",
-			args: StoreTransactionArgs{
-				TransactionStoreRequest: TransactionStoreRequest{
-					Transactions: []TransactionSplitRequest{
-						{
-							Type:        "withdrawal",
-							Date:        "15-01-2024", // Wrong format
-							Amount:      "100.50",
-							Description: "Test",
-						},
+			args: TransactionStoreRequest{
+				Transactions: []TransactionSplitRequest{
+					{
+						Type:        "withdrawal",
+						Date:        "15-01-2024", // Wrong format
+						Amount:      "100.50",
+						Description: "Test",
 					},
 				},
 			},
@@ -88,14 +82,12 @@ func TestHandleStoreTransaction_Validation(t *testing.T) {
 		},
 		{
 			name: "Missing amount field",
-			args: StoreTransactionArgs{
-				TransactionStoreRequest: TransactionStoreRequest{
-					Transactions: []TransactionSplitRequest{
-						{
-							Type:        "withdrawal",
-							Date:        "2024-01-15",
-							Description: "Test",
-						},
+			args: TransactionStoreRequest{
+				Transactions: []TransactionSplitRequest{
+					{
+						Type:        "withdrawal",
+						Date:        currentDate,
+						Description: "Test",
 					},
 				},
 			},
@@ -103,14 +95,12 @@ func TestHandleStoreTransaction_Validation(t *testing.T) {
 		},
 		{
 			name: "Missing description field",
-			args: StoreTransactionArgs{
-				TransactionStoreRequest: TransactionStoreRequest{
-					Transactions: []TransactionSplitRequest{
-						{
-							Type:   "withdrawal",
-							Date:   "2024-01-15",
-							Amount: "100.50",
-						},
+			args: TransactionStoreRequest{
+				Transactions: []TransactionSplitRequest{
+					{
+						Type:   "withdrawal",
+						Date:   currentDate,
+						Amount: "100.50",
 					},
 				},
 			},
@@ -118,15 +108,13 @@ func TestHandleStoreTransaction_Validation(t *testing.T) {
 		},
 		{
 			name: "Valid date in RFC3339 format",
-			args: StoreTransactionArgs{
-				TransactionStoreRequest: TransactionStoreRequest{
-					Transactions: []TransactionSplitRequest{
-						{
-							Type:        "withdrawal",
-							Date:        "2024-01-15T10:30:00Z",
-							Amount:      "100.50",
-							Description: "Test",
-						},
+			args: TransactionStoreRequest{
+				Transactions: []TransactionSplitRequest{
+					{
+						Type:        "withdrawal",
+						Date:        currentDateRFC3339,
+						Amount:      "100.50",
+						Description: "Test",
 					},
 				},
 			},
@@ -134,21 +122,19 @@ func TestHandleStoreTransaction_Validation(t *testing.T) {
 		},
 		{
 			name: "Multiple transactions with second invalid",
-			args: StoreTransactionArgs{
-				TransactionStoreRequest: TransactionStoreRequest{
-					Transactions: []TransactionSplitRequest{
-						{
-							Type:        "withdrawal",
-							Date:        "2024-01-15",
-							Amount:      "50.00",
-							Description: "First",
-						},
-						{
-							Type:        "deposit",
-							Date:        "2024-01-15",
-							Amount:      "", // Missing amount
-							Description: "Second",
-						},
+			args: TransactionStoreRequest{
+				Transactions: []TransactionSplitRequest{
+					{
+						Type:        "withdrawal",
+						Date:        currentDate,
+						Amount:      "50.00",
+						Description: "First",
+					},
+					{
+						Type:        "deposit",
+						Date:        currentDate,
+						Amount:      "", // Missing amount
+						Description: "Second",
 					},
 				},
 			},
@@ -164,7 +150,7 @@ func TestHandleStoreTransaction_Validation(t *testing.T) {
 			}
 
 			// Create params
-			params := &mcp.CallToolParamsFor[StoreTransactionArgs]{
+			params := &mcp.CallToolParamsFor[TransactionStoreRequest]{
 				Arguments: tt.args,
 			}
 
@@ -197,12 +183,14 @@ func TestHandleStoreTransaction_Validation(t *testing.T) {
 }
 
 func TestMapTransactionStoreRequestToAPI_Coverage(t *testing.T) {
+	currentDate := time.Now().Format("2006-01-02")
+	
 	// Test with nil values to improve coverage
 	req := &TransactionStoreRequest{
 		Transactions: []TransactionSplitRequest{
 			{
 				Type:        "withdrawal",
-				Date:        "2024-01-15",
+				Date:        currentDate,
 				Amount:      "100.00",
 				Description: "Test",
 			},
@@ -223,7 +211,7 @@ func TestMapTransactionStoreRequestToAPI_Coverage(t *testing.T) {
 		Transactions: []TransactionSplitRequest{
 			{
 				Type:                "deposit",
-				Date:                "2024-01-15",
+				Date:                currentDate,
 				Amount:              "50.00",
 				Description:         "Deposit test",
 				SourceId:            nil,
