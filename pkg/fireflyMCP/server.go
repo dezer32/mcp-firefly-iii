@@ -233,6 +233,12 @@ func (s *FireflyMCPServer) registerTools() {
 			Description: "Create a new transaction in Firefly III",
 		}, s.handleStoreTransaction,
 	)
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "store_transactions_bulk",
+			Description: "Create multiple transaction groups in Firefly III (up to 100 at once)",
+		}, s.handleStoreTransactionsBulk,
+	)
 
 	// Budget tools
 	mcp.AddTool(
@@ -2027,8 +2033,6 @@ func getRecurrenceType(t *client.RecurrenceTransactionType) string {
 	}
 	return string(*t)
 }
-
-
 
 // fixCurrencyIdFields converts numeric currency_id values to strings in JSON response
 // This fixes the JSON unmarshaling error where API returns numbers but structs expect strings

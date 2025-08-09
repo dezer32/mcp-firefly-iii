@@ -16,6 +16,7 @@ The MCP server provides the following tools for interacting with Firefly III:
 - `get_transaction` - Get detailed information about a specific transaction
 - `search_transactions` - Search for transactions by keyword
 - `store_transaction` - Create a new transaction with support for splits, categorization, and rules
+- `store_transactions_bulk` - Create multiple transaction groups in a single operation (up to 100 at once)
 
 ### Budget Management
 - `list_budgets` - List all budgets with optional limit
@@ -136,6 +137,41 @@ Each transaction in the `transactions` array requires:
 - `reconciled` (boolean) - Whether transaction is reconciled
 - `order` (integer) - Order in the transaction split list
 
+### Store Transactions Bulk Parameters
+
+The `store_transactions_bulk` tool creates multiple transaction groups in Firefly III in a single operation. It's useful for batch importing transactions or creating multiple related transactions at once.
+
+#### Request Structure
+- `transaction_groups` (array, required) - Array of transaction groups to create (max 100)
+- `delay_ms` (integer, optional) - Delay in milliseconds between API calls to avoid rate limiting (default: 100)
+
+Each item in `transaction_groups` is a complete `store_transaction` request with the same parameters as described above.
+
+#### Response Structure
+The tool returns a detailed response showing the result of each transaction group creation:
+
+```json
+{
+  "results": [
+    {
+      "index": 0,
+      "success": true,
+      "transaction_group": { /* created transaction details */ }
+    },
+    {
+      "index": 1,
+      "success": false,
+      "error": "Validation error: Invalid category"
+    }
+  ],
+  "summary": {
+    "total": 2,
+    "successful": 1,
+    "failed": 1
+  }
+}
+```
+
 ### Tool Examples
 
 #### List Accounts
@@ -243,6 +279,47 @@ Field options: `all`, `iban`, `name`, `number`, `id`
         "tags": ["food", "weekly-shopping"]
       }
     ]
+  }
+}
+```
+
+#### Store Transactions Bulk
+```json
+{
+  "name": "store_transactions_bulk",
+  "arguments": {
+    "transaction_groups": [
+      {
+        "group_title": "Groceries Week 1",
+        "apply_rules": true,
+        "transactions": [
+          {
+            "type": "withdrawal",
+            "date": "2024-01-15",
+            "amount": "45.99",
+            "description": "Grocery shopping",
+            "source_id": "1",
+            "destination_name": "Local Supermarket",
+            "category_name": "Groceries"
+          }
+        ]
+      },
+      {
+        "group_title": "Utilities January",
+        "transactions": [
+          {
+            "type": "withdrawal",
+            "date": "2024-01-20",
+            "amount": "120.00",
+            "description": "Electric bill",
+            "source_id": "1",
+            "destination_name": "Power Company",
+            "category_name": "Utilities"
+          }
+        ]
+      }
+    ],
+    "delay_ms": 100
   }
 }
 ```
