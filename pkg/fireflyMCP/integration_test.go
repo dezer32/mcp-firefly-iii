@@ -25,8 +25,16 @@ type TestConfig struct {
 // loadTestConfig loads test configuration from environment or config file
 func loadTestConfig(t *testing.T) *TestConfig {
 	// Try to load from environment first
-	serverURL := os.Getenv("FIREFLY_TEST_URL")
-	apiToken := os.Getenv("FIREFLY_TEST_TOKEN")
+	// Support both new (FIREFLY_MCP_*) and legacy (FIREFLY_TEST_*) env vars
+	serverURL := os.Getenv("FIREFLY_MCP_SERVER_URL")
+	if serverURL == "" {
+		serverURL = os.Getenv("FIREFLY_TEST_URL") // Legacy support
+	}
+
+	apiToken := os.Getenv("FIREFLY_MCP_API_TOKEN")
+	if apiToken == "" {
+		apiToken = os.Getenv("FIREFLY_TEST_TOKEN") // Legacy support
+	}
 
 	if serverURL == "" || apiToken == "" {
 		// Fallback to config file
@@ -39,7 +47,7 @@ func loadTestConfig(t *testing.T) *TestConfig {
 	}
 
 	if serverURL == "" || apiToken == "" {
-		t.Skip("Skipping integration tests: FIREFLY_TEST_URL and FIREFLY_TEST_TOKEN environment variables not set")
+		t.Skip("Skipping integration tests: Set FIREFLY_MCP_SERVER_URL and FIREFLY_MCP_API_TOKEN environment variables (or legacy FIREFLY_TEST_URL and FIREFLY_TEST_TOKEN)")
 	}
 
 	return &TestConfig{
@@ -53,19 +61,19 @@ func loadTestConfig(t *testing.T) *TestConfig {
 func createTestServer(t *testing.T, testConfig *TestConfig) *FireflyMCPServer {
 	config := &Config{
 		Server: struct {
-			URL string `yaml:"url"`
+			URL string `yaml:"url" mapstructure:"url"`
 		}{URL: testConfig.ServerURL},
 		API: struct {
-			Token string `yaml:"token"`
+			Token string `yaml:"token" mapstructure:"token"`
 		}{Token: testConfig.APIToken},
 		Client: struct {
-			Timeout int `yaml:"timeout"`
+			Timeout int `yaml:"timeout" mapstructure:"timeout"`
 		}{Timeout: int(testConfig.Timeout.Seconds())},
 		Limits: struct {
-			Accounts     int `yaml:"accounts"`
-			Transactions int `yaml:"transactions"`
-			Categories   int `yaml:"categories"`
-			Budgets      int `yaml:"budgets"`
+			Accounts     int `yaml:"accounts" mapstructure:"accounts"`
+			Transactions int `yaml:"transactions" mapstructure:"transactions"`
+			Categories   int `yaml:"categories" mapstructure:"categories"`
+			Budgets      int `yaml:"budgets" mapstructure:"budgets"`
 		}{
 			Accounts:     10,
 			Transactions: 5,
@@ -73,9 +81,9 @@ func createTestServer(t *testing.T, testConfig *TestConfig) *FireflyMCPServer {
 			Budgets:      10,
 		},
 		MCP: struct {
-			Name         string `yaml:"name"`
-			Version      string `yaml:"version"`
-			Instructions string `yaml:"instructions"`
+			Name         string `yaml:"name" mapstructure:"name"`
+			Version      string `yaml:"version" mapstructure:"version"`
+			Instructions string `yaml:"instructions" mapstructure:"instructions"`
 		}{
 			Name:         "firefly-iii-mcp-test",
 			Version:      "1.0.0-test",
@@ -1052,13 +1060,13 @@ func TestIntegration_ErrorHandling(t *testing.T) {
 
 			config := &Config{
 				Server: struct {
-					URL string `yaml:"url"`
+					URL string `yaml:"url" mapstructure:"url"`
 				}{URL: "https://invalid-url-that-does-not-exist.com/api"},
 				API: struct {
-					Token string `yaml:"token"`
+					Token string `yaml:"token" mapstructure:"token"`
 				}{Token: "invalid-token"},
 				Client: struct {
-					Timeout int `yaml:"timeout"`
+					Timeout int `yaml:"timeout" mapstructure:"timeout"`
 				}{Timeout: 5},
 			}
 
