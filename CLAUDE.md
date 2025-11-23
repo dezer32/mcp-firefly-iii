@@ -30,9 +30,13 @@ This is a Model Context Protocol (MCP) server implementation for Firefly III per
 - Error handling and response formatting
 
 #### Configuration (`pkg/fireflyMCP/config.go`)
-- YAML-based configuration management
-- Environment variable support for sensitive data
+- Flexible configuration via YAML files and environment variables
+- Uses Viper library for configuration management
+- Environment variables take precedence over YAML values
+- Automatic validation of required fields and value ranges
 - Default values for optional settings
+- All env vars use `FIREFLY_MCP_` prefix (e.g., `FIREFLY_MCP_SERVER_URL`)
+- Supports hybrid configuration (YAML + env var overrides)
 - Timeout and rate limit configuration
 
 ### Data Model
@@ -96,7 +100,7 @@ MCP tools map to Firefly III endpoints:
 - **MCP SDK**: `modelcontextprotocol/go-sdk` v0.2.0
 - **HTTP Client**: Generated via `oapi-codegen`
 - **Testing**: `stretchr/testify`
-- **Configuration**: `gopkg.in/yaml.v3`
+- **Configuration**: `github.com/spf13/viper` v1.21.0 (with YAML support)
 
 ### Project Structure
 
@@ -109,15 +113,17 @@ firefly-iii/
 │   │   ├── client.go
 │   │   └── generate.go
 │   └── fireflyMCP/        # MCP server implementation
-│       ├── config.go      # Configuration management
+│       ├── config.go      # Configuration management (Viper-based)
+│       ├── config_test.go # Configuration unit tests
 │       ├── dto.go         # Data transfer objects
 │       ├── server.go      # MCP server & handlers
 │       ├── integration_test.go  # Integration tests
 │       └── mapper_test.go       # Unit tests for mappers
 ├── resources/             # OpenAPI specifications
 ├── example/              # Example usage
-├── config.yaml          # Configuration file
+├── config.yaml.example  # Example configuration file
 ├── README.md           # User documentation
+├── CONFIGURATION.md    # Detailed configuration guide
 ├── TESTING.md          # Testing documentation
 └── CLAUDE.md          # This file
 ```
@@ -213,15 +219,44 @@ go mod vendor
 3. Valid API token from Firefly III
 
 ### Configuration Setup
+
+**Option 1: YAML Configuration (Development)**
 1. Copy `config.yaml.example` to `config.yaml`
 2. Update server URL and API token
 3. Adjust limits and timeouts as needed
+4. Add `config.yaml` to `.gitignore`
 
-### Environment Variables
-For sensitive data, use environment variables:
+**Option 2: Environment Variables (Production)**
+
+All configuration can be set via environment variables with the `FIREFLY_MCP_` prefix:
+
 ```bash
-export FIREFLY_TEST_URL="https://your-instance.com/api"
-export FIREFLY_TEST_TOKEN="your-api-token"
+# Required settings
+export FIREFLY_MCP_SERVER_URL="https://your-instance.com/api"
+export FIREFLY_MCP_API_TOKEN="your-api-token"
+
+# Optional settings (with defaults)
+export FIREFLY_MCP_CLIENT_TIMEOUT="60"
+export FIREFLY_MCP_LIMITS_ACCOUNTS="200"
+export FIREFLY_MCP_LIMITS_TRANSACTIONS="150"
+```
+
+**Option 3: Hybrid Configuration**
+
+Use YAML for defaults and environment variables for overrides (ideal for multi-environment setups).
+
+### Test Environment Variables
+
+For integration tests, the server supports both new and legacy environment variable names:
+
+```bash
+# New format (recommended)
+export FIREFLY_MCP_SERVER_URL="https://test-instance.com/api"
+export FIREFLY_MCP_API_TOKEN="test-token"
+
+# Legacy format (still supported for backward compatibility)
+export FIREFLY_TEST_URL="https://test-instance.com/api"
+export FIREFLY_TEST_TOKEN="test-token"
 ```
 
 ## Development Guidelines
