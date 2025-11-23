@@ -1,5 +1,7 @@
 # Firefly III MCP Server - Claude Development Guide
 
+**Note**: This project uses [bd (beads)](https://github.com/steveyegge/beads) for issue tracking. Use `bd` commands instead of markdown TODOs. See AGENTS.md for workflow details.
+
 ## Project Overview
 
 This is a Model Context Protocol (MCP) server implementation for Firefly III personal finance management system. The server provides a bridge between AI assistants (like Claude) and Firefly III instances, enabling programmatic access to financial data through a standardized protocol.
