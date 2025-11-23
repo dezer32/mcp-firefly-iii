@@ -1,0 +1,83 @@
+# Firefly III MCP Server Configuration
+#
+# This file demonstrates all available configuration options.
+# You can override any value using environment variables with the prefix FIREFLY_MCP_
+#
+# Example environment variables:
+#   FIREFLY_MCP_SERVER_URL=https://my-firefly.com/api
+#   FIREFLY_MCP_API_TOKEN=your-secret-token
+#   FIREFLY_MCP_CLIENT_TIMEOUT=60
+#
+# Environment variables take precedence over values in this file.
+# For production deployments, it's recommended to use environment variables
+# for sensitive data like API tokens.
+
+# Server configuration
+server:
+  # Firefly III API base URL (required)
+  # Environment variable: FIREFLY_MCP_SERVER_URL
+  url: https://your-firefly-instance.com/api
+
+# API authentication
+api:
+  # Firefly III Personal Access Token (required)
+  # Generate this in Firefly III: Profile -> OAuth -> Personal Access Tokens
+  # Environment variable: FIREFLY_MCP_API_TOKEN
+  # SECURITY: Use environment variable instead of storing token in this file
+  token: your-personal-access-token-here
+
+# HTTP client settings
+client:
+  # Request timeout in seconds (default: 30)
+  # Environment variable: FIREFLY_MCP_CLIENT_TIMEOUT
+  timeout: 30
+
+# Default limits for API queries
+limits:
+  # Maximum number of accounts to fetch per request (default: 100)
+  # Environment variable: FIREFLY_MCP_LIMITS_ACCOUNTS
+  accounts: 100
+
+  # Maximum number of transactions to fetch per request (default: 100)
+  # Environment variable: FIREFLY_MCP_LIMITS_TRANSACTIONS
+  transactions: 100
+
+  # Maximum number of categories to fetch per request (default: 100)
+  # Environment variable: FIREFLY_MCP_LIMITS_CATEGORIES
+  categories: 100
+
+  # Maximum number of budgets to fetch per request (default: 100)
+  # Environment variable: FIREFLY_MCP_LIMITS_BUDGETS
+  budgets: 100
+
+# MCP server metadata
+mcp:
+  # MCP server name (default: firefly-iii-mcp)
+  # Environment variable: FIREFLY_MCP_MCP_NAME
+  name: firefly-iii-mcp
+
+  # MCP server version (default: 1.0.0)
+  # Environment variable: FIREFLY_MCP_MCP_VERSION
+  version: 1.0.0
+
+  # MCP server description (default: MCP server for Firefly III personal finance management)
+  # Environment variable: FIREFLY_MCP_MCP_INSTRUCTIONS
+  instructions: MCP server for Firefly III personal finance management
+
+# QUICK START:
+# 1. Copy this file to config.yaml: cp config.yaml.example config.yaml
+# 2. Edit config.yaml and set your server URL and API token
+# 3. Run the server: ./mcp-server
+#
+# PRODUCTION DEPLOYMENT:
+# 1. Set environment variables instead of using config file:
+#    export FIREFLY_MCP_SERVER_URL=https://your-instance.com/api
+#    export FIREFLY_MCP_API_TOKEN=your-token
+# 2. Run the server: ./mcp-server
+#
+# DOCKER DEPLOYMENT:
+# Use environment variables in your docker-compose.yml or Kubernetes manifests:
+#   environment:
+#     - FIREFLY_MCP_SERVER_URL=https://your-instance.com/api
+#     - FIREFLY_MCP_API_TOKEN=your-token
+#     - FIREFLY_MCP_CLIENT_TIMEOUT=60

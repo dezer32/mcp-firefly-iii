@@ -38,7 +38,13 @@ The MCP server provides the following tools for interacting with Firefly III:
 
 ## Configuration
 
-The server uses a YAML configuration file (`config.yaml`) with the following structure:
+The server supports configuration via **YAML file** and **environment variables**. Environment variables take precedence over YAML configuration, making it ideal for containerized deployments and CI/CD pipelines.
+
+### Configuration Methods
+
+#### Option 1: YAML Configuration File
+
+Create a `config.yaml` file with the following structure:
 
 ```yaml
 # Firefly III API Configuration
@@ -53,10 +59,10 @@ client:
 
 # API call limits
 limits:
-  accounts: 10
-  transactions: 5
-  categories: 10
-  budgets: 10
+  accounts: 100
+  transactions: 100
+  categories: 100
+  budgets: 100
 
 # MCP server configuration
 mcp:
@@ -65,23 +71,139 @@ mcp:
   instructions: "MCP server for Firefly III personal finance management"
 ```
 
+#### Option 2: Environment Variables
+
+All configuration options can be set via environment variables with the `FIREFLY_MCP_` prefix:
+
+| Environment Variable | YAML Equivalent | Required | Default | Description |
+|---------------------|-----------------|----------|---------|-------------|
+| `FIREFLY_MCP_SERVER_URL` | `server.url` | Yes | - | Firefly III API base URL |
+| `FIREFLY_MCP_API_TOKEN` | `api.token` | Yes | - | Personal Access Token |
+| `FIREFLY_MCP_CLIENT_TIMEOUT` | `client.timeout` | No | 30 | HTTP timeout in seconds |
+| `FIREFLY_MCP_LIMITS_ACCOUNTS` | `limits.accounts` | No | 100 | Max accounts per request |
+| `FIREFLY_MCP_LIMITS_TRANSACTIONS` | `limits.transactions` | No | 100 | Max transactions per request |
+| `FIREFLY_MCP_LIMITS_CATEGORIES` | `limits.categories` | No | 100 | Max categories per request |
+| `FIREFLY_MCP_LIMITS_BUDGETS` | `limits.budgets` | No | 100 | Max budgets per request |
+| `FIREFLY_MCP_MCP_NAME` | `mcp.name` | No | firefly-iii-mcp | MCP server name |
+| `FIREFLY_MCP_MCP_VERSION` | `mcp.version` | No | 1.0.0 | MCP server version |
+| `FIREFLY_MCP_MCP_INSTRUCTIONS` | `mcp.instructions` | No | MCP server for Firefly III... | Server description |
+
+**Example:**
+```bash
+export FIREFLY_MCP_SERVER_URL="https://firefly.example.com/api"
+export FIREFLY_MCP_API_TOKEN="your-token-here"
+export FIREFLY_MCP_CLIENT_TIMEOUT="60"
+```
+
+#### Option 3: Hybrid Configuration
+
+You can combine both methods - use YAML for default values and environment variables to override specific settings. This is useful for:
+- Development: Use `config.yaml` with test credentials
+- Production: Override sensitive values with environment variables
+
+**Configuration Precedence:**
+1. Environment variables (highest priority)
+2. YAML configuration file
+3. Default values (lowest priority)
+
+### Security Best Practices
+
+⚠️ **Never commit API tokens to version control!**
+
+**Recommended approaches:**
+- **Development:** Use `config.yaml` (add to `.gitignore`)
+- **Production:** Use environment variables exclusively
+- **CI/CD:** Store tokens in secret management systems
+- **Docker:** Pass environment variables via `docker-compose.yml` or Kubernetes secrets
+
 ## Setup
 
-1. **Configure Firefly III API Access**
-   - Obtain an API token from your Firefly III instance
-   - Update the `server.url` and `api.token` in `config.yaml`
+### Quick Start (YAML Configuration)
 
-2. **Build the Server**
+1. **Copy Example Configuration**
    ```bash
-   go build ./cmd/mcp-server
+   cp config.yaml.example config.yaml
    ```
 
-3. **Run the Server**
+2. **Configure Firefly III API Access**
+   - Obtain an API token from your Firefly III instance (Profile → OAuth → Personal Access Tokens)
+   - Edit `config.yaml` and update `server.url` and `api.token`
+
+3. **Build the Server**
    ```bash
-   ./mcp-server [config-file]
+   go build -o mcp-server ./cmd/mcp-server
    ```
-   
-   If no config file is specified, it defaults to `config.yaml`.
+
+4. **Run the Server**
+   ```bash
+   ./mcp-server
+   ```
+
+   To use a custom config file:
+   ```bash
+   ./mcp-server /path/to/config.yaml
+   ```
+
+### Quick Start (Environment Variables)
+
+1. **Set Required Environment Variables**
+   ```bash
+   export FIREFLY_MCP_SERVER_URL="https://your-firefly-instance.com/api"
+   export FIREFLY_MCP_API_TOKEN="your-personal-access-token"
+   ```
+
+2. **Build and Run**
+   ```bash
+   go build -o mcp-server ./cmd/mcp-server
+   ./mcp-server
+   ```
+
+### Docker Deployment
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  firefly-mcp:
+    build: .
+    environment:
+      - FIREFLY_MCP_SERVER_URL=https://firefly.example.com/api
+      - FIREFLY_MCP_API_TOKEN=${FIREFLY_API_TOKEN}
+      - FIREFLY_MCP_CLIENT_TIMEOUT=60
+    stdin_open: true
+    tty: true
+```
+
+### Kubernetes Deployment
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: firefly-mcp-secrets
+type: Opaque
+stringData:
+  api-token: your-personal-access-token
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: firefly-mcp
+spec:
+  template:
+    spec:
+      containers:
+      - name: firefly-mcp
+        image: firefly-mcp:latest
+        env:
+        - name: FIREFLY_MCP_SERVER_URL
+          value: "https://firefly.example.com/api"
+        - name: FIREFLY_MCP_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: firefly-mcp-secrets
+              key: api-token
+```
 
 ## Usage
 
