@@ -231,7 +231,7 @@ type TransactionStoreRequest struct {
 // TransactionSplitRequest represents a single transaction in a transaction group
 type TransactionSplitRequest struct {
 	Type                string   `json:"type" jsonschema:"Transaction type: withdrawal, deposit, transfer (required)"`                                     // Transaction type: withdrawal, deposit, transfer (required)
-	Date                string   `json:"date" jsonschema:"Transaction date (YYYY-MM-DD or YYYY-MM-DD HH:MM:SS) (required)"`                                // Transaction date YYYY-MM-DD or datetime (required)
+	Date                string   `json:"date" jsonschema:"Transaction date in RFC3339 format, e.g. 2024-01-15T00:00:00Z (required)"`                          // Transaction date in RFC3339 format (required)
 	Amount              string   `json:"amount" jsonschema:"Transaction amount as string (e.g. '100.00') (required)"`                                      // Transaction amount (required)
 	Description         string   `json:"description" jsonschema:"Transaction description (required)"`                                                      // Transaction description (required)
 	SourceId            *string  `json:"source_id,omitempty" jsonschema:"Source account ID (use either source_id or source_name)"`                         // Source account ID
@@ -272,7 +272,7 @@ type ReceiptItemRequest struct {
 // ReceiptStoreRequest represents a request to store a shopping receipt with multiple items
 type ReceiptStoreRequest struct {
 	StoreName           string               `json:"store_name" jsonschema:"Name of the store/shop (required, becomes destination expense account)"`
-	ReceiptDate         string               `json:"receipt_date" jsonschema:"Date of the receipt in YYYY-MM-DD format (required)"`
+	ReceiptDate         string               `json:"receipt_date" jsonschema:"Date of the receipt in RFC3339 format, e.g. 2024-01-15T00:00:00Z (required)"`
 	Items               []ReceiptItemRequest `json:"items" jsonschema:"Array of receipt items/transactions (required, at least one)"`
 	TotalAmount         *string              `json:"total_amount,omitempty" jsonschema:"Expected total amount - if provided, validates that sum of items equals this"`
 	SourceAccountId     *string              `json:"source_account_id,omitempty" jsonschema:"Source account ID for payment (use either source_account_id or source_account_name)"`
