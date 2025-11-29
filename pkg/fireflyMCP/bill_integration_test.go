@@ -48,11 +48,11 @@ func TestIntegration_ListBills(t *testing.T) {
 				var billList BillList
 				err := json.Unmarshal([]byte(textContent.Text), &billList)
 				assert.NoError(t, err, "Failed to unmarshal response")
-				
+
 				// Verify response structure
 				assert.NotNil(t, billList.Data, "Expected non-nil data array")
 				assert.GreaterOrEqual(t, billList.Pagination.Total, 0, "Expected non-negative total")
-				
+
 				// If there are bills, verify their structure
 				if len(billList.Data) > 0 {
 					bill := billList.Data[0]
@@ -61,7 +61,7 @@ func TestIntegration_ListBills(t *testing.T) {
 					assert.NotEmpty(t, bill.AmountMin, "Expected non-empty amount min")
 					assert.NotEmpty(t, bill.AmountMax, "Expected non-empty amount max")
 					assert.NotEmpty(t, bill.RepeatFreq, "Expected non-empty repeat frequency")
-					t.Logf("Found bill: ID=%s, Name=%s, AmountMin=%s, AmountMax=%s", 
+					t.Logf("Found bill: ID=%s, Name=%s, AmountMin=%s, AmountMax=%s",
 						bill.Id, bill.Name, bill.AmountMin, bill.AmountMax)
 				}
 			}
@@ -168,7 +168,7 @@ func TestIntegration_GetBill(t *testing.T) {
 				var bill Bill
 				err := json.Unmarshal([]byte(textContent.Text), &bill)
 				assert.NoError(t, err, "Failed to unmarshal response")
-				
+
 				// Verify bill structure
 				assert.Equal(t, billID, bill.Id, "Expected matching bill ID")
 				assert.NotEmpty(t, bill.Name, "Expected non-empty bill name")
@@ -279,7 +279,7 @@ func TestIntegration_ListBillTransactions(t *testing.T) {
 				var transactionList TransactionList
 				err := json.Unmarshal([]byte(textContent.Text), &transactionList)
 				assert.NoError(t, err, "Failed to unmarshal response")
-				
+
 				// Verify response structure
 				assert.NotNil(t, transactionList.Data, "Expected non-nil data array")
 				t.Logf("Found %d transaction groups for bill %s", len(transactionList.Data), billID)

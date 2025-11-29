@@ -36,7 +36,8 @@ type Config struct {
 // LoadConfig loads configuration from YAML file and environment variables
 // Environment variables take precedence over YAML configuration
 // Environment variables use the prefix FIREFLY_MCP_ and follow the pattern:
-//   FIREFLY_MCP_SERVER_URL, FIREFLY_MCP_API_TOKEN, etc.
+//
+//	FIREFLY_MCP_SERVER_URL, FIREFLY_MCP_API_TOKEN, etc.
 func LoadConfig(filename string) (*Config, error) {
 	v := viper.New()
 

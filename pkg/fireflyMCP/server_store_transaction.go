@@ -126,7 +126,7 @@ func (s *FireflyMCPServer) handleStoreTransaction(
 			IsError: true,
 		}, nil
 	}
-	
+
 	// Debug: Check content type
 	contentType := resp.HTTPResponse.Header.Get("Content-Type")
 	if !strings.Contains(contentType, "application/json") && !strings.Contains(contentType, "application/vnd.api+json") {
@@ -136,7 +136,7 @@ func (s *FireflyMCPServer) handleStoreTransaction(
 		}
 		return &mcp.CallToolResultFor[struct{}]{
 			Content: []mcp.Content{
-				&mcp.TextContent{Text: fmt.Sprintf("Error: Expected JSON response but got %s (status: %d, body preview: %s)", 
+				&mcp.TextContent{Text: fmt.Sprintf("Error: Expected JSON response but got %s (status: %d, body preview: %s)",
 					contentType, resp.StatusCode(), bodyPreview)},
 			},
 			IsError: true,
@@ -150,7 +150,7 @@ func (s *FireflyMCPServer) handleStoreTransaction(
 		// The generated client only populates ApplicationvndApiJSON200 for status 200 when it can parse it
 		// Sometimes the parsing fails, so we need to handle the raw body
 		var transactionSingle client.TransactionSingle
-		
+
 		if resp.ApplicationvndApiJSON200 != nil {
 			// Already parsed successfully
 			transactionSingle = *resp.ApplicationvndApiJSON200
@@ -164,7 +164,7 @@ func (s *FireflyMCPServer) handleStoreTransaction(
 					IsError: true,
 				}, nil
 			}
-			
+
 			// Try to parse the response body
 			if err := json.Unmarshal(resp.Body, &transactionSingle); err != nil {
 				// Debug: Log the body content for debugging
@@ -174,7 +174,7 @@ func (s *FireflyMCPServer) handleStoreTransaction(
 				}
 				return &mcp.CallToolResultFor[struct{}]{
 					Content: []mcp.Content{
-						&mcp.TextContent{Text: fmt.Sprintf("Error parsing response (status %d): %v (body: %s)", 
+						&mcp.TextContent{Text: fmt.Sprintf("Error parsing response (status %d): %v (body: %s)",
 							resp.StatusCode(), err, bodyPreview)},
 					},
 					IsError: true,
@@ -341,7 +341,7 @@ func mapTransactionStoreRequestToAPI(req *TransactionStoreRequest) *client.Store
 		if txn.Reconciled != nil {
 			apiTxn.Reconciled = txn.Reconciled
 		}
-		
+
 		// Order is required by Firefly III API, default to index if not provided
 		if txn.Order != nil {
 			order := int32(*txn.Order)

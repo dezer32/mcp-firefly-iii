@@ -84,16 +84,16 @@ api:
 func TestLoadConfigFromEnvVars(t *testing.T) {
 	// Set environment variables
 	envVars := map[string]string{
-		"FIREFLY_MCP_SERVER_URL":            "https://env.firefly.com/api",
-		"FIREFLY_MCP_API_TOKEN":             "env-token-456",
-		"FIREFLY_MCP_CLIENT_TIMEOUT":        "90",
-		"FIREFLY_MCP_LIMITS_ACCOUNTS":       "250",
-		"FIREFLY_MCP_LIMITS_TRANSACTIONS":   "350",
-		"FIREFLY_MCP_LIMITS_CATEGORIES":     "175",
-		"FIREFLY_MCP_LIMITS_BUDGETS":        "75",
-		"FIREFLY_MCP_MCP_NAME":              "env-mcp",
-		"FIREFLY_MCP_MCP_VERSION":           "3.0.0",
-		"FIREFLY_MCP_MCP_INSTRUCTIONS":      "Env instructions",
+		"FIREFLY_MCP_SERVER_URL":          "https://env.firefly.com/api",
+		"FIREFLY_MCP_API_TOKEN":           "env-token-456",
+		"FIREFLY_MCP_CLIENT_TIMEOUT":      "90",
+		"FIREFLY_MCP_LIMITS_ACCOUNTS":     "250",
+		"FIREFLY_MCP_LIMITS_TRANSACTIONS": "350",
+		"FIREFLY_MCP_LIMITS_CATEGORIES":   "175",
+		"FIREFLY_MCP_LIMITS_BUDGETS":      "75",
+		"FIREFLY_MCP_MCP_NAME":            "env-mcp",
+		"FIREFLY_MCP_MCP_VERSION":         "3.0.0",
+		"FIREFLY_MCP_MCP_INSTRUCTIONS":    "Env instructions",
 	}
 
 	// Set env vars and clean up after test

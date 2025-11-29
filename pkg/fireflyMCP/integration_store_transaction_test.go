@@ -240,7 +240,7 @@ func TestIntegrationStoreTransaction(t *testing.T) {
 						}
 					}
 				}
-				
+
 				assert.False(t, result.IsError, "Expected success result")
 				require.Len(t, result.Content, 1, "Expected one content item")
 
