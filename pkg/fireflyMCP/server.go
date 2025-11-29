@@ -240,6 +240,16 @@ func (s *FireflyMCPServer) registerTools() {
 		}, s.handleStoreTransactionsBulk,
 	)
 
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name: "store_receipt",
+			Description: "Create a group of transactions from a single shopping receipt. " +
+				"All items are recorded as withdrawals from the source account to the store (expense account). " +
+				"Use this to register multiple purchases from one store receipt at once. " +
+				"Optionally validates that item amounts sum to the expected total.",
+		}, s.handleStoreReceipt,
+	)
+
 	// Budget tools
 	mcp.AddTool(
 		s.server, &mcp.Tool{
