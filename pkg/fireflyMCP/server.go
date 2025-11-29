@@ -22,111 +22,111 @@ type FireflyMCPServer struct {
 
 // Tool argument types
 type ListAccountsArgs struct {
-	Type  string `json:"type,omitempty" mcp:"Filter by account type (asset, expense, revenue, etc.)"`
-	Limit int    `json:"limit,omitempty" mcp:"Maximum number of accounts to return"`
-	Page  int    `json:"page,omitempty" mcp:"Page number for pagination (default: 1)"`
+	Type  string `json:"type,omitempty" jsonschema:"Filter by account type (asset, expense, revenue, etc.)"`
+	Limit int    `json:"limit,omitempty" jsonschema:"Maximum number of accounts to return"`
+	Page  int    `json:"page,omitempty" jsonschema:"Page number for pagination (default: 1)"`
 }
 
 type GetAccountArgs struct {
-	ID string `json:"id" mcp:"Account ID"`
+	ID string `json:"id" jsonschema:"Account ID"`
 }
 
 type ListTransactionsArgs struct {
-	Type  string `json:"type,omitempty" mcp:"Filter by transaction type"`
-	Start string `json:"start,omitempty" mcp:"Start date (YYYY-MM-DD)"`
-	End   string `json:"end,omitempty" mcp:"End date (YYYY-MM-DD)"`
-	Limit int    `json:"limit,omitempty" mcp:"Maximum number of transactions to return"`
-	Page  int    `json:"page,omitempty" mcp:"Page number for pagination (default: 1)"`
+	Type  string `json:"type,omitempty" jsonschema:"Filter by transaction type"`
+	Start string `json:"start,omitempty" jsonschema:"Start date (YYYY-MM-DD)"`
+	End   string `json:"end,omitempty" jsonschema:"End date (YYYY-MM-DD)"`
+	Limit int    `json:"limit,omitempty" jsonschema:"Maximum number of transactions to return"`
+	Page  int    `json:"page,omitempty" jsonschema:"Page number for pagination (default: 1)"`
 }
 
 type GetTransactionArgs struct {
-	ID string `json:"id" mcp:"Transaction ID"`
+	ID string `json:"id" jsonschema:"Transaction ID"`
 }
 
 type ListBudgetsArgs struct {
-	Start string `json:"start,omitempty" mcp:"Start date (YYYY-MM-DD)"`
-	End   string `json:"end,omitempty" mcp:"End date (YYYY-MM-DD)"`
-	Limit int    `json:"limit,omitempty" mcp:"Maximum number of budgets to return"`
-	Page  int    `json:"page,omitempty" mcp:"Page number for pagination (default: 1)"`
+	Start string `json:"start,omitempty" jsonschema:"Start date (YYYY-MM-DD)"`
+	End   string `json:"end,omitempty" jsonschema:"End date (YYYY-MM-DD)"`
+	Limit int    `json:"limit,omitempty" jsonschema:"Maximum number of budgets to return"`
+	Page  int    `json:"page,omitempty" jsonschema:"Page number for pagination (default: 1)"`
 }
 
 type ListCategoriesArgs struct {
-	Limit int `json:"limit,omitempty" mcp:"Maximum number of categories to return"`
-	Page  int `json:"page,omitempty" mcp:"Page number for pagination (default: 1)"`
+	Limit int `json:"limit,omitempty" jsonschema:"Maximum number of categories to return"`
+	Page  int `json:"page,omitempty" jsonschema:"Page number for pagination (default: 1)"`
 }
 
 type GetSummaryArgs struct {
-	Start string `json:"start,omitempty" mcp:"Start date (YYYY-MM-DD)"`
-	End   string `json:"end,omitempty" mcp:"End date (YYYY-MM-DD)"`
+	Start string `json:"start,omitempty" jsonschema:"Start date (YYYY-MM-DD)"`
+	End   string `json:"end,omitempty" jsonschema:"End date (YYYY-MM-DD)"`
 }
 
 type SearchAccountsArgs struct {
-	Query string `json:"query" mcp:"The search query"`
-	Field string `json:"field" mcp:"The account field(s) to search in (all, iban, name, number, id)"`
-	Limit int    `json:"limit,omitempty" mcp:"Maximum number of accounts to return"`
-	Page  int    `json:"page,omitempty" mcp:"Page number for pagination (default: 1)"`
+	Query string `json:"query" jsonschema:"The search query"`
+	Field string `json:"field" jsonschema:"The account field(s) to search in (all, iban, name, number, id)"`
+	Limit int    `json:"limit,omitempty" jsonschema:"Maximum number of accounts to return"`
+	Page  int    `json:"page,omitempty" jsonschema:"Page number for pagination (default: 1)"`
 }
 
 type SearchTransactionsArgs struct {
-	Query string `json:"query" mcp:"The search query"`
-	Limit int32  `json:"limit,omitempty" mcp:"Maximum number of transactions to return"`
-	Page  int32  `json:"page,omitempty" mcp:"Page number for pagination (default: 1)"`
-	Start string `json:"start,omitempty" mcp:"Start date (YYYY-MM-DD)"`
-	End   string `json:"end,omitempty" mcp:"End date (YYYY-MM-DD)"`
+	Query string `json:"query" jsonschema:"The search query"`
+	Limit int32  `json:"limit,omitempty" jsonschema:"Maximum number of transactions to return"`
+	Page  int32  `json:"page,omitempty" jsonschema:"Page number for pagination (default: 1)"`
+	Start string `json:"start,omitempty" jsonschema:"Start date (YYYY-MM-DD)"`
+	End   string `json:"end,omitempty" jsonschema:"End date (YYYY-MM-DD)"`
 }
 
 type ExpenseCategoryInsightsArgs struct {
-	Start    string   `json:"start" mcp:"Start date (YYYY-MM-DD)"`
-	End      string   `json:"end" mcp:"End date (YYYY-MM-DD)"`
-	Accounts []string `json:"accounts,omitempty" mcp:"Account IDs to include in results"`
+	Start    string   `json:"start" jsonschema:"Start date (YYYY-MM-DD)"`
+	End      string   `json:"end" jsonschema:"End date (YYYY-MM-DD)"`
+	Accounts []string `json:"accounts,omitempty" jsonschema:"Account IDs to include in results"`
 }
 
 type ExpenseTotalInsightsArgs struct {
-	Start    string   `json:"start" mcp:"Start date (YYYY-MM-DD)"`
-	End      string   `json:"end" mcp:"End date (YYYY-MM-DD)"`
-	Accounts []string `json:"accounts,omitempty" mcp:"Account IDs to include in results"`
+	Start    string   `json:"start" jsonschema:"Start date (YYYY-MM-DD)"`
+	End      string   `json:"end" jsonschema:"End date (YYYY-MM-DD)"`
+	Accounts []string `json:"accounts,omitempty" jsonschema:"Account IDs to include in results"`
 }
 
 type ListBudgetLimitsArgs struct {
-	ID    string `json:"id" mcp:"Budget ID"`
-	Start string `json:"start,omitempty" mcp:"Start date (YYYY-MM-DD)"`
-	End   string `json:"end,omitempty" mcp:"End date (YYYY-MM-DD)"`
+	ID    string `json:"id" jsonschema:"Budget ID"`
+	Start string `json:"start,omitempty" jsonschema:"Start date (YYYY-MM-DD)"`
+	End   string `json:"end,omitempty" jsonschema:"End date (YYYY-MM-DD)"`
 }
 
 type ListBudgetTransactionsArgs struct {
-	ID    string `json:"id" mcp:"Budget ID"`
-	Type  string `json:"type,omitempty" mcp:"Filter by transaction type"`
-	Start string `json:"start,omitempty" mcp:"Start date (YYYY-MM-DD)"`
-	End   string `json:"end,omitempty" mcp:"End date (YYYY-MM-DD)"`
-	Limit int    `json:"limit,omitempty" mcp:"Maximum number of transactions to return"`
-	Page  int    `json:"page,omitempty" mcp:"Page number for pagination (default: 1)"`
+	ID    string `json:"id" jsonschema:"Budget ID"`
+	Type  string `json:"type,omitempty" jsonschema:"Filter by transaction type"`
+	Start string `json:"start,omitempty" jsonschema:"Start date (YYYY-MM-DD)"`
+	End   string `json:"end,omitempty" jsonschema:"End date (YYYY-MM-DD)"`
+	Limit int    `json:"limit,omitempty" jsonschema:"Maximum number of transactions to return"`
+	Page  int    `json:"page,omitempty" jsonschema:"Page number for pagination (default: 1)"`
 }
 
 type ListTagsArgs struct {
-	Limit int `json:"limit,omitempty" mcp:"Maximum number of tags to return"`
-	Page  int `json:"page,omitempty" mcp:"Page number for pagination (default: 1)"`
+	Limit int `json:"limit,omitempty" jsonschema:"Maximum number of tags to return"`
+	Page  int `json:"page,omitempty" jsonschema:"Page number for pagination (default: 1)"`
 }
 
 type ListBillsArgs struct {
-	Start string `json:"start,omitempty" mcp:"Start date (YYYY-MM-DD)"`
-	End   string `json:"end,omitempty" mcp:"End date (YYYY-MM-DD)"`
-	Limit int    `json:"limit,omitempty" mcp:"Maximum number of bills to return"`
-	Page  int    `json:"page,omitempty" mcp:"Page number for pagination (default: 1)"`
+	Start string `json:"start,omitempty" jsonschema:"Start date (YYYY-MM-DD)"`
+	End   string `json:"end,omitempty" jsonschema:"End date (YYYY-MM-DD)"`
+	Limit int    `json:"limit,omitempty" jsonschema:"Maximum number of bills to return"`
+	Page  int    `json:"page,omitempty" jsonschema:"Page number for pagination (default: 1)"`
 }
 
 type GetBillArgs struct {
-	ID    string `json:"id" mcp:"Bill ID"`
-	Start string `json:"start,omitempty" mcp:"Start date (YYYY-MM-DD) for payment info"`
-	End   string `json:"end,omitempty" mcp:"End date (YYYY-MM-DD) for payment info"`
+	ID    string `json:"id" jsonschema:"Bill ID"`
+	Start string `json:"start,omitempty" jsonschema:"Start date (YYYY-MM-DD) for payment info"`
+	End   string `json:"end,omitempty" jsonschema:"End date (YYYY-MM-DD) for payment info"`
 }
 
 type ListBillTransactionsArgs struct {
-	ID    string `json:"id" mcp:"Bill ID"`
-	Type  string `json:"type,omitempty" mcp:"Filter by transaction type"`
-	Start string `json:"start,omitempty" mcp:"Start date (YYYY-MM-DD)"`
-	End   string `json:"end,omitempty" mcp:"End date (YYYY-MM-DD)"`
-	Limit int    `json:"limit,omitempty" mcp:"Maximum number of transactions to return"`
-	Page  int    `json:"page,omitempty" mcp:"Page number for pagination (default: 1)"`
+	ID    string `json:"id" jsonschema:"Bill ID"`
+	Type  string `json:"type,omitempty" jsonschema:"Filter by transaction type"`
+	Start string `json:"start,omitempty" jsonschema:"Start date (YYYY-MM-DD)"`
+	End   string `json:"end,omitempty" jsonschema:"End date (YYYY-MM-DD)"`
+	Limit int    `json:"limit,omitempty" jsonschema:"Maximum number of transactions to return"`
+	Page  int    `json:"page,omitempty" jsonschema:"Page number for pagination (default: 1)"`
 }
 
 type StoreTransactionArgs struct {
@@ -383,7 +383,7 @@ func (s *FireflyMCPServer) handleListAccounts(
 	ctx context.Context,
 	req *mcp.CallToolRequest,
 	args ListAccountsArgs,
-) (*mcp.CallToolResult, struct{}, error) {
+) (*mcp.CallToolResult, any, error) {
 	apiParams := &client.ListAccountParams{}
 
 	if args.Type != "" {
@@ -408,7 +408,7 @@ func (s *FireflyMCPServer) handleListAccounts(
 				&mcp.TextContent{Text: fmt.Sprintf("Error listing accounts: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	if resp.StatusCode() != 200 {
@@ -417,7 +417,7 @@ func (s *FireflyMCPServer) handleListAccounts(
 				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Map response to DTO
@@ -427,21 +427,21 @@ func (s *FireflyMCPServer) handleListAccounts(
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(result)},
 		},
-	}, struct{}{}, nil
+	}, nil, nil
 }
 
 func (s *FireflyMCPServer) handleGetAccount(
 	ctx context.Context,
 	req *mcp.CallToolRequest,
 	args GetAccountArgs,
-) (*mcp.CallToolResult, struct{}, error) {
+) (*mcp.CallToolResult, any, error) {
 	if args.ID == "" {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{Text: "Account ID is required"},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	apiParams := &client.GetAccountParams{}
@@ -452,7 +452,7 @@ func (s *FireflyMCPServer) handleGetAccount(
 				&mcp.TextContent{Text: fmt.Sprintf("Error getting account: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	if resp.StatusCode() != 200 {
@@ -461,7 +461,7 @@ func (s *FireflyMCPServer) handleGetAccount(
 				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Map response to DTO
@@ -471,14 +471,14 @@ func (s *FireflyMCPServer) handleGetAccount(
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(result)},
 		},
-	}, struct{}{}, nil
+	}, nil, nil
 }
 
 func (s *FireflyMCPServer) handleSearchAccounts(
 	ctx context.Context,
 	req *mcp.CallToolRequest,
 	args SearchAccountsArgs,
-) (*mcp.CallToolResult, struct{}, error) {
+) (*mcp.CallToolResult, any, error) {
 	// Validate required arguments
 	if args.Query == "" {
 		return &mcp.CallToolResult{
@@ -486,7 +486,7 @@ func (s *FireflyMCPServer) handleSearchAccounts(
 				&mcp.TextContent{Text: "Query parameter is required"},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	if args.Field == "" {
@@ -495,7 +495,7 @@ func (s *FireflyMCPServer) handleSearchAccounts(
 				&mcp.TextContent{Text: "Field parameter is required"},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Build API parameters
@@ -522,7 +522,7 @@ func (s *FireflyMCPServer) handleSearchAccounts(
 				&mcp.TextContent{Text: fmt.Sprintf("Error searching accounts: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	if resp.StatusCode() != 200 {
@@ -531,7 +531,7 @@ func (s *FireflyMCPServer) handleSearchAccounts(
 				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Map response to DTO - reuse existing mapper since response type is AccountArray
@@ -541,14 +541,14 @@ func (s *FireflyMCPServer) handleSearchAccounts(
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(result)},
 		},
-	}, struct{}{}, nil
+	}, nil, nil
 }
 
 func (s *FireflyMCPServer) handleListTransactions(
 	ctx context.Context,
 	req *mcp.CallToolRequest,
 	args ListTransactionsArgs,
-) (*mcp.CallToolResult, struct{}, error) {
+) (*mcp.CallToolResult, any, error) {
 	apiParams := &client.ListTransactionParams{}
 
 	if args.Type != "" {
@@ -587,7 +587,7 @@ func (s *FireflyMCPServer) handleListTransactions(
 				&mcp.TextContent{Text: fmt.Sprintf("Error listing transactions: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	if resp.StatusCode() != 200 {
@@ -596,7 +596,7 @@ func (s *FireflyMCPServer) handleListTransactions(
 				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Map response to DTO
@@ -606,21 +606,21 @@ func (s *FireflyMCPServer) handleListTransactions(
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(result)},
 		},
-	}, struct{}{}, nil
+	}, nil, nil
 }
 
 func (s *FireflyMCPServer) handleGetTransaction(
 	ctx context.Context,
 	req *mcp.CallToolRequest,
 	args GetTransactionArgs,
-) (*mcp.CallToolResult, struct{}, error) {
+) (*mcp.CallToolResult, any, error) {
 	if args.ID == "" {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{Text: "Transaction ID is required"},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	apiParams := &client.GetTransactionParams{}
@@ -631,7 +631,7 @@ func (s *FireflyMCPServer) handleGetTransaction(
 				&mcp.TextContent{Text: fmt.Sprintf("Error getting transaction: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Map the response to TransactionGroup DTO
@@ -641,7 +641,7 @@ func (s *FireflyMCPServer) handleGetTransaction(
 				&mcp.TextContent{Text: "Transaction not found"},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	if resp.StatusCode() != 200 {
@@ -650,7 +650,7 @@ func (s *FireflyMCPServer) handleGetTransaction(
 				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	transactionGroup := mapTransactionReadToTransactionGroup(&resp.ApplicationvndApiJSON200.Data)
@@ -660,14 +660,14 @@ func (s *FireflyMCPServer) handleGetTransaction(
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(result)},
 		},
-	}, struct{}{}, nil
+	}, nil, nil
 }
 
 func (s *FireflyMCPServer) handleSearchTransactions(
 	ctx context.Context,
 	req *mcp.CallToolRequest,
 	args SearchTransactionsArgs,
-) (*mcp.CallToolResult, struct{}, error) {
+) (*mcp.CallToolResult, any, error) {
 	// Validate required arguments
 	if args.Query == "" {
 		return &mcp.CallToolResult{
@@ -675,7 +675,7 @@ func (s *FireflyMCPServer) handleSearchTransactions(
 				&mcp.TextContent{Text: "Query parameter is required"},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Build API parameters
@@ -693,7 +693,7 @@ func (s *FireflyMCPServer) handleSearchTransactions(
 				&mcp.TextContent{Text: fmt.Sprintf("Error searching transactions: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	if resp.StatusCode() != 200 {
@@ -702,7 +702,7 @@ func (s *FireflyMCPServer) handleSearchTransactions(
 				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Map response to DTO - reuse existing mapper since response type is TransactionArray
@@ -712,14 +712,14 @@ func (s *FireflyMCPServer) handleSearchTransactions(
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(result)},
 		},
-	}, struct{}{}, nil
+	}, nil, nil
 }
 
 func (s *FireflyMCPServer) handleListBudgets(
 	ctx context.Context,
 	req *mcp.CallToolRequest,
 	args ListBudgetsArgs,
-) (*mcp.CallToolResult, struct{}, error) {
+) (*mcp.CallToolResult, any, error) {
 	apiParams := &client.ListBudgetParams{}
 
 	// Set default start date to first day of current month
@@ -766,7 +766,7 @@ func (s *FireflyMCPServer) handleListBudgets(
 				&mcp.TextContent{Text: fmt.Sprintf("Error listing budgets: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	if resp.StatusCode() != 200 {
@@ -775,7 +775,7 @@ func (s *FireflyMCPServer) handleListBudgets(
 				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Map the response to BudgetList DTO
@@ -785,14 +785,14 @@ func (s *FireflyMCPServer) handleListBudgets(
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(result)},
 		},
-	}, struct{}{}, nil
+	}, nil, nil
 }
 
 func (s *FireflyMCPServer) handleListCategories(
 	ctx context.Context,
 	req *mcp.CallToolRequest,
 	args ListCategoriesArgs,
-) (*mcp.CallToolResult, struct{}, error) {
+) (*mcp.CallToolResult, any, error) {
 	apiParams := &client.ListCategoryParams{}
 
 	if args.Limit > 0 {
@@ -812,7 +812,7 @@ func (s *FireflyMCPServer) handleListCategories(
 				&mcp.TextContent{Text: fmt.Sprintf("Error listing categories: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	if resp.StatusCode() != 200 {
@@ -821,7 +821,7 @@ func (s *FireflyMCPServer) handleListCategories(
 				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Map the response to CategoryList DTO
@@ -831,14 +831,14 @@ func (s *FireflyMCPServer) handleListCategories(
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(result)},
 		},
-	}, struct{}{}, nil
+	}, nil, nil
 }
 
 func (s *FireflyMCPServer) handleListTags(
 	ctx context.Context,
 	req *mcp.CallToolRequest,
 	args ListTagsArgs,
-) (*mcp.CallToolResult, struct{}, error) {
+) (*mcp.CallToolResult, any, error) {
 	apiParams := &client.ListTagParams{}
 
 	if args.Limit > 0 {
@@ -858,7 +858,7 @@ func (s *FireflyMCPServer) handleListTags(
 				&mcp.TextContent{Text: fmt.Sprintf("Error listing tags: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	if resp.StatusCode() != 200 {
@@ -867,7 +867,7 @@ func (s *FireflyMCPServer) handleListTags(
 				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Map the response to TagList DTO
@@ -877,14 +877,14 @@ func (s *FireflyMCPServer) handleListTags(
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(result)},
 		},
-	}, struct{}{}, nil
+	}, nil, nil
 }
 
 func (s *FireflyMCPServer) handleGetSummary(
 	ctx context.Context,
 	req *mcp.CallToolRequest,
 	args GetSummaryArgs,
-) (*mcp.CallToolResult, struct{}, error) {
+) (*mcp.CallToolResult, any, error) {
 	apiParams := &client.GetBasicSummaryParams{}
 
 	// Set default start date to first day of current month
@@ -919,7 +919,7 @@ func (s *FireflyMCPServer) handleGetSummary(
 				&mcp.TextContent{Text: fmt.Sprintf("Error getting summary: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	if resp.StatusCode() != 200 {
@@ -928,7 +928,7 @@ func (s *FireflyMCPServer) handleGetSummary(
 				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Map response to DTO
@@ -938,7 +938,7 @@ func (s *FireflyMCPServer) handleGetSummary(
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(result)},
 		},
-	}, struct{}{}, nil
+	}, nil, nil
 }
 
 // mapBudgetArrayToBudgetList converts client.BudgetArray to BudgetList DTO
@@ -1220,7 +1220,7 @@ func (s *FireflyMCPServer) handleExpenseCategoryInsights(
 	ctx context.Context,
 	req *mcp.CallToolRequest,
 	args ExpenseCategoryInsightsArgs,
-) (*mcp.CallToolResult, struct{}, error) {
+) (*mcp.CallToolResult, any, error) {
 	// Validate required dates
 	if args.Start == "" || args.End == "" {
 		return &mcp.CallToolResult{
@@ -1228,7 +1228,7 @@ func (s *FireflyMCPServer) handleExpenseCategoryInsights(
 				&mcp.TextContent{Text: "Start and End dates are required"},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Parse dates
@@ -1239,7 +1239,7 @@ func (s *FireflyMCPServer) handleExpenseCategoryInsights(
 				&mcp.TextContent{Text: fmt.Sprintf("Invalid start date format: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	endDate, err := time.Parse("2006-01-02", args.End)
@@ -1249,7 +1249,7 @@ func (s *FireflyMCPServer) handleExpenseCategoryInsights(
 				&mcp.TextContent{Text: fmt.Sprintf("Invalid end date format: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Build API parameters
@@ -1269,7 +1269,7 @@ func (s *FireflyMCPServer) handleExpenseCategoryInsights(
 						&mcp.TextContent{Text: fmt.Sprintf("Invalid account ID: %s", accStr)},
 					},
 					IsError: true,
-				}, struct{}{}, nil
+				}, nil, nil
 			}
 			accounts[i] = accID
 		}
@@ -1284,7 +1284,7 @@ func (s *FireflyMCPServer) handleExpenseCategoryInsights(
 				&mcp.TextContent{Text: fmt.Sprintf("Error getting expense category insights: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	if resp.StatusCode() != 200 {
@@ -1293,7 +1293,7 @@ func (s *FireflyMCPServer) handleExpenseCategoryInsights(
 				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Map response to DTO
@@ -1303,7 +1303,7 @@ func (s *FireflyMCPServer) handleExpenseCategoryInsights(
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(result)},
 		},
-	}, struct{}{}, nil
+	}, nil, nil
 }
 
 // handleExpenseTotalInsights returns total expense insights
@@ -1311,7 +1311,7 @@ func (s *FireflyMCPServer) handleExpenseTotalInsights(
 	ctx context.Context,
 	req *mcp.CallToolRequest,
 	args ExpenseTotalInsightsArgs,
-) (*mcp.CallToolResult, struct{}, error) {
+) (*mcp.CallToolResult, any, error) {
 	// Validate required dates
 	if args.Start == "" || args.End == "" {
 		return &mcp.CallToolResult{
@@ -1319,7 +1319,7 @@ func (s *FireflyMCPServer) handleExpenseTotalInsights(
 				&mcp.TextContent{Text: "Start and End dates are required"},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Parse dates
@@ -1330,7 +1330,7 @@ func (s *FireflyMCPServer) handleExpenseTotalInsights(
 				&mcp.TextContent{Text: fmt.Sprintf("Invalid start date format: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	endDate, err := time.Parse("2006-01-02", args.End)
@@ -1340,7 +1340,7 @@ func (s *FireflyMCPServer) handleExpenseTotalInsights(
 				&mcp.TextContent{Text: fmt.Sprintf("Invalid end date format: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Build API parameters
@@ -1360,7 +1360,7 @@ func (s *FireflyMCPServer) handleExpenseTotalInsights(
 						&mcp.TextContent{Text: fmt.Sprintf("Invalid account ID: %s", accStr)},
 					},
 					IsError: true,
-				}, struct{}{}, nil
+				}, nil, nil
 			}
 			accounts[i] = accID
 		}
@@ -1375,7 +1375,7 @@ func (s *FireflyMCPServer) handleExpenseTotalInsights(
 				&mcp.TextContent{Text: fmt.Sprintf("Error getting expense total insights: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	if resp.StatusCode() != 200 {
@@ -1384,7 +1384,7 @@ func (s *FireflyMCPServer) handleExpenseTotalInsights(
 				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Map response to DTO
@@ -1394,7 +1394,7 @@ func (s *FireflyMCPServer) handleExpenseTotalInsights(
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(result)},
 		},
-	}, struct{}{}, nil
+	}, nil, nil
 }
 
 // handleListBudgetLimits returns budget limits for a specific budget
@@ -1402,7 +1402,7 @@ func (s *FireflyMCPServer) handleListBudgetLimits(
 	ctx context.Context,
 	req *mcp.CallToolRequest,
 	args ListBudgetLimitsArgs,
-) (*mcp.CallToolResult, struct{}, error) {
+) (*mcp.CallToolResult, any, error) {
 	// Validate required budget ID
 	if args.ID == "" {
 		return &mcp.CallToolResult{
@@ -1410,7 +1410,7 @@ func (s *FireflyMCPServer) handleListBudgetLimits(
 				&mcp.TextContent{Text: "Budget ID is required"},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Build API parameters
@@ -1425,7 +1425,7 @@ func (s *FireflyMCPServer) handleListBudgetLimits(
 					&mcp.TextContent{Text: fmt.Sprintf("Invalid start date format: %v", err)},
 				},
 				IsError: true,
-			}, struct{}{}, nil
+			}, nil, nil
 		}
 		date := openapi_types.Date{Time: startDate}
 		apiParams.Start = &date
@@ -1440,7 +1440,7 @@ func (s *FireflyMCPServer) handleListBudgetLimits(
 					&mcp.TextContent{Text: fmt.Sprintf("Invalid end date format: %v", err)},
 				},
 				IsError: true,
-			}, struct{}{}, nil
+			}, nil, nil
 		}
 		date := openapi_types.Date{Time: endDate}
 		apiParams.End = &date
@@ -1454,7 +1454,7 @@ func (s *FireflyMCPServer) handleListBudgetLimits(
 				&mcp.TextContent{Text: fmt.Sprintf("Error listing budget limits: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	if resp.StatusCode() != 200 {
@@ -1463,7 +1463,7 @@ func (s *FireflyMCPServer) handleListBudgetLimits(
 				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Map response to DTO
@@ -1473,14 +1473,14 @@ func (s *FireflyMCPServer) handleListBudgetLimits(
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(result)},
 		},
-	}, struct{}{}, nil
+	}, nil, nil
 }
 
 func (s *FireflyMCPServer) handleListBudgetTransactions(
 	ctx context.Context,
 	req *mcp.CallToolRequest,
 	args ListBudgetTransactionsArgs,
-) (*mcp.CallToolResult, struct{}, error) {
+) (*mcp.CallToolResult, any, error) {
 	// Validate required budget ID
 	if args.ID == "" {
 		return &mcp.CallToolResult{
@@ -1488,7 +1488,7 @@ func (s *FireflyMCPServer) handleListBudgetTransactions(
 				&mcp.TextContent{Text: "Budget ID is required"},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Build API parameters
@@ -1514,7 +1514,7 @@ func (s *FireflyMCPServer) handleListBudgetTransactions(
 					&mcp.TextContent{Text: fmt.Sprintf("Invalid start date format: %v", err)},
 				},
 				IsError: true,
-			}, struct{}{}, nil
+			}, nil, nil
 		}
 		date := openapi_types.Date{Time: startDate}
 		apiParams.Start = &date
@@ -1529,7 +1529,7 @@ func (s *FireflyMCPServer) handleListBudgetTransactions(
 					&mcp.TextContent{Text: fmt.Sprintf("Invalid end date format: %v", err)},
 				},
 				IsError: true,
-			}, struct{}{}, nil
+			}, nil, nil
 		}
 		date := openapi_types.Date{Time: endDate}
 		apiParams.End = &date
@@ -1549,7 +1549,7 @@ func (s *FireflyMCPServer) handleListBudgetTransactions(
 				&mcp.TextContent{Text: fmt.Sprintf("Error listing budget transactions: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	if resp.StatusCode() != 200 {
@@ -1558,7 +1558,7 @@ func (s *FireflyMCPServer) handleListBudgetTransactions(
 				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Map response to DTO
@@ -1568,7 +1568,7 @@ func (s *FireflyMCPServer) handleListBudgetTransactions(
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(result)},
 		},
-	}, struct{}{}, nil
+	}, nil, nil
 }
 
 // mapInsightGroupToDTO converts client.InsightGroup to InsightCategoryResponse DTO
@@ -1749,7 +1749,7 @@ func (s *FireflyMCPServer) handleListBills(
 	ctx context.Context,
 	req *mcp.CallToolRequest,
 	args ListBillsArgs,
-) (*mcp.CallToolResult, struct{}, error) {
+) (*mcp.CallToolResult, any, error) {
 	// Prepare API parameters
 	apiParams := &client.ListBillParams{}
 
@@ -1773,7 +1773,7 @@ func (s *FireflyMCPServer) handleListBills(
 					&mcp.TextContent{Text: fmt.Sprintf("Invalid start date format: %v", err)},
 				},
 				IsError: true,
-			}, struct{}{}, nil
+			}, nil, nil
 		}
 		date := openapi_types.Date{Time: startDate}
 		apiParams.Start = &date
@@ -1787,7 +1787,7 @@ func (s *FireflyMCPServer) handleListBills(
 					&mcp.TextContent{Text: fmt.Sprintf("Invalid end date format: %v", err)},
 				},
 				IsError: true,
-			}, struct{}{}, nil
+			}, nil, nil
 		}
 		date := openapi_types.Date{Time: endDate}
 		apiParams.End = &date
@@ -1801,7 +1801,7 @@ func (s *FireflyMCPServer) handleListBills(
 				&mcp.TextContent{Text: fmt.Sprintf("Error listing bills: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	if resp.StatusCode() != 200 {
@@ -1810,7 +1810,7 @@ func (s *FireflyMCPServer) handleListBills(
 				&mcp.TextContent{Text: fmt.Sprintf("API error: %s", string(resp.Body))},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Map the response
@@ -1824,14 +1824,14 @@ func (s *FireflyMCPServer) handleListBills(
 				&mcp.TextContent{Text: fmt.Sprintf("Error marshaling response: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(jsonData)},
 		},
-	}, struct{}{}, nil
+	}, nil, nil
 }
 
 // handleGetBill gets a specific bill by ID
@@ -1839,7 +1839,7 @@ func (s *FireflyMCPServer) handleGetBill(
 	ctx context.Context,
 	req *mcp.CallToolRequest,
 	args GetBillArgs,
-) (*mcp.CallToolResult, struct{}, error) {
+) (*mcp.CallToolResult, any, error) {
 	// Prepare API parameters
 	apiParams := &client.GetBillParams{}
 
@@ -1852,7 +1852,7 @@ func (s *FireflyMCPServer) handleGetBill(
 					&mcp.TextContent{Text: fmt.Sprintf("Invalid start date format: %v", err)},
 				},
 				IsError: true,
-			}, struct{}{}, nil
+			}, nil, nil
 		}
 		date := openapi_types.Date{Time: startDate}
 		apiParams.Start = &date
@@ -1866,7 +1866,7 @@ func (s *FireflyMCPServer) handleGetBill(
 					&mcp.TextContent{Text: fmt.Sprintf("Invalid end date format: %v", err)},
 				},
 				IsError: true,
-			}, struct{}{}, nil
+			}, nil, nil
 		}
 		date := openapi_types.Date{Time: endDate}
 		apiParams.End = &date
@@ -1880,7 +1880,7 @@ func (s *FireflyMCPServer) handleGetBill(
 				&mcp.TextContent{Text: fmt.Sprintf("Error getting bill: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	if resp.StatusCode() != 200 {
@@ -1889,7 +1889,7 @@ func (s *FireflyMCPServer) handleGetBill(
 				&mcp.TextContent{Text: fmt.Sprintf("API error: %s", string(resp.Body))},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Map the response
@@ -1906,14 +1906,14 @@ func (s *FireflyMCPServer) handleGetBill(
 				&mcp.TextContent{Text: fmt.Sprintf("Error marshaling response: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(jsonData)},
 		},
-	}, struct{}{}, nil
+	}, nil, nil
 }
 
 // handleListBillTransactions lists transactions associated with a specific bill
@@ -1921,7 +1921,7 @@ func (s *FireflyMCPServer) handleListBillTransactions(
 	ctx context.Context,
 	req *mcp.CallToolRequest,
 	args ListBillTransactionsArgs,
-) (*mcp.CallToolResult, struct{}, error) {
+) (*mcp.CallToolResult, any, error) {
 	// Prepare API parameters
 	apiParams := &client.ListTransactionByBillParams{}
 
@@ -1945,7 +1945,7 @@ func (s *FireflyMCPServer) handleListBillTransactions(
 					&mcp.TextContent{Text: fmt.Sprintf("Invalid start date format: %v", err)},
 				},
 				IsError: true,
-			}, struct{}{}, nil
+			}, nil, nil
 		}
 		date := openapi_types.Date{Time: startDate}
 		apiParams.Start = &date
@@ -1959,7 +1959,7 @@ func (s *FireflyMCPServer) handleListBillTransactions(
 					&mcp.TextContent{Text: fmt.Sprintf("Invalid end date format: %v", err)},
 				},
 				IsError: true,
-			}, struct{}{}, nil
+			}, nil, nil
 		}
 		date := openapi_types.Date{Time: endDate}
 		apiParams.End = &date
@@ -1979,7 +1979,7 @@ func (s *FireflyMCPServer) handleListBillTransactions(
 				&mcp.TextContent{Text: fmt.Sprintf("Error listing bill transactions: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	if resp.StatusCode() != 200 {
@@ -1988,7 +1988,7 @@ func (s *FireflyMCPServer) handleListBillTransactions(
 				&mcp.TextContent{Text: fmt.Sprintf("API error: %s", string(resp.Body))},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Map the response
@@ -2002,14 +2002,14 @@ func (s *FireflyMCPServer) handleListBillTransactions(
 				&mcp.TextContent{Text: fmt.Sprintf("Error marshaling response: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(jsonData)},
 		},
-	}, struct{}{}, nil
+	}, nil, nil
 }
 
 // getAccountTypeValue safely extracts AccountTypeProperty value, returns empty string if nil

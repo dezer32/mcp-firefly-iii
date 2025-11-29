@@ -15,7 +15,7 @@ func (s *FireflyMCPServer) handleStoreReceipt(
 	ctx context.Context,
 	req *mcp.CallToolRequest,
 	args ReceiptStoreRequest,
-) (*mcp.CallToolResult, struct{}, error) {
+) (*mcp.CallToolResult, any, error) {
 	// Step 1: Validate required fields
 	if err := validateReceiptRequest(&args); err != nil {
 		return &mcp.CallToolResult{
@@ -23,7 +23,7 @@ func (s *FireflyMCPServer) handleStoreReceipt(
 				&mcp.TextContent{Text: fmt.Sprintf("Error: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Step 2: Validate total amount if provided
@@ -34,7 +34,7 @@ func (s *FireflyMCPServer) handleStoreReceipt(
 					&mcp.TextContent{Text: fmt.Sprintf("Error: %v", err)},
 				},
 				IsError: true,
-			}, struct{}{}, nil
+			}, nil, nil
 		}
 	}
 

@@ -11,8 +11,8 @@ import (
 
 // BulkTransactionStoreRequest represents the request for creating multiple transaction groups
 type BulkTransactionStoreRequest struct {
-	TransactionGroups []TransactionStoreRequest `json:"transaction_groups" mcp:"Array of transaction groups to create (required, at least one)"`
-	DelayMs           int                       `json:"delay_ms,omitempty" mcp:"Delay in milliseconds between API calls to avoid rate limiting (default: 100)"`
+	TransactionGroups []TransactionStoreRequest `json:"transaction_groups" jsonschema:"Array of transaction groups to create (required, at least one)"`
+	DelayMs           int                       `json:"delay_ms,omitempty" jsonschema:"Delay in milliseconds between API calls to avoid rate limiting (default: 100)"`
 }
 
 // BulkTransactionStoreResponse represents the response for bulk transaction creation
@@ -41,7 +41,7 @@ func (s *FireflyMCPServer) handleStoreTransactionsBulk(
 	ctx context.Context,
 	req *mcp.CallToolRequest,
 	args BulkTransactionStoreRequest,
-) (*mcp.CallToolResult, struct{}, error) {
+) (*mcp.CallToolResult, any, error) {
 	// Validate input
 	if len(args.TransactionGroups) == 0 {
 		return &mcp.CallToolResult{
@@ -49,7 +49,7 @@ func (s *FireflyMCPServer) handleStoreTransactionsBulk(
 				&mcp.TextContent{Text: "Error: transaction_groups array is required and must not be empty"},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Limit batch size to prevent excessive API calls
@@ -62,7 +62,7 @@ func (s *FireflyMCPServer) handleStoreTransactionsBulk(
 				},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Set default delay if not specified
@@ -151,7 +151,7 @@ func (s *FireflyMCPServer) handleStoreTransactionsBulk(
 				&mcp.TextContent{Text: fmt.Sprintf("Error marshaling response: %v", err)},
 			},
 			IsError: true,
-		}, struct{}{}, nil
+		}, nil, nil
 	}
 
 	// Determine if overall operation should be marked as error
@@ -163,5 +163,5 @@ func (s *FireflyMCPServer) handleStoreTransactionsBulk(
 			&mcp.TextContent{Text: string(jsonData)},
 		},
 		IsError: isError,
-	}, struct{}{}, nil
+	}, nil, nil
 }
