@@ -13,7 +13,7 @@ import (
 func TestHandleStoreTransaction_Validation(t *testing.T) {
 	currentDate := time.Now().Format("2006-01-02")
 	currentDateRFC3339 := time.Now().Format(time.RFC3339)
-	
+
 	tests := []struct {
 		name          string
 		args          TransactionStoreRequest
@@ -184,7 +184,7 @@ func TestHandleStoreTransaction_Validation(t *testing.T) {
 
 func TestMapTransactionStoreRequestToAPI_Coverage(t *testing.T) {
 	currentDate := time.Now().Format("2006-01-02")
-	
+
 	// Test with nil values to improve coverage
 	req := &TransactionStoreRequest{
 		Transactions: []TransactionSplitRequest{
