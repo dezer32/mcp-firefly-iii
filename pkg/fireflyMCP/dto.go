@@ -15,11 +15,11 @@ type Spent struct {
 }
 
 type Budget struct {
-	Id     string      `json:"id"`
-	Active bool        `json:"active"`
-	Name   string      `json:"name"`
-	Notes  interface{} `json:"notes"`
-	Spent  Spent       `json:"spent"`
+	Id     string  `json:"id"`
+	Active bool    `json:"active"`
+	Name   string  `json:"name"`
+	Notes  *string `json:"notes"`
+	Spent  Spent   `json:"spent"`
 }
 type BudgetList struct {
 	Data       []Budget   `json:"data"`
@@ -27,9 +27,9 @@ type BudgetList struct {
 }
 
 type Category struct {
-	Id    string      `json:"id"`
-	Name  string      `json:"name"`
-	Notes interface{} `json:"notes"`
+	Id    string  `json:"id"`
+	Name  string  `json:"name"`
+	Notes *string `json:"notes"`
 }
 
 type CategoryList struct {
@@ -51,11 +51,11 @@ type AccountList struct {
 }
 
 type Transaction struct {
-	Id              string      `json:"id"`
-	Amount          string      `json:"amount"`
-	BillId          interface{} `json:"bill_id"`
-	BillName        interface{} `json:"bill_name"`
-	BudgetId        *string     `json:"budget_id"`
+	Id              string  `json:"id"`
+	Amount          string  `json:"amount"`
+	BillId          *string `json:"bill_id"`
+	BillName        *string `json:"bill_name"`
+	BudgetId        *string `json:"budget_id"`
 	BudgetName      *string     `json:"budget_name"`
 	CategoryId      *string     `json:"category_id"`
 	CategoryName    *string     `json:"category_name"`
