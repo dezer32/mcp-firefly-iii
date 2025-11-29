@@ -2,7 +2,6 @@ package fireflyMCP
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -354,27 +353,6 @@ func (s *FireflyMCPServer) registerTools() {
 			Description: "List transactions created by a specific recurrence",
 		}, s.handleListRecurrenceTransactions,
 	)
-
-	mcp.AddTool(
-		s.server, &mcp.Tool{
-			Name:        "list_recurrences",
-			Description: "List all recurrences in Firefly III",
-		}, s.handleListRecurrences,
-	)
-
-	mcp.AddTool(
-		s.server, &mcp.Tool{
-			Name:        "get_recurrence",
-			Description: "Get details of a specific recurrence",
-		}, s.handleGetRecurrence,
-	)
-
-	mcp.AddTool(
-		s.server, &mcp.Tool{
-			Name:        "list_recurrence_transactions",
-			Description: "List transactions created by a specific recurrence",
-		}, s.handleListRecurrenceTransactions,
-	)
 }
 
 // Tool handlers
@@ -403,31 +381,16 @@ func (s *FireflyMCPServer) handleListAccounts(
 
 	resp, err := s.client.ListAccountWithResponse(ctx, apiParams)
 	if err != nil {
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{Text: fmt.Sprintf("Error listing accounts: %v", err)},
-			},
-			IsError: true,
-		}, nil, nil
+		return newErrorResult(fmt.Sprintf("Error listing accounts: %v", err))
 	}
 
 	if resp.StatusCode() != 200 {
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
-			},
-			IsError: true,
-		}, nil, nil
+		return newErrorResult(fmt.Sprintf("API error: %d", resp.StatusCode()))
 	}
 
 	// Map response to DTO
 	accountList := mapAccountArrayToAccountList(resp.ApplicationvndApiJSON200)
-	result, _ := json.MarshalIndent(accountList, "", "  ")
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{Text: string(result)},
-		},
-	}, nil, nil
+	return newSuccessResult(accountList)
 }
 
 func (s *FireflyMCPServer) handleGetAccount(
@@ -436,42 +399,22 @@ func (s *FireflyMCPServer) handleGetAccount(
 	args GetAccountArgs,
 ) (*mcp.CallToolResult, any, error) {
 	if args.ID == "" {
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{Text: "Account ID is required"},
-			},
-			IsError: true,
-		}, nil, nil
+		return newErrorResult("Account ID is required")
 	}
 
 	apiParams := &client.GetAccountParams{}
 	resp, err := s.client.GetAccountWithResponse(ctx, args.ID, apiParams)
 	if err != nil {
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{Text: fmt.Sprintf("Error getting account: %v", err)},
-			},
-			IsError: true,
-		}, nil, nil
+		return newErrorResult(fmt.Sprintf("Error getting account: %v", err))
 	}
 
 	if resp.StatusCode() != 200 {
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{Text: fmt.Sprintf("API error: %d", resp.StatusCode())},
-			},
-			IsError: true,
-		}, nil, nil
+		return newErrorResult(fmt.Sprintf("API error: %d", resp.StatusCode()))
 	}
 
 	// Map response to DTO
 	account := mapAccountSingleToAccount(resp.ApplicationvndApiJSON200)
-	result, _ := json.MarshalIndent(account, "", "  ")
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{Text: string(result)},
-		},
-	}, nil, nil
+	return newSuccessResult(account)
 }
 
 func (s *FireflyMCPServer) handleSearchAccounts(
@@ -536,12 +479,7 @@ func (s *FireflyMCPServer) handleSearchAccounts(
 
 	// Map response to DTO - reuse existing mapper since response type is AccountArray
 	accountList := mapAccountArrayToAccountList(resp.ApplicationvndApiJSON200)
-	result, _ := json.MarshalIndent(accountList, "", "  ")
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{Text: string(result)},
-		},
-	}, nil, nil
+	return newSuccessResult(accountList)
 }
 
 func (s *FireflyMCPServer) handleListTransactions(
@@ -601,12 +539,7 @@ func (s *FireflyMCPServer) handleListTransactions(
 
 	// Map response to DTO
 	transactionList := mapTransactionArrayToTransactionList(resp.ApplicationvndApiJSON200)
-	result, _ := json.MarshalIndent(transactionList, "", "  ")
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{Text: string(result)},
-		},
-	}, nil, nil
+	return newSuccessResult(transactionList)
 }
 
 func (s *FireflyMCPServer) handleGetTransaction(
@@ -654,13 +587,7 @@ func (s *FireflyMCPServer) handleGetTransaction(
 	}
 
 	transactionGroup := mapTransactionReadToTransactionGroup(&resp.ApplicationvndApiJSON200.Data)
-
-	result, _ := json.MarshalIndent(transactionGroup, "", "  ")
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{Text: string(result)},
-		},
-	}, nil, nil
+	return newSuccessResult(transactionGroup)
 }
 
 func (s *FireflyMCPServer) handleSearchTransactions(
@@ -707,12 +634,7 @@ func (s *FireflyMCPServer) handleSearchTransactions(
 
 	// Map response to DTO - reuse existing mapper since response type is TransactionArray
 	transactionList := mapTransactionArrayToTransactionList(resp.ApplicationvndApiJSON200)
-	result, _ := json.MarshalIndent(transactionList, "", "  ")
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{Text: string(result)},
-		},
-	}, nil, nil
+	return newSuccessResult(transactionList)
 }
 
 func (s *FireflyMCPServer) handleListBudgets(
@@ -780,12 +702,7 @@ func (s *FireflyMCPServer) handleListBudgets(
 
 	// Map the response to BudgetList DTO
 	budgetList := mapBudgetArrayToBudgetList(resp.ApplicationvndApiJSON200)
-	result, _ := json.MarshalIndent(budgetList, "", "  ")
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{Text: string(result)},
-		},
-	}, nil, nil
+	return newSuccessResult(budgetList)
 }
 
 func (s *FireflyMCPServer) handleListCategories(
@@ -826,12 +743,7 @@ func (s *FireflyMCPServer) handleListCategories(
 
 	// Map the response to CategoryList DTO
 	categoryList := mapCategoryArrayToCategoryList(resp.ApplicationvndApiJSON200)
-	result, _ := json.MarshalIndent(categoryList, "", "  ")
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{Text: string(result)},
-		},
-	}, nil, nil
+	return newSuccessResult(categoryList)
 }
 
 func (s *FireflyMCPServer) handleListTags(
@@ -872,12 +784,7 @@ func (s *FireflyMCPServer) handleListTags(
 
 	// Map the response to TagList DTO
 	tagList := mapTagArrayToTagList(resp.ApplicationvndApiJSON200)
-	result, _ := json.MarshalIndent(tagList, "", "  ")
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{Text: string(result)},
-		},
-	}, nil, nil
+	return newSuccessResult(tagList)
 }
 
 func (s *FireflyMCPServer) handleGetSummary(
@@ -933,12 +840,7 @@ func (s *FireflyMCPServer) handleGetSummary(
 
 	// Map response to DTO
 	summaryList := mapBasicSummaryToBasicSummaryList(resp.ApplicationvndApiJSON200)
-	result, _ := json.MarshalIndent(summaryList, "", "  ")
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{Text: string(result)},
-		},
-	}, nil, nil
+	return newSuccessResult(summaryList)
 }
 
 // mapBudgetArrayToBudgetList converts client.BudgetArray to BudgetList DTO
@@ -1298,12 +1200,7 @@ func (s *FireflyMCPServer) handleExpenseCategoryInsights(
 
 	// Map response to DTO
 	insightResponse := mapInsightGroupToDTO(resp.JSON200)
-	result, _ := json.MarshalIndent(insightResponse, "", "  ")
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{Text: string(result)},
-		},
-	}, nil, nil
+	return newSuccessResult(insightResponse)
 }
 
 // handleExpenseTotalInsights returns total expense insights
@@ -1389,12 +1286,7 @@ func (s *FireflyMCPServer) handleExpenseTotalInsights(
 
 	// Map response to DTO
 	insightResponse := mapInsightTotalToDTO(resp.JSON200)
-	result, _ := json.MarshalIndent(insightResponse, "", "  ")
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{Text: string(result)},
-		},
-	}, nil, nil
+	return newSuccessResult(insightResponse)
 }
 
 // handleListBudgetLimits returns budget limits for a specific budget
@@ -1468,12 +1360,7 @@ func (s *FireflyMCPServer) handleListBudgetLimits(
 
 	// Map response to DTO
 	budgetLimitList := mapBudgetLimitArrayToBudgetLimitList(resp.ApplicationvndApiJSON200)
-	result, _ := json.MarshalIndent(budgetLimitList, "", "  ")
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{Text: string(result)},
-		},
-	}, nil, nil
+	return newSuccessResult(budgetLimitList)
 }
 
 func (s *FireflyMCPServer) handleListBudgetTransactions(
@@ -1563,12 +1450,7 @@ func (s *FireflyMCPServer) handleListBudgetTransactions(
 
 	// Map response to DTO
 	transactionList := mapTransactionArrayToTransactionList(resp.ApplicationvndApiJSON200)
-	result, _ := json.MarshalIndent(transactionList, "", "  ")
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{Text: string(result)},
-		},
-	}, nil, nil
+	return newSuccessResult(transactionList)
 }
 
 // mapInsightGroupToDTO converts client.InsightGroup to InsightCategoryResponse DTO
@@ -1815,23 +1697,7 @@ func (s *FireflyMCPServer) handleListBills(
 
 	// Map the response
 	billList := mapBillArrayToBillList(resp.ApplicationvndApiJSON200)
-
-	// Convert to JSON for response
-	jsonData, err := json.Marshal(billList)
-	if err != nil {
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{Text: fmt.Sprintf("Error marshaling response: %v", err)},
-			},
-			IsError: true,
-		}, nil, nil
-	}
-
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{Text: string(jsonData)},
-		},
-	}, nil, nil
+	return newSuccessResult(billList)
 }
 
 // handleGetBill gets a specific bill by ID
@@ -1897,23 +1763,7 @@ func (s *FireflyMCPServer) handleGetBill(
 	if resp.ApplicationvndApiJSON200 != nil {
 		bill = mapBillToBill(&resp.ApplicationvndApiJSON200.Data)
 	}
-
-	// Convert to JSON for response
-	jsonData, err := json.Marshal(bill)
-	if err != nil {
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{Text: fmt.Sprintf("Error marshaling response: %v", err)},
-			},
-			IsError: true,
-		}, nil, nil
-	}
-
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{Text: string(jsonData)},
-		},
-	}, nil, nil
+	return newSuccessResult(bill)
 }
 
 // handleListBillTransactions lists transactions associated with a specific bill
@@ -1993,23 +1843,7 @@ func (s *FireflyMCPServer) handleListBillTransactions(
 
 	// Map the response
 	transactionList := mapTransactionArrayToTransactionList(resp.ApplicationvndApiJSON200)
-
-	// Convert to JSON for response
-	jsonData, err := json.Marshal(transactionList)
-	if err != nil {
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{Text: fmt.Sprintf("Error marshaling response: %v", err)},
-			},
-			IsError: true,
-		}, nil, nil
-	}
-
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{Text: string(jsonData)},
-		},
-	}, nil, nil
+	return newSuccessResult(transactionList)
 }
 
 // getAccountTypeValue safely extracts AccountTypeProperty value, returns empty string if nil
