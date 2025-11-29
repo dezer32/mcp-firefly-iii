@@ -13,42 +13,36 @@ import (
 // handleStoreReceipt creates a group of transactions representing a shopping receipt
 func (s *FireflyMCPServer) handleStoreReceipt(
 	ctx context.Context,
-	ss *mcp.ServerSession,
-	params *mcp.CallToolParamsFor[ReceiptStoreRequest],
-) (*mcp.CallToolResultFor[struct{}], error) {
-	req := &params.Arguments
-
+	req *mcp.CallToolRequest,
+	args ReceiptStoreRequest,
+) (*mcp.CallToolResult, struct{}, error) {
 	// Step 1: Validate required fields
-	if err := validateReceiptRequest(req); err != nil {
-		return &mcp.CallToolResultFor[struct{}]{
+	if err := validateReceiptRequest(&args); err != nil {
+		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{Text: fmt.Sprintf("Error: %v", err)},
 			},
 			IsError: true,
-		}, nil
+		}, struct{}{}, nil
 	}
 
 	// Step 2: Validate total amount if provided
-	if req.TotalAmount != nil && *req.TotalAmount != "" {
-		if err := validateTotalAmount(req.Items, *req.TotalAmount); err != nil {
-			return &mcp.CallToolResultFor[struct{}]{
+	if args.TotalAmount != nil && *args.TotalAmount != "" {
+		if err := validateTotalAmount(args.Items, *args.TotalAmount); err != nil {
+			return &mcp.CallToolResult{
 				Content: []mcp.Content{
 					&mcp.TextContent{Text: fmt.Sprintf("Error: %v", err)},
 				},
 				IsError: true,
-			}, nil
+			}, struct{}{}, nil
 		}
 	}
 
 	// Step 3: Map receipt to TransactionStoreRequest
-	txnRequest := mapReceiptToTransactionStoreRequest(req)
+	txnRequest := mapReceiptToTransactionStoreRequest(&args)
 
 	// Step 4: Delegate to existing store_transaction handler
-	txnParams := &mcp.CallToolParamsFor[TransactionStoreRequest]{
-		Arguments: *txnRequest,
-	}
-
-	return s.handleStoreTransaction(ctx, ss, txnParams)
+	return s.handleStoreTransaction(ctx, req, *txnRequest)
 }
 
 // validateReceiptRequest validates the receipt request fields

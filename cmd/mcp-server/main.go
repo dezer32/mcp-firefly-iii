@@ -45,7 +45,7 @@ func main() {
 	}
 
 	// Run the server over stdin/stdout
-	if err := server.Run(context.Background(), mcp.NewStdioTransport()); err != nil {
+	if err := server.Run(context.Background(), &mcp.StdioTransport{}); err != nil {
 		log.Fatal(err)
 	}
 }

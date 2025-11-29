@@ -39,50 +39,50 @@ type BulkSummary struct {
 // handleStoreTransactionsBulk creates multiple transaction groups in Firefly III
 func (s *FireflyMCPServer) handleStoreTransactionsBulk(
 	ctx context.Context,
-	ss *mcp.ServerSession,
-	params *mcp.CallToolParamsFor[BulkTransactionStoreRequest],
-) (*mcp.CallToolResultFor[struct{}], error) {
+	req *mcp.CallToolRequest,
+	args BulkTransactionStoreRequest,
+) (*mcp.CallToolResult, struct{}, error) {
 	// Validate input
-	if len(params.Arguments.TransactionGroups) == 0 {
-		return &mcp.CallToolResultFor[struct{}]{
+	if len(args.TransactionGroups) == 0 {
+		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{Text: "Error: transaction_groups array is required and must not be empty"},
 			},
 			IsError: true,
-		}, nil
+		}, struct{}{}, nil
 	}
 
 	// Limit batch size to prevent excessive API calls
 	const maxBatchSize = 100
-	if len(params.Arguments.TransactionGroups) > maxBatchSize {
-		return &mcp.CallToolResultFor[struct{}]{
+	if len(args.TransactionGroups) > maxBatchSize {
+		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{
 					Text: fmt.Sprintf("Error: batch size exceeds maximum of %d transaction groups", maxBatchSize),
 				},
 			},
 			IsError: true,
-		}, nil
+		}, struct{}{}, nil
 	}
 
 	// Set default delay if not specified
-	delayMs := params.Arguments.DelayMs
+	delayMs := args.DelayMs
 	if delayMs <= 0 {
 		delayMs = 100 // Default 100ms delay between API calls
 	}
 
 	// Initialize response
 	response := BulkTransactionStoreResponse{
-		Results: make([]TransactionGroupResult, 0, len(params.Arguments.TransactionGroups)),
+		Results: make([]TransactionGroupResult, 0, len(args.TransactionGroups)),
 		Summary: BulkSummary{
-			Total:      len(params.Arguments.TransactionGroups),
+			Total:      len(args.TransactionGroups),
 			Successful: 0,
 			Failed:     0,
 		},
 	}
 
 	// Process each transaction group sequentially
-	for i, group := range params.Arguments.TransactionGroups {
+	for i, group := range args.TransactionGroups {
 		// Add delay between API calls (except for the first one)
 		if i > 0 && delayMs > 0 {
 			time.Sleep(time.Duration(delayMs) * time.Millisecond)
@@ -93,13 +93,8 @@ func (s *FireflyMCPServer) handleStoreTransactionsBulk(
 			Index: i,
 		}
 
-		// Call the existing single transaction handler
-		singleParams := &mcp.CallToolParamsFor[TransactionStoreRequest]{
-			Arguments: group,
-		}
-
 		// Execute the single transaction creation
-		singleResult, err := s.handleStoreTransaction(ctx, ss, singleParams)
+		singleResult, _, err := s.handleStoreTransaction(ctx, req, group)
 
 		// Process the result
 		if err != nil {
@@ -151,22 +146,22 @@ func (s *FireflyMCPServer) handleStoreTransactionsBulk(
 	// Marshal response to JSON
 	jsonData, err := json.MarshalIndent(response, "", "  ")
 	if err != nil {
-		return &mcp.CallToolResultFor[struct{}]{
+		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{Text: fmt.Sprintf("Error marshaling response: %v", err)},
 			},
 			IsError: true,
-		}, nil
+		}, struct{}{}, nil
 	}
 
 	// Determine if overall operation should be marked as error
 	// Only mark as error if ALL transactions failed
 	isError := response.Summary.Successful == 0 && response.Summary.Failed > 0
 
-	return &mcp.CallToolResultFor[struct{}]{
+	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(jsonData)},
 		},
 		IsError: isError,
-	}, nil
+	}, struct{}{}, nil
 }

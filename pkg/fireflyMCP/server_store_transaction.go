@@ -15,53 +15,53 @@ import (
 // handleStoreTransaction creates a new transaction in Firefly III
 func (s *FireflyMCPServer) handleStoreTransaction(
 	ctx context.Context,
-	ss *mcp.ServerSession,
-	params *mcp.CallToolParamsFor[TransactionStoreRequest],
-) (*mcp.CallToolResultFor[struct{}], error) {
+	req *mcp.CallToolRequest,
+	args TransactionStoreRequest,
+) (*mcp.CallToolResult, struct{}, error) {
 	// Validate required fields
-	if len(params.Arguments.Transactions) == 0 {
-		return &mcp.CallToolResultFor[struct{}]{
+	if len(args.Transactions) == 0 {
+		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{Text: "Error: transactions array is required and must not be empty"},
 			},
 			IsError: true,
-		}, nil
+		}, struct{}{}, nil
 	}
 
 	// Validate each transaction
-	for i, txn := range params.Arguments.Transactions {
+	for i, txn := range args.Transactions {
 		// Validate required fields
 		if txn.Type == "" {
-			return &mcp.CallToolResultFor[struct{}]{
+			return &mcp.CallToolResult{
 				Content: []mcp.Content{
 					&mcp.TextContent{Text: fmt.Sprintf("Error: transaction[%d].type is required", i)},
 				},
 				IsError: true,
-			}, nil
+			}, struct{}{}, nil
 		}
 		if txn.Date == "" {
-			return &mcp.CallToolResultFor[struct{}]{
+			return &mcp.CallToolResult{
 				Content: []mcp.Content{
 					&mcp.TextContent{Text: fmt.Sprintf("Error: transaction[%d].date is required", i)},
 				},
 				IsError: true,
-			}, nil
+			}, struct{}{}, nil
 		}
 		if txn.Amount == "" {
-			return &mcp.CallToolResultFor[struct{}]{
+			return &mcp.CallToolResult{
 				Content: []mcp.Content{
 					&mcp.TextContent{Text: fmt.Sprintf("Error: transaction[%d].amount is required", i)},
 				},
 				IsError: true,
-			}, nil
+			}, struct{}{}, nil
 		}
 		if txn.Description == "" {
-			return &mcp.CallToolResultFor[struct{}]{
+			return &mcp.CallToolResult{
 				Content: []mcp.Content{
 					&mcp.TextContent{Text: fmt.Sprintf("Error: transaction[%d].description is required", i)},
 				},
 				IsError: true,
-			}, nil
+			}, struct{}{}, nil
 		}
 
 		// Validate transaction type
@@ -71,7 +71,7 @@ func (s *FireflyMCPServer) handleStoreTransaction(
 			"transfer":   true,
 		}
 		if !validTypes[txn.Type] {
-			return &mcp.CallToolResultFor[struct{}]{
+			return &mcp.CallToolResult{
 				Content: []mcp.Content{
 					&mcp.TextContent{
 						Text: fmt.Sprintf(
@@ -81,14 +81,14 @@ func (s *FireflyMCPServer) handleStoreTransaction(
 					},
 				},
 				IsError: true,
-			}, nil
+			}, struct{}{}, nil
 		}
 
 		// Validate date format (basic check)
 		if _, err := time.Parse("2006-01-02", txn.Date); err != nil {
 			// Try parsing as datetime
 			if _, err := time.Parse(time.RFC3339, txn.Date); err != nil {
-				return &mcp.CallToolResultFor[struct{}]{
+				return &mcp.CallToolResult{
 					Content: []mcp.Content{
 						&mcp.TextContent{
 							Text: fmt.Sprintf(
@@ -98,33 +98,33 @@ func (s *FireflyMCPServer) handleStoreTransaction(
 						},
 					},
 					IsError: true,
-				}, nil
+				}, struct{}{}, nil
 			}
 		}
 	}
 
 	// Convert DTO to API model
-	apiRequest := mapTransactionStoreRequestToAPI(&params.Arguments)
+	apiRequest := mapTransactionStoreRequestToAPI(&args)
 
 	// Check if client is properly initialized
 	if s.client == nil || s.client.ClientInterface == nil {
-		return &mcp.CallToolResultFor[struct{}]{
+		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{Text: "Error: API client not properly initialized"},
 			},
 			IsError: true,
-		}, nil
+		}, struct{}{}, nil
 	}
 
 	// Call the API
 	resp, err := s.client.StoreTransactionWithResponse(ctx, &client.StoreTransactionParams{}, *apiRequest)
 	if err != nil {
-		return &mcp.CallToolResultFor[struct{}]{
+		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{Text: fmt.Sprintf("Error creating transaction: %v", err)},
 			},
 			IsError: true,
-		}, nil
+		}, struct{}{}, nil
 	}
 
 	// Debug: Check content type
@@ -134,13 +134,13 @@ func (s *FireflyMCPServer) handleStoreTransaction(
 		if len(bodyPreview) > 500 {
 			bodyPreview = bodyPreview[:500] + "..."
 		}
-		return &mcp.CallToolResultFor[struct{}]{
+		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{Text: fmt.Sprintf("Error: Expected JSON response but got %s (status: %d, body preview: %s)",
 					contentType, resp.StatusCode(), bodyPreview)},
 			},
 			IsError: true,
-		}, nil
+		}, struct{}{}, nil
 	}
 
 	// Handle different response codes
@@ -157,12 +157,12 @@ func (s *FireflyMCPServer) handleStoreTransaction(
 		} else {
 			// Parse the body manually for both 200 and 201
 			if len(resp.Body) == 0 {
-				return &mcp.CallToolResultFor[struct{}]{
+				return &mcp.CallToolResult{
 					Content: []mcp.Content{
 						&mcp.TextContent{Text: fmt.Sprintf("Error: empty response body for status %d", resp.StatusCode())},
 					},
 					IsError: true,
-				}, nil
+				}, struct{}{}, nil
 			}
 
 			// Try to parse the response body
@@ -172,13 +172,13 @@ func (s *FireflyMCPServer) handleStoreTransaction(
 				if len(bodyPreview) > 200 {
 					bodyPreview = bodyPreview[:200] + "..."
 				}
-				return &mcp.CallToolResultFor[struct{}]{
+				return &mcp.CallToolResult{
 					Content: []mcp.Content{
 						&mcp.TextContent{Text: fmt.Sprintf("Error parsing response (status %d): %v (body: %s)",
 							resp.StatusCode(), err, bodyPreview)},
 					},
 					IsError: true,
-				}, nil
+				}, struct{}{}, nil
 			}
 		}
 
@@ -187,19 +187,19 @@ func (s *FireflyMCPServer) handleStoreTransaction(
 		// Marshal to JSON
 		jsonData, err := json.MarshalIndent(transactionGroup, "", "  ")
 		if err != nil {
-			return &mcp.CallToolResultFor[struct{}]{
+			return &mcp.CallToolResult{
 				Content: []mcp.Content{
 					&mcp.TextContent{Text: fmt.Sprintf("Error marshaling response: %v", err)},
 				},
 				IsError: true,
-			}, nil
+			}, struct{}{}, nil
 		}
 
-		return &mcp.CallToolResultFor[struct{}]{
+		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{Text: string(jsonData)},
 			},
-		}, nil
+		}, struct{}{}, nil
 
 	case 422:
 		// Validation error
@@ -207,30 +207,30 @@ func (s *FireflyMCPServer) handleStoreTransaction(
 		if resp.JSON422 != nil && resp.JSON422.Message != nil {
 			errorMsg = *resp.JSON422.Message
 		}
-		return &mcp.CallToolResultFor[struct{}]{
+		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{Text: fmt.Sprintf("Validation error: %s", errorMsg)},
 			},
 			IsError: true,
-		}, nil
+		}, struct{}{}, nil
 
 	case 400:
 		// Bad request
-		return &mcp.CallToolResultFor[struct{}]{
+		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{Text: "Bad request: invalid data provided"},
 			},
 			IsError: true,
-		}, nil
+		}, struct{}{}, nil
 
 	default:
 		// Other errors
-		return &mcp.CallToolResultFor[struct{}]{
+		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{Text: fmt.Sprintf("Error: unexpected status code %d", resp.StatusCode())},
 			},
 			IsError: true,
-		}, nil
+		}, struct{}{}, nil
 	}
 }
 

@@ -33,18 +33,18 @@ type ListRecurrenceTransactionsArgs struct {
 // handleListRecurrences lists all recurrences in Firefly III
 func (s *FireflyMCPServer) handleListRecurrences(
 	ctx context.Context,
-	ss *mcp.ServerSession,
-	params *mcp.CallToolParamsFor[ListRecurrencesArgs],
-) (*mcp.CallToolResultFor[struct{}], error) {
+	req *mcp.CallToolRequest,
+	args ListRecurrencesArgs,
+) (*mcp.CallToolResult, struct{}, error) {
 	// Prepare API parameters
 	apiParams := &client.ListRecurrenceParams{}
 
 	// Set pagination
-	if params.Arguments.Limit > 0 {
-		limit := int32(params.Arguments.Limit)
+	if args.Limit > 0 {
+		limit := int32(args.Limit)
 		apiParams.Limit = &limit
 	}
-	page := int32(params.Arguments.Page)
+	page := int32(args.Page)
 	if page == 0 {
 		page = 1
 	}
@@ -53,21 +53,21 @@ func (s *FireflyMCPServer) handleListRecurrences(
 	// Call the API
 	resp, err := s.client.ListRecurrenceWithResponse(ctx, apiParams)
 	if err != nil {
-		return &mcp.CallToolResultFor[struct{}]{
+		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{Text: fmt.Sprintf("Error listing recurrences: %v", err)},
 			},
 			IsError: true,
-		}, nil
+		}, struct{}{}, nil
 	}
 
 	if resp.StatusCode() != 200 {
-		return &mcp.CallToolResultFor[struct{}]{
+		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{Text: fmt.Sprintf("API error: %s", string(resp.Body))},
 			},
 			IsError: true,
-		}, nil
+		}, struct{}{}, nil
 	}
 
 	// Map the response
@@ -76,48 +76,48 @@ func (s *FireflyMCPServer) handleListRecurrences(
 	// Convert to JSON for response
 	jsonData, err := json.Marshal(recurrenceList)
 	if err != nil {
-		return &mcp.CallToolResultFor[struct{}]{
+		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{Text: fmt.Sprintf("Error marshaling response: %v", err)},
 			},
 			IsError: true,
-		}, nil
+		}, struct{}{}, nil
 	}
 
-	return &mcp.CallToolResultFor[struct{}]{
+	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(jsonData)},
 		},
-	}, nil
+	}, struct{}{}, nil
 }
 
 // handleGetRecurrence gets a specific recurrence by ID
 func (s *FireflyMCPServer) handleGetRecurrence(
 	ctx context.Context,
-	ss *mcp.ServerSession,
-	params *mcp.CallToolParamsFor[GetRecurrenceArgs],
-) (*mcp.CallToolResultFor[struct{}], error) {
+	req *mcp.CallToolRequest,
+	args GetRecurrenceArgs,
+) (*mcp.CallToolResult, struct{}, error) {
 	// Prepare API parameters
 	apiParams := &client.GetRecurrenceParams{}
 
 	// Call the API
-	resp, err := s.client.GetRecurrenceWithResponse(ctx, params.Arguments.ID, apiParams)
+	resp, err := s.client.GetRecurrenceWithResponse(ctx, args.ID, apiParams)
 	if err != nil {
-		return &mcp.CallToolResultFor[struct{}]{
+		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{Text: fmt.Sprintf("Error getting recurrence: %v", err)},
 			},
 			IsError: true,
-		}, nil
+		}, struct{}{}, nil
 	}
 
 	if resp.StatusCode() != 200 {
-		return &mcp.CallToolResultFor[struct{}]{
+		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{Text: fmt.Sprintf("API error: %s", string(resp.Body))},
 			},
 			IsError: true,
-		}, nil
+		}, struct{}{}, nil
 	}
 
 	// Map the response
@@ -129,94 +129,94 @@ func (s *FireflyMCPServer) handleGetRecurrence(
 	// Convert to JSON for response
 	jsonData, err := json.Marshal(recurrence)
 	if err != nil {
-		return &mcp.CallToolResultFor[struct{}]{
+		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{Text: fmt.Sprintf("Error marshaling response: %v", err)},
 			},
 			IsError: true,
-		}, nil
+		}, struct{}{}, nil
 	}
 
-	return &mcp.CallToolResultFor[struct{}]{
+	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(jsonData)},
 		},
-	}, nil
+	}, struct{}{}, nil
 }
 
 // handleListRecurrenceTransactions lists transactions created by a specific recurrence
 func (s *FireflyMCPServer) handleListRecurrenceTransactions(
 	ctx context.Context,
-	ss *mcp.ServerSession,
-	params *mcp.CallToolParamsFor[ListRecurrenceTransactionsArgs],
-) (*mcp.CallToolResultFor[struct{}], error) {
+	req *mcp.CallToolRequest,
+	args ListRecurrenceTransactionsArgs,
+) (*mcp.CallToolResult, struct{}, error) {
 	// Prepare API parameters
 	apiParams := &client.ListTransactionByRecurrenceParams{}
 
 	// Set pagination
-	if params.Arguments.Limit > 0 {
-		limit := int32(params.Arguments.Limit)
+	if args.Limit > 0 {
+		limit := int32(args.Limit)
 		apiParams.Limit = &limit
 	}
-	page := int32(params.Arguments.Page)
+	page := int32(args.Page)
 	if page == 0 {
 		page = 1
 	}
 	apiParams.Page = &page
 
 	// Set transaction type filter if provided
-	if params.Arguments.Type != "" {
-		filter := client.TransactionTypeFilter(params.Arguments.Type)
+	if args.Type != "" {
+		filter := client.TransactionTypeFilter(args.Type)
 		apiParams.Type = &filter
 	}
 
 	// Set date filters if provided
-	if params.Arguments.Start != "" {
-		startDate, err := time.Parse("2006-01-02", params.Arguments.Start)
+	if args.Start != "" {
+		startDate, err := time.Parse("2006-01-02", args.Start)
 		if err != nil {
-			return &mcp.CallToolResultFor[struct{}]{
+			return &mcp.CallToolResult{
 				Content: []mcp.Content{
 					&mcp.TextContent{Text: fmt.Sprintf("Invalid start date format: %v", err)},
 				},
 				IsError: true,
-			}, nil
+			}, struct{}{}, nil
 		}
 		date := openapi_types.Date{Time: startDate}
 		apiParams.Start = &date
 	}
 
-	if params.Arguments.End != "" {
-		endDate, err := time.Parse("2006-01-02", params.Arguments.End)
+	if args.End != "" {
+		endDate, err := time.Parse("2006-01-02", args.End)
 		if err != nil {
-			return &mcp.CallToolResultFor[struct{}]{
+			return &mcp.CallToolResult{
 				Content: []mcp.Content{
 					&mcp.TextContent{Text: fmt.Sprintf("Invalid end date format: %v", err)},
 				},
 				IsError: true,
-			}, nil
+			}, struct{}{}, nil
 		}
 		date := openapi_types.Date{Time: endDate}
 		apiParams.End = &date
 	}
 
 	// Call the API
-	resp, err := s.client.ListTransactionByRecurrenceWithResponse(ctx, params.Arguments.ID, apiParams)
+	resp, err := s.client.ListTransactionByRecurrenceWithResponse(ctx, args.ID, apiParams)
 	if err != nil {
-		return &mcp.CallToolResultFor[struct{}]{
+		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{Text: fmt.Sprintf("Error listing recurrence transactions: %v", err)},
 			},
 			IsError: true,
-		}, nil
+		}, struct{}{}, nil
 	}
 
 	if resp.StatusCode() != 200 {
-		return &mcp.CallToolResultFor[struct{}]{
+		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{Text: fmt.Sprintf("API error: %s", string(resp.Body))},
 			},
 			IsError: true,
-		}, nil
+		}, struct{}{}, nil
 	}
 
 	// Map the response
@@ -225,17 +225,17 @@ func (s *FireflyMCPServer) handleListRecurrenceTransactions(
 	// Convert to JSON for response
 	jsonData, err := json.Marshal(transactionList)
 	if err != nil {
-		return &mcp.CallToolResultFor[struct{}]{
+		return &mcp.CallToolResult{
 			Content: []mcp.Content{
 				&mcp.TextContent{Text: fmt.Sprintf("Error marshaling response: %v", err)},
 			},
 			IsError: true,
-		}, nil
+		}, struct{}{}, nil
 	}
 
-	return &mcp.CallToolResultFor[struct{}]{
+	return &mcp.CallToolResult{
 		Content: []mcp.Content{
 			&mcp.TextContent{Text: string(jsonData)},
 		},
-	}, nil
+	}, struct{}{}, nil
 }
