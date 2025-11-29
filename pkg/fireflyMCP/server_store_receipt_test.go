@@ -9,6 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Ensure mcp is used (for TextContent type assertion)
+var _ = mcp.TextContent{}
+
 func TestValidateReceiptRequest(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -496,11 +499,7 @@ func TestHandleStoreReceipt_Validation(t *testing.T) {
 				client: &client.ClientWithResponses{},
 			}
 
-			params := &mcp.CallToolParamsFor[ReceiptStoreRequest]{
-				Arguments: tt.args,
-			}
-
-			result, err := server.handleStoreReceipt(context.Background(), nil, params)
+			result, _, err := server.handleStoreReceipt(context.Background(), nil, tt.args)
 
 			assert.NoError(t, err)
 			assert.NotNil(t, result)

@@ -13,6 +13,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Ensure mcp is used (for TextContent type assertion)
+var _ mcp.Content = &mcp.TextContent{}
+
 func TestIntegrationStoreTransaction(t *testing.T) {
 	testConfig := loadTestConfig(t)
 	server := createTestServer(t, testConfig)
@@ -57,7 +60,7 @@ func TestIntegrationStoreTransaction(t *testing.T) {
 						Amount:          "25.50",
 						Description:     uniqueDescription + " - withdrawal",
 						SourceId:        &assetAccountId,
-						DestinationName: getStringPtr("Test Grocery Store"),
+						DestinationName: strPtr("Test Grocery Store"),
 					},
 				},
 			},
@@ -81,7 +84,7 @@ func TestIntegrationStoreTransaction(t *testing.T) {
 						Date:          currentDate,
 						Amount:        "1000.00",
 						Description:   uniqueDescription + " - deposit",
-						SourceName:    getStringPtr("Test Employer"),
+						SourceName:    strPtr("Test Employer"),
 						DestinationId: &assetAccountId,
 					},
 				},
@@ -107,7 +110,7 @@ func TestIntegrationStoreTransaction(t *testing.T) {
 						Amount:          "50.00",
 						Description:     uniqueDescription + " - split part 1",
 						SourceId:        &assetAccountId,
-						DestinationName: getStringPtr("Test Store 1"),
+						DestinationName: strPtr("Test Store 1"),
 					},
 					{
 						Type:            "withdrawal",
@@ -115,7 +118,7 @@ func TestIntegrationStoreTransaction(t *testing.T) {
 						Amount:          "30.00",
 						Description:     uniqueDescription + " - split part 2",
 						SourceId:        &assetAccountId,
-						DestinationName: getStringPtr("Test Store 2"),
+						DestinationName: strPtr("Test Store 2"),
 					},
 				},
 			},
@@ -142,10 +145,10 @@ func TestIntegrationStoreTransaction(t *testing.T) {
 						Amount:          "75.00",
 						Description:     uniqueDescription + " - with optional fields",
 						SourceId:        &assetAccountId,
-						DestinationName: getStringPtr("Test Store with Tags"),
-						CategoryName:    getStringPtr("Groceries"),
+						DestinationName: strPtr("Test Store with Tags"),
+						CategoryName:    strPtr("Groceries"),
 						Tags:            []string{"integration-test", "automated"},
-						Notes:           getStringPtr("This is a test transaction with optional fields"),
+						Notes:           strPtr("This is a test transaction with optional fields"),
 					},
 				},
 			},
@@ -207,20 +210,11 @@ func TestIntegrationStoreTransaction(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Create a mock session
-			session := &mcp.ServerSession{}
-
-			// Create tool call parameters
-			params := &mcp.CallToolParamsFor[TransactionStoreRequest]{
-				Name:      "store_transaction",
-				Arguments: tc.args,
-			}
-
 			// Call the handler
 			ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
 			defer cancel()
 
-			result, err := server.handleStoreTransaction(ctx, session, params)
+			result, _, err := server.handleStoreTransaction(ctx, nil, tc.args)
 			require.NoError(t, err, "Handler should not return error")
 
 			if tc.expectErr {
@@ -262,14 +256,11 @@ func TestIntegrationStoreTransaction(t *testing.T) {
 
 				// Verify transaction was created by fetching it
 				if transactionGroup.Id != "" {
-					getParams := &mcp.CallToolParamsFor[GetTransactionArgs]{
-						Name: "get_transaction",
-						Arguments: GetTransactionArgs{
-							ID: transactionGroup.Id,
-						},
+					getArgs := GetTransactionArgs{
+						ID: transactionGroup.Id,
 					}
 
-					getResult, err := server.handleGetTransaction(ctx, session, getParams)
+					getResult, _, err := server.handleGetTransaction(ctx, nil, getArgs)
 					require.NoError(t, err, "Failed to get created transaction")
 					assert.False(t, getResult.IsError, "Error getting created transaction")
 				}
@@ -301,30 +292,26 @@ func TestIntegrationStoreTransaction_EndToEnd(t *testing.T) {
 	assetAccountId := resp.ApplicationvndApiJSON200.Data[0].Id
 
 	// Create a transaction
-	session := &mcp.ServerSession{}
 	currentDate := time.Now().Format("2006-01-02")
 	uniqueDescription := fmt.Sprintf("End-to-end test %d", time.Now().Unix())
 
-	storeParams := &mcp.CallToolParamsFor[TransactionStoreRequest]{
-		Name: "store_transaction",
-		Arguments: TransactionStoreRequest{
-			Transactions: []TransactionSplitRequest{
-				{
-					Type:            "withdrawal",
-					Date:            currentDate,
-					Amount:          "123.45",
-					Description:     uniqueDescription,
-					SourceId:        &assetAccountId,
-					DestinationName: getStringPtr("End-to-end Test Store"),
-					CategoryName:    getStringPtr("Testing"),
-					Tags:            []string{"e2e-test"},
-				},
+	storeArgs := TransactionStoreRequest{
+		Transactions: []TransactionSplitRequest{
+			{
+				Type:            "withdrawal",
+				Date:            currentDate,
+				Amount:          "123.45",
+				Description:     uniqueDescription,
+				SourceId:        &assetAccountId,
+				DestinationName: strPtr("End-to-end Test Store"),
+				CategoryName:    strPtr("Testing"),
+				Tags:            []string{"e2e-test"},
 			},
 		},
 	}
 
 	// Create transaction
-	createResult, err := server.handleStoreTransaction(ctx, session, storeParams)
+	createResult, _, err := server.handleStoreTransaction(ctx, nil, storeArgs)
 	require.NoError(t, err)
 	require.False(t, createResult.IsError)
 
@@ -338,14 +325,11 @@ func TestIntegrationStoreTransaction_EndToEnd(t *testing.T) {
 	require.NotEmpty(t, createdTransaction.Id)
 
 	// Verify transaction through GET
-	getParams := &mcp.CallToolParamsFor[GetTransactionArgs]{
-		Name: "get_transaction",
-		Arguments: GetTransactionArgs{
-			ID: createdTransaction.Id,
-		},
+	getArgs := GetTransactionArgs{
+		ID: createdTransaction.Id,
 	}
 
-	getResult, err := server.handleGetTransaction(ctx, session, getParams)
+	getResult, _, err := server.handleGetTransaction(ctx, nil, getArgs)
 	require.NoError(t, err)
 	require.False(t, getResult.IsError)
 
@@ -366,11 +350,4 @@ func TestIntegrationStoreTransaction_EndToEnd(t *testing.T) {
 	assert.Contains(t, fetchedTransaction.Transactions[0].Tags, "e2e-test")
 }
 
-// Helper functions
-func getStringPtr(s string) *string {
-	return &s
-}
-
-func getBoolPtr(b bool) *bool {
-	return &b
-}
+// Helper functions are defined in bill_mapper_test.go

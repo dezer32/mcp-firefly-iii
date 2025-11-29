@@ -11,6 +11,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Ensure mcp is used (for TextContent type assertion)
+var _ = mcp.TextContent{}
+
 func TestIntegration_ListBills(t *testing.T) {
 	testConfig := loadTestConfig(t)
 	server := createTestServer(t, testConfig)
@@ -18,23 +21,17 @@ func TestIntegration_ListBills(t *testing.T) {
 	t.Run("MCPToolCall", func(t *testing.T) {
 		fmt.Printf("[DEBUG_LOG] Testing MCP tool call for list_bills\n")
 
-		// Create a mock session
-		session := &mcp.ServerSession{}
-
-		// Create tool call parameters
-		params := &mcp.CallToolParamsFor[ListBillsArgs]{
-			Name: "list_bills",
-			Arguments: ListBillsArgs{
-				Limit: 5,
-				Page:  1,
-			},
+		// Create tool call arguments
+		args := ListBillsArgs{
+			Limit: 5,
+			Page:  1,
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
 		defer cancel()
 
 		// Call the handler directly
-		result, err := server.handleListBills(ctx, session, params)
+		result, _, err := server.handleListBills(ctx, nil, args)
 
 		fmt.Printf("[DEBUG_LOG] MCP call result: %v, Error: %v\n", result != nil, err)
 
@@ -71,25 +68,19 @@ func TestIntegration_ListBills(t *testing.T) {
 	t.Run("MCPToolCallWithDateRange", func(t *testing.T) {
 		fmt.Printf("[DEBUG_LOG] Testing MCP tool call for list_bills with date range\n")
 
-		// Create a mock session
-		session := &mcp.ServerSession{}
-
-		// Create tool call parameters with date range
-		params := &mcp.CallToolParamsFor[ListBillsArgs]{
-			Name: "list_bills",
-			Arguments: ListBillsArgs{
-				Start: "2024-01-01",
-				End:   "2024-12-31",
-				Limit: 10,
-				Page:  1,
-			},
+		// Create tool call arguments with date range
+		args := ListBillsArgs{
+			Start: "2024-01-01",
+			End:   "2024-12-31",
+			Limit: 10,
+			Page:  1,
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
 		defer cancel()
 
 		// Call the handler directly
-		result, err := server.handleListBills(ctx, session, params)
+		result, _, err := server.handleListBills(ctx, nil, args)
 
 		fmt.Printf("[DEBUG_LOG] MCP call with date range result: %v, Error: %v\n", result != nil, err)
 
@@ -109,14 +100,11 @@ func TestIntegration_GetBill(t *testing.T) {
 	defer cancel()
 
 	// Get list of bills
-	listParams := &mcp.CallToolParamsFor[ListBillsArgs]{
-		Name: "list_bills",
-		Arguments: ListBillsArgs{
-			Limit: 1,
-		},
+	listArgs := ListBillsArgs{
+		Limit: 1,
 	}
 
-	listResult, err := server.handleListBills(ctx, &mcp.ServerSession{}, listParams)
+	listResult, _, err := server.handleListBills(ctx, nil, listArgs)
 	require.NoError(t, err)
 	require.NotNil(t, listResult)
 	require.False(t, listResult.IsError)
@@ -139,22 +127,16 @@ func TestIntegration_GetBill(t *testing.T) {
 	t.Run("MCPToolCall", func(t *testing.T) {
 		fmt.Printf("[DEBUG_LOG] Testing MCP tool call for get_bill with ID: %s\n", billID)
 
-		// Create a mock session
-		session := &mcp.ServerSession{}
-
-		// Create tool call parameters
-		params := &mcp.CallToolParamsFor[GetBillArgs]{
-			Name: "get_bill",
-			Arguments: GetBillArgs{
-				ID: billID,
-			},
+		// Create tool call arguments
+		args := GetBillArgs{
+			ID: billID,
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
 		defer cancel()
 
 		// Call the handler directly
-		result, err := server.handleGetBill(ctx, session, params)
+		result, _, err := server.handleGetBill(ctx, nil, args)
 
 		fmt.Printf("[DEBUG_LOG] MCP call result: %v, Error: %v\n", result != nil, err)
 
@@ -183,22 +165,16 @@ func TestIntegration_GetBill(t *testing.T) {
 	t.Run("MCPToolCallInvalidID", func(t *testing.T) {
 		fmt.Printf("[DEBUG_LOG] Testing MCP tool call for get_bill with invalid ID\n")
 
-		// Create a mock session
-		session := &mcp.ServerSession{}
-
-		// Create tool call parameters with invalid ID
-		params := &mcp.CallToolParamsFor[GetBillArgs]{
-			Name: "get_bill",
-			Arguments: GetBillArgs{
-				ID: "99999", // Assuming this ID doesn't exist
-			},
+		// Create tool call arguments with invalid ID
+		args := GetBillArgs{
+			ID: "99999", // Assuming this ID doesn't exist
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
 		defer cancel()
 
 		// Call the handler directly
-		result, err := server.handleGetBill(ctx, session, params)
+		result, _, err := server.handleGetBill(ctx, nil, args)
 
 		fmt.Printf("[DEBUG_LOG] MCP call with invalid ID result: %v, Error: %v\n", result != nil, err)
 
@@ -217,14 +193,11 @@ func TestIntegration_ListBillTransactions(t *testing.T) {
 	defer cancel()
 
 	// Get list of bills
-	listParams := &mcp.CallToolParamsFor[ListBillsArgs]{
-		Name: "list_bills",
-		Arguments: ListBillsArgs{
-			Limit: 1,
-		},
+	listArgs := ListBillsArgs{
+		Limit: 1,
 	}
 
-	listResult, err := server.handleListBills(ctx, &mcp.ServerSession{}, listParams)
+	listResult, _, err := server.handleListBills(ctx, nil, listArgs)
 	require.NoError(t, err)
 	require.NotNil(t, listResult)
 	require.False(t, listResult.IsError)
@@ -247,24 +220,18 @@ func TestIntegration_ListBillTransactions(t *testing.T) {
 	t.Run("MCPToolCall", func(t *testing.T) {
 		fmt.Printf("[DEBUG_LOG] Testing MCP tool call for list_bill_transactions with ID: %s\n", billID)
 
-		// Create a mock session
-		session := &mcp.ServerSession{}
-
-		// Create tool call parameters
-		params := &mcp.CallToolParamsFor[ListBillTransactionsArgs]{
-			Name: "list_bill_transactions",
-			Arguments: ListBillTransactionsArgs{
-				ID:    billID,
-				Limit: 5,
-				Page:  1,
-			},
+		// Create tool call arguments
+		args := ListBillTransactionsArgs{
+			ID:    billID,
+			Limit: 5,
+			Page:  1,
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
 		defer cancel()
 
 		// Call the handler directly
-		result, err := server.handleListBillTransactions(ctx, session, params)
+		result, _, err := server.handleListBillTransactions(ctx, nil, args)
 
 		fmt.Printf("[DEBUG_LOG] MCP call result: %v, Error: %v\n", result != nil, err)
 
@@ -290,27 +257,21 @@ func TestIntegration_ListBillTransactions(t *testing.T) {
 	t.Run("MCPToolCallWithFilters", func(t *testing.T) {
 		fmt.Printf("[DEBUG_LOG] Testing MCP tool call for list_bill_transactions with filters\n")
 
-		// Create a mock session
-		session := &mcp.ServerSession{}
-
-		// Create tool call parameters with filters
-		params := &mcp.CallToolParamsFor[ListBillTransactionsArgs]{
-			Name: "list_bill_transactions",
-			Arguments: ListBillTransactionsArgs{
-				ID:    billID,
-				Type:  "withdrawal",
-				Start: "2024-01-01",
-				End:   "2024-12-31",
-				Limit: 10,
-				Page:  1,
-			},
+		// Create tool call arguments with filters
+		args := ListBillTransactionsArgs{
+			ID:    billID,
+			Type:  "withdrawal",
+			Start: "2024-01-01",
+			End:   "2024-12-31",
+			Limit: 10,
+			Page:  1,
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
 		defer cancel()
 
 		// Call the handler directly
-		result, err := server.handleListBillTransactions(ctx, session, params)
+		result, _, err := server.handleListBillTransactions(ctx, nil, args)
 
 		fmt.Printf("[DEBUG_LOG] MCP call with filters result: %v, Error: %v\n", result != nil, err)
 
@@ -322,23 +283,17 @@ func TestIntegration_ListBillTransactions(t *testing.T) {
 	t.Run("MCPToolCallMissingID", func(t *testing.T) {
 		fmt.Printf("[DEBUG_LOG] Testing MCP tool call for list_bill_transactions with missing ID\n")
 
-		// Create a mock session
-		session := &mcp.ServerSession{}
-
-		// Create tool call parameters without ID
-		params := &mcp.CallToolParamsFor[ListBillTransactionsArgs]{
-			Name: "list_bill_transactions",
-			Arguments: ListBillTransactionsArgs{
-				// ID is missing
-				Limit: 5,
-			},
+		// Create tool call arguments without ID
+		args := ListBillTransactionsArgs{
+			// ID is missing
+			Limit: 5,
 		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
 		defer cancel()
 
 		// Call the handler directly
-		result, err := server.handleListBillTransactions(ctx, session, params)
+		result, _, err := server.handleListBillTransactions(ctx, nil, args)
 
 		fmt.Printf("[DEBUG_LOG] MCP call with missing ID result: %v, Error: %v\n", result != nil, err)
 

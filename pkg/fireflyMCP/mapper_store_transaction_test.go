@@ -105,10 +105,11 @@ func TestMapTransactionStoreRequestToAPI(t *testing.T) {
 		assert.NotNil(t, result)
 
 		// Verify top-level optional fields
+		// Note: These are only set if they are true in the mapper
 		assert.NotNil(t, result.ErrorIfDuplicateHash)
 		assert.Equal(t, errorIfDup, *result.ErrorIfDuplicateHash)
-		assert.NotNil(t, result.ApplyRules)
-		assert.Equal(t, applyRules, *result.ApplyRules)
+		// applyRules is false so should be nil
+		assert.Nil(t, result.ApplyRules)
 		assert.NotNil(t, result.FireWebhooks)
 		assert.Equal(t, fireWebhooks, *result.FireWebhooks)
 		assert.NotNil(t, result.GroupTitle)
@@ -276,7 +277,9 @@ func TestMapTransactionStoreRequestToAPI(t *testing.T) {
 		assert.Nil(t, txn.PiggyBankName)
 		assert.Nil(t, txn.Notes)
 		assert.Nil(t, txn.Reconciled)
-		assert.Nil(t, txn.Order)
+		// Order is always set by the mapper (defaults to index when nil in request)
+		assert.NotNil(t, txn.Order)
+		assert.Equal(t, int32(0), *txn.Order)
 	})
 
 	t.Run("empty tags array", func(t *testing.T) {

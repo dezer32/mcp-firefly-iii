@@ -13,6 +13,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Ensure mcp is used (for TextContent type assertion)
+var _ = mcp.TextContent{}
+
 func TestIntegrationStoreReceipt(t *testing.T) {
 	testConfig := loadTestConfig(t)
 	server := createTestServer(t, testConfig)
@@ -215,17 +218,10 @@ func TestIntegrationStoreReceipt(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			session := &mcp.ServerSession{}
-
-			params := &mcp.CallToolParamsFor[ReceiptStoreRequest]{
-				Name:      "store_receipt",
-				Arguments: tc.args,
-			}
-
 			ctx, cancel := context.WithTimeout(context.Background(), testConfig.Timeout)
 			defer cancel()
 
-			result, err := server.handleStoreReceipt(ctx, session, params)
+			result, _, err := server.handleStoreReceipt(ctx, nil, tc.args)
 			require.NoError(t, err, "Handler should not return error")
 
 			if tc.expectErr {
@@ -262,14 +258,11 @@ func TestIntegrationStoreReceipt(t *testing.T) {
 
 				// Verify transaction was created by fetching it
 				if transactionGroup.Id != "" {
-					getParams := &mcp.CallToolParamsFor[GetTransactionArgs]{
-						Name: "get_transaction",
-						Arguments: GetTransactionArgs{
-							ID: transactionGroup.Id,
-						},
+					getArgs := GetTransactionArgs{
+						ID: transactionGroup.Id,
 					}
 
-					getResult, err := server.handleGetTransaction(ctx, session, getParams)
+					getResult, _, err := server.handleGetTransaction(ctx, nil, getArgs)
 					require.NoError(t, err, "Failed to get created transaction")
 					assert.False(t, getResult.IsError, "Error getting created transaction")
 				}
@@ -300,30 +293,26 @@ func TestIntegrationStoreReceipt_EndToEnd(t *testing.T) {
 	assetAccountId := resp.ApplicationvndApiJSON200.Data[0].Id
 
 	// Create a receipt
-	session := &mcp.ServerSession{}
 	currentDate := time.Now().Format("2006-01-02")
 	uniqueStoreName := fmt.Sprintf("E2E Test Store %d", time.Now().Unix())
 
-	storeParams := &mcp.CallToolParamsFor[ReceiptStoreRequest]{
-		Name: "store_receipt",
-		Arguments: ReceiptStoreRequest{
-			StoreName:           uniqueStoreName,
-			ReceiptDate:         currentDate,
-			SourceAccountId:     &assetAccountId,
-			TotalAmount:         getStringPtr("87.50"),
-			DefaultCategoryName: getStringPtr("Shopping"),
-			Tags:                []string{"e2e-test", "receipt"},
-			Notes:               getStringPtr("End-to-end receipt test"),
-			Items: []ReceiptItemRequest{
-				{Amount: "45.00", Description: "Main purchase"},
-				{Amount: "25.50", Description: "Secondary item", CategoryName: getStringPtr("Household")},
-				{Amount: "17.00", Description: "Additional item", Tags: []string{"discount"}},
-			},
+	storeArgs := ReceiptStoreRequest{
+		StoreName:           uniqueStoreName,
+		ReceiptDate:         currentDate,
+		SourceAccountId:     &assetAccountId,
+		TotalAmount:         getStringPtr("87.50"),
+		DefaultCategoryName: getStringPtr("Shopping"),
+		Tags:                []string{"e2e-test", "receipt"},
+		Notes:               getStringPtr("End-to-end receipt test"),
+		Items: []ReceiptItemRequest{
+			{Amount: "45.00", Description: "Main purchase"},
+			{Amount: "25.50", Description: "Secondary item", CategoryName: getStringPtr("Household")},
+			{Amount: "17.00", Description: "Additional item", Tags: []string{"discount"}},
 		},
 	}
 
 	// Create receipt
-	createResult, err := server.handleStoreReceipt(ctx, session, storeParams)
+	createResult, _, err := server.handleStoreReceipt(ctx, nil, storeArgs)
 	require.NoError(t, err)
 	require.False(t, createResult.IsError)
 
@@ -348,14 +337,11 @@ func TestIntegrationStoreReceipt_EndToEnd(t *testing.T) {
 	}
 
 	// Verify transaction through GET
-	getParams := &mcp.CallToolParamsFor[GetTransactionArgs]{
-		Name: "get_transaction",
-		Arguments: GetTransactionArgs{
-			ID: createdGroup.Id,
-		},
+	getArgs := GetTransactionArgs{
+		ID: createdGroup.Id,
 	}
 
-	getResult, err := server.handleGetTransaction(ctx, session, getParams)
+	getResult, _, err := server.handleGetTransaction(ctx, nil, getArgs)
 	require.NoError(t, err)
 	require.False(t, getResult.IsError)
 
@@ -371,4 +357,8 @@ func TestIntegrationStoreReceipt_EndToEnd(t *testing.T) {
 	assert.Equal(t, createdGroup.Id, fetchedGroup.Id)
 	assert.Len(t, fetchedGroup.Transactions, 3)
 	assert.Equal(t, createdGroup.GroupTitle, fetchedGroup.GroupTitle)
+}
+
+func getStringPtr(s string) *string {
+	return &s
 }

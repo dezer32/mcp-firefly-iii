@@ -10,6 +10,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Ensure mcp is used (for TextContent type assertion)
+var _ = mcp.TextContent{}
+
 func TestHandleStoreTransaction_Validation(t *testing.T) {
 	currentDate := time.Now().Format("2006-01-02")
 	currentDateRFC3339 := time.Now().Format(time.RFC3339)
@@ -149,13 +152,8 @@ func TestHandleStoreTransaction_Validation(t *testing.T) {
 				client: &client.ClientWithResponses{},
 			}
 
-			// Create params
-			params := &mcp.CallToolParamsFor[TransactionStoreRequest]{
-				Arguments: tt.args,
-			}
-
 			// Call the handler
-			result, err := server.handleStoreTransaction(context.Background(), nil, params)
+			result, _, err := server.handleStoreTransaction(context.Background(), nil, tt.args)
 
 			// Should never return an error from the function itself
 			assert.NoError(t, err)
