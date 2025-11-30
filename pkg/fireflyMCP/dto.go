@@ -265,35 +265,6 @@ type TransactionUpdateRequest struct {
 	Transactions []TransactionSplitRequest `json:"transactions,omitempty" jsonschema:"Array of transaction splits to update"`
 }
 
-// ReceiptItemRequest represents a single item on a shopping receipt
-type ReceiptItemRequest struct {
-	Amount       string   `json:"amount" jsonschema:"Item amount as string (e.g. '12.99') (required)"`
-	Description  string   `json:"description" jsonschema:"Item description (required)"`
-	CategoryId   *string  `json:"category_id,omitempty" jsonschema:"Category ID (overrides default_category)"`
-	CategoryName *string  `json:"category_name,omitempty" jsonschema:"Category name (overrides default_category)"`
-	BudgetId     *string  `json:"budget_id,omitempty" jsonschema:"Budget ID"`
-	BudgetName   *string  `json:"budget_name,omitempty" jsonschema:"Budget name"`
-	Tags         []string `json:"tags,omitempty" jsonschema:"Additional tags for this item (merged with receipt tags)"`
-	Notes        *string  `json:"notes,omitempty" jsonschema:"Item-specific notes"`
-}
-
-// ReceiptStoreRequest represents a request to store a shopping receipt with multiple items
-type ReceiptStoreRequest struct {
-	StoreName           string               `json:"store_name" jsonschema:"Name of the store/shop (required, becomes destination expense account)"`
-	ReceiptDate         string               `json:"receipt_date" jsonschema:"Date of the receipt in RFC3339 format, e.g. 2024-01-15T00:00:00Z (required)"`
-	Items               []ReceiptItemRequest `json:"items" jsonschema:"Array of receipt items/transactions (required, at least one)"`
-	TotalAmount         *string              `json:"total_amount,omitempty" jsonschema:"Expected total amount - if provided, validates that sum of items equals this"`
-	SourceAccountId     *string              `json:"source_account_id,omitempty" jsonschema:"Source account ID for payment (use either source_account_id or source_account_name)"`
-	SourceAccountName   *string              `json:"source_account_name,omitempty" jsonschema:"Source account name for payment (use either source_account_id or source_account_name)"`
-	DefaultCategoryId   *string              `json:"default_category_id,omitempty" jsonschema:"Default category ID for items without category"`
-	DefaultCategoryName *string              `json:"default_category_name,omitempty" jsonschema:"Default category name for items without category"`
-	CurrencyCode        *string              `json:"currency_code,omitempty" jsonschema:"Currency code for all transactions (e.g. 'USD', 'EUR')"`
-	Tags                []string             `json:"tags,omitempty" jsonschema:"Tags to apply to all transactions"`
-	Notes               *string              `json:"notes,omitempty" jsonschema:"Notes for the receipt (applied to first transaction)"`
-	ApplyRules          bool                 `json:"apply_rules,omitempty" jsonschema:"Whether to apply processing rules (default: false)"`
-	FireWebhooks        bool                 `json:"fire_webhooks,omitempty" jsonschema:"Whether to fire webhooks (default: true)"`
-}
-
 // RuleGroup represents a simplified rule group for MCP responses
 type RuleGroup struct {
 	Id          string  `json:"id"`
