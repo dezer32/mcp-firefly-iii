@@ -5,3 +5,5 @@ example-binary
 /TASK.md
 /log.txt
 /mcp-firefly-iii
+.env
+settings.json
