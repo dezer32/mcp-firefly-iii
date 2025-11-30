@@ -36,6 +36,11 @@ func (s *FireflyMCPServer) handleListRecurrences(
 	req *mcp.CallToolRequest,
 	args ListRecurrencesArgs,
 ) (*mcp.CallToolResult, any, error) {
+	apiClient, err := s.getClient(ctx)
+	if err != nil {
+		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
+	}
+
 	// Prepare API parameters
 	apiParams := &client.ListRecurrenceParams{}
 
@@ -51,7 +56,7 @@ func (s *FireflyMCPServer) handleListRecurrences(
 	apiParams.Page = &page
 
 	// Call the API
-	resp, err := s.client.ListRecurrenceWithResponse(ctx, apiParams)
+	resp, err := apiClient.ListRecurrenceWithResponse(ctx, apiParams)
 	if err != nil {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
@@ -97,11 +102,16 @@ func (s *FireflyMCPServer) handleGetRecurrence(
 	req *mcp.CallToolRequest,
 	args GetRecurrenceArgs,
 ) (*mcp.CallToolResult, any, error) {
+	apiClient, err := s.getClient(ctx)
+	if err != nil {
+		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
+	}
+
 	// Prepare API parameters
 	apiParams := &client.GetRecurrenceParams{}
 
 	// Call the API
-	resp, err := s.client.GetRecurrenceWithResponse(ctx, args.ID, apiParams)
+	resp, err := apiClient.GetRecurrenceWithResponse(ctx, args.ID, apiParams)
 	if err != nil {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
@@ -150,6 +160,11 @@ func (s *FireflyMCPServer) handleListRecurrenceTransactions(
 	req *mcp.CallToolRequest,
 	args ListRecurrenceTransactionsArgs,
 ) (*mcp.CallToolResult, any, error) {
+	apiClient, err := s.getClient(ctx)
+	if err != nil {
+		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
+	}
+
 	// Prepare API parameters
 	apiParams := &client.ListTransactionByRecurrenceParams{}
 
@@ -200,7 +215,7 @@ func (s *FireflyMCPServer) handleListRecurrenceTransactions(
 	}
 
 	// Call the API
-	resp, err := s.client.ListTransactionByRecurrenceWithResponse(ctx, args.ID, apiParams)
+	resp, err := apiClient.ListTransactionByRecurrenceWithResponse(ctx, args.ID, apiParams)
 	if err != nil {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{

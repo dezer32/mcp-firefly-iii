@@ -14,9 +14,10 @@ import (
 
 // FireflyMCPServer represents the MCP server for Firefly III
 type FireflyMCPServer struct {
-	server *mcp.Server
-	client *client.ClientWithResponses
-	config *Config
+	server     *mcp.Server
+	client     *client.ClientWithResponses // Used for stdio mode (static token from config)
+	config     *Config
+	httpClient *http.Client // Shared HTTP client for creating per-request API clients
 }
 
 // Tool argument types
@@ -138,26 +139,9 @@ type UpdateTransactionArgs struct {
 }
 
 func NewFireflyMCPServer(config *Config) (*FireflyMCPServer, error) {
-	// Create HTTP client with authentication
+	// Create shared HTTP client
 	httpClient := &http.Client{
 		Timeout: config.GetTimeout(),
-	}
-
-	// Create Firefly III client with request editor for authentication
-	fireflyClient, err := client.NewClientWithResponses(
-		config.Server.URL,
-		client.WithHTTPClient(httpClient),
-		client.WithRequestEditorFn(
-			func(ctx context.Context, req *http.Request) error {
-				req.Header.Set("Authorization", "Bearer "+config.API.Token)
-				req.Header.Set("Accept", "application/vnd.api+json")
-				req.Header.Set("Content-Type", "application/json")
-				return nil
-			},
-		),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Firefly III client: %w", err)
 	}
 
 	// Create MCP server
@@ -169,15 +153,64 @@ func NewFireflyMCPServer(config *Config) (*FireflyMCPServer, error) {
 	)
 
 	server := &FireflyMCPServer{
-		server: mcpServer,
-		client: fireflyClient,
-		config: config,
+		server:     mcpServer,
+		config:     config,
+		httpClient: httpClient,
+	}
+
+	// For stdio mode, create a static client with token from config
+	if !config.HTTP.Enabled && config.API.Token != "" {
+		fireflyClient, err := client.NewClientWithResponses(
+			config.Server.URL,
+			client.WithHTTPClient(httpClient),
+			client.WithRequestEditorFn(
+				func(ctx context.Context, req *http.Request) error {
+					req.Header.Set("Authorization", "Bearer "+config.API.Token)
+					req.Header.Set("Accept", "application/vnd.api+json")
+					req.Header.Set("Content-Type", "application/json")
+					return nil
+				},
+			),
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create Firefly III client: %w", err)
+		}
+		server.client = fireflyClient
 	}
 
 	// Register tools
 	server.registerTools()
 
 	return server, nil
+}
+
+// getClient returns the appropriate API client for the given context.
+// For HTTP mode, it creates a client using the token from the request context.
+// For stdio mode, it returns the pre-configured static client.
+func (s *FireflyMCPServer) getClient(ctx context.Context) (*client.ClientWithResponses, error) {
+	// For stdio mode, use the static client
+	if s.client != nil {
+		return s.client, nil
+	}
+
+	// For HTTP mode, get token from context and create a new client
+	token := GetTokenFromContext(ctx)
+	if token == "" {
+		return nil, fmt.Errorf("no API token found in context")
+	}
+
+	return client.NewClientWithResponses(
+		s.config.Server.URL,
+		client.WithHTTPClient(s.httpClient),
+		client.WithRequestEditorFn(
+			func(ctx context.Context, req *http.Request) error {
+				req.Header.Set("Authorization", "Bearer "+token)
+				req.Header.Set("Accept", "application/vnd.api+json")
+				req.Header.Set("Content-Type", "application/json")
+				return nil
+			},
+		),
+	)
 }
 
 // Run starts the MCP server with the given transport
@@ -494,6 +527,11 @@ func (s *FireflyMCPServer) handleListAccounts(
 	req *mcp.CallToolRequest,
 	args ListAccountsArgs,
 ) (*mcp.CallToolResult, any, error) {
+	apiClient, err := s.getClient(ctx)
+	if err != nil {
+		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
+	}
+
 	apiParams := &client.ListAccountParams{}
 
 	if args.Type != "" {
@@ -511,7 +549,7 @@ func (s *FireflyMCPServer) handleListAccounts(
 		apiParams.Page = &page
 	}
 
-	resp, err := s.client.ListAccountWithResponse(ctx, apiParams)
+	resp, err := apiClient.ListAccountWithResponse(ctx, apiParams)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Error listing accounts: %v", err))
 	}
@@ -534,8 +572,13 @@ func (s *FireflyMCPServer) handleGetAccount(
 		return newErrorResult("Account ID is required")
 	}
 
+	apiClient, err := s.getClient(ctx)
+	if err != nil {
+		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
+	}
+
 	apiParams := &client.GetAccountParams{}
-	resp, err := s.client.GetAccountWithResponse(ctx, args.ID, apiParams)
+	resp, err := apiClient.GetAccountWithResponse(ctx, args.ID, apiParams)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Error getting account: %v", err))
 	}
@@ -573,6 +616,11 @@ func (s *FireflyMCPServer) handleSearchAccounts(
 		}, nil, nil
 	}
 
+	apiClient, err := s.getClient(ctx)
+	if err != nil {
+		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
+	}
+
 	// Build API parameters
 	apiParams := &client.SearchAccountsParams{
 		Query: args.Query,
@@ -590,7 +638,7 @@ func (s *FireflyMCPServer) handleSearchAccounts(
 	}
 
 	// Call the API
-	resp, err := s.client.SearchAccountsWithResponse(ctx, apiParams)
+	resp, err := apiClient.SearchAccountsWithResponse(ctx, apiParams)
 	if err != nil {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
@@ -619,6 +667,11 @@ func (s *FireflyMCPServer) handleListTransactions(
 	req *mcp.CallToolRequest,
 	args ListTransactionsArgs,
 ) (*mcp.CallToolResult, any, error) {
+	apiClient, err := s.getClient(ctx)
+	if err != nil {
+		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
+	}
+
 	apiParams := &client.ListTransactionParams{}
 
 	if args.Type != "" {
@@ -650,7 +703,7 @@ func (s *FireflyMCPServer) handleListTransactions(
 		apiParams.Page = &page
 	}
 
-	resp, err := s.client.ListTransactionWithResponse(ctx, apiParams)
+	resp, err := apiClient.ListTransactionWithResponse(ctx, apiParams)
 	if err != nil {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
@@ -688,8 +741,13 @@ func (s *FireflyMCPServer) handleGetTransaction(
 		}, nil, nil
 	}
 
+	apiClient, err := s.getClient(ctx)
+	if err != nil {
+		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
+	}
+
 	apiParams := &client.GetTransactionParams{}
-	resp, err := s.client.GetTransactionWithResponse(ctx, args.ID, apiParams)
+	resp, err := apiClient.GetTransactionWithResponse(ctx, args.ID, apiParams)
 	if err != nil {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
@@ -737,6 +795,11 @@ func (s *FireflyMCPServer) handleSearchTransactions(
 		}, nil, nil
 	}
 
+	apiClient, err := s.getClient(ctx)
+	if err != nil {
+		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
+	}
+
 	// Build API parameters
 	apiParams := &client.SearchTransactionsParams{
 		Query: args.Query,
@@ -745,7 +808,7 @@ func (s *FireflyMCPServer) handleSearchTransactions(
 	}
 
 	// Call the API
-	resp, err := s.client.SearchTransactionsWithResponse(ctx, apiParams)
+	resp, err := apiClient.SearchTransactionsWithResponse(ctx, apiParams)
 	if err != nil {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
@@ -774,6 +837,11 @@ func (s *FireflyMCPServer) handleListBudgets(
 	req *mcp.CallToolRequest,
 	args ListBudgetsArgs,
 ) (*mcp.CallToolResult, any, error) {
+	apiClient, err := s.getClient(ctx)
+	if err != nil {
+		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
+	}
+
 	apiParams := &client.ListBudgetParams{}
 
 	// Set default start date to first day of current month
@@ -813,7 +881,7 @@ func (s *FireflyMCPServer) handleListBudgets(
 		apiParams.Page = &page
 	}
 
-	resp, err := s.client.ListBudgetWithResponse(ctx, apiParams)
+	resp, err := apiClient.ListBudgetWithResponse(ctx, apiParams)
 	if err != nil {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
@@ -842,6 +910,11 @@ func (s *FireflyMCPServer) handleListCategories(
 	req *mcp.CallToolRequest,
 	args ListCategoriesArgs,
 ) (*mcp.CallToolResult, any, error) {
+	apiClient, err := s.getClient(ctx)
+	if err != nil {
+		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
+	}
+
 	apiParams := &client.ListCategoryParams{}
 
 	if args.Limit > 0 {
@@ -854,7 +927,7 @@ func (s *FireflyMCPServer) handleListCategories(
 		apiParams.Page = &page
 	}
 
-	resp, err := s.client.ListCategoryWithResponse(ctx, apiParams)
+	resp, err := apiClient.ListCategoryWithResponse(ctx, apiParams)
 	if err != nil {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
@@ -883,6 +956,11 @@ func (s *FireflyMCPServer) handleListTags(
 	req *mcp.CallToolRequest,
 	args ListTagsArgs,
 ) (*mcp.CallToolResult, any, error) {
+	apiClient, err := s.getClient(ctx)
+	if err != nil {
+		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
+	}
+
 	apiParams := &client.ListTagParams{}
 
 	if args.Limit > 0 {
@@ -895,7 +973,7 @@ func (s *FireflyMCPServer) handleListTags(
 		apiParams.Page = &page
 	}
 
-	resp, err := s.client.ListTagWithResponse(ctx, apiParams)
+	resp, err := apiClient.ListTagWithResponse(ctx, apiParams)
 	if err != nil {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
@@ -924,6 +1002,11 @@ func (s *FireflyMCPServer) handleGetSummary(
 	req *mcp.CallToolRequest,
 	args GetSummaryArgs,
 ) (*mcp.CallToolResult, any, error) {
+	apiClient, err := s.getClient(ctx)
+	if err != nil {
+		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
+	}
+
 	apiParams := &client.GetBasicSummaryParams{}
 
 	// Set default start date to first day of current month
@@ -951,7 +1034,7 @@ func (s *FireflyMCPServer) handleGetSummary(
 		}
 	}
 
-	resp, err := s.client.GetBasicSummaryWithResponse(ctx, apiParams)
+	resp, err := apiClient.GetBasicSummaryWithResponse(ctx, apiParams)
 	if err != nil {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
@@ -1286,6 +1369,11 @@ func (s *FireflyMCPServer) handleExpenseCategoryInsights(
 		}, nil, nil
 	}
 
+	apiClient, err := s.getClient(ctx)
+	if err != nil {
+		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
+	}
+
 	// Build API parameters
 	apiParams := &client.InsightExpenseCategoryParams{
 		Start: openapi_types.Date{Time: startDate},
@@ -1311,7 +1399,7 @@ func (s *FireflyMCPServer) handleExpenseCategoryInsights(
 	}
 
 	// Call the API
-	resp, err := s.client.InsightExpenseCategoryWithResponse(ctx, apiParams)
+	resp, err := apiClient.InsightExpenseCategoryWithResponse(ctx, apiParams)
 	if err != nil {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
@@ -1372,6 +1460,11 @@ func (s *FireflyMCPServer) handleExpenseTotalInsights(
 		}, nil, nil
 	}
 
+	apiClient, err := s.getClient(ctx)
+	if err != nil {
+		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
+	}
+
 	// Build API parameters
 	apiParams := &client.InsightExpenseTotalParams{
 		Start: openapi_types.Date{Time: startDate},
@@ -1397,7 +1490,7 @@ func (s *FireflyMCPServer) handleExpenseTotalInsights(
 	}
 
 	// Call the API
-	resp, err := s.client.InsightExpenseTotalWithResponse(ctx, apiParams)
+	resp, err := apiClient.InsightExpenseTotalWithResponse(ctx, apiParams)
 	if err != nil {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
@@ -1437,6 +1530,11 @@ func (s *FireflyMCPServer) handleListBudgetLimits(
 		}, nil, nil
 	}
 
+	apiClient, err := s.getClient(ctx)
+	if err != nil {
+		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
+	}
+
 	// Build API parameters
 	apiParams := &client.ListBudgetLimitByBudgetParams{}
 
@@ -1471,7 +1569,7 @@ func (s *FireflyMCPServer) handleListBudgetLimits(
 	}
 
 	// Call the API
-	resp, err := s.client.ListBudgetLimitByBudgetWithResponse(ctx, args.ID, apiParams)
+	resp, err := apiClient.ListBudgetLimitByBudgetWithResponse(ctx, args.ID, apiParams)
 	if err != nil {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
@@ -1508,6 +1606,11 @@ func (s *FireflyMCPServer) handleListBudgetTransactions(
 			},
 			IsError: true,
 		}, nil, nil
+	}
+
+	apiClient, err := s.getClient(ctx)
+	if err != nil {
+		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
 
 	// Build API parameters
@@ -1561,7 +1664,7 @@ func (s *FireflyMCPServer) handleListBudgetTransactions(
 	}
 
 	// Call the API
-	resp, err := s.client.ListTransactionByBudgetWithResponse(ctx, args.ID, apiParams)
+	resp, err := apiClient.ListTransactionByBudgetWithResponse(ctx, args.ID, apiParams)
 	if err != nil {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
@@ -1764,6 +1867,11 @@ func (s *FireflyMCPServer) handleListBills(
 	req *mcp.CallToolRequest,
 	args ListBillsArgs,
 ) (*mcp.CallToolResult, any, error) {
+	apiClient, err := s.getClient(ctx)
+	if err != nil {
+		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
+	}
+
 	// Prepare API parameters
 	apiParams := &client.ListBillParams{}
 
@@ -1808,7 +1916,7 @@ func (s *FireflyMCPServer) handleListBills(
 	}
 
 	// Call the API
-	resp, err := s.client.ListBillWithResponse(ctx, apiParams)
+	resp, err := apiClient.ListBillWithResponse(ctx, apiParams)
 	if err != nil {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
@@ -1838,6 +1946,11 @@ func (s *FireflyMCPServer) handleGetBill(
 	req *mcp.CallToolRequest,
 	args GetBillArgs,
 ) (*mcp.CallToolResult, any, error) {
+	apiClient, err := s.getClient(ctx)
+	if err != nil {
+		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
+	}
+
 	// Prepare API parameters
 	apiParams := &client.GetBillParams{}
 
@@ -1871,7 +1984,7 @@ func (s *FireflyMCPServer) handleGetBill(
 	}
 
 	// Call the API
-	resp, err := s.client.GetBillWithResponse(ctx, args.ID, apiParams)
+	resp, err := apiClient.GetBillWithResponse(ctx, args.ID, apiParams)
 	if err != nil {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{
@@ -1904,6 +2017,11 @@ func (s *FireflyMCPServer) handleListBillTransactions(
 	req *mcp.CallToolRequest,
 	args ListBillTransactionsArgs,
 ) (*mcp.CallToolResult, any, error) {
+	apiClient, err := s.getClient(ctx)
+	if err != nil {
+		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
+	}
+
 	// Prepare API parameters
 	apiParams := &client.ListTransactionByBillParams{}
 
@@ -1954,7 +2072,7 @@ func (s *FireflyMCPServer) handleListBillTransactions(
 	}
 
 	// Call the API
-	resp, err := s.client.ListTransactionByBillWithResponse(ctx, args.ID, apiParams)
+	resp, err := apiClient.ListTransactionByBillWithResponse(ctx, args.ID, apiParams)
 	if err != nil {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{

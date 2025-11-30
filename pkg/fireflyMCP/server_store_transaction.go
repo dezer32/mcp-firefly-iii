@@ -106,18 +106,14 @@ func (s *FireflyMCPServer) handleStoreTransaction(
 	// Convert DTO to API model
 	apiRequest := mapTransactionStoreRequestToAPI(&args)
 
-	// Check if client is properly initialized
-	if s.client == nil || s.client.ClientInterface == nil {
-		return &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{Text: "Error: API client not properly initialized"},
-			},
-			IsError: true,
-		}, nil, nil
+	// Get API client
+	apiClient, err := s.getClient(ctx)
+	if err != nil {
+		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
 
 	// Call the API
-	resp, err := s.client.StoreTransactionWithResponse(ctx, &client.StoreTransactionParams{}, *apiRequest)
+	resp, err := apiClient.StoreTransactionWithResponse(ctx, &client.StoreTransactionParams{}, *apiRequest)
 	if err != nil {
 		return &mcp.CallToolResult{
 			Content: []mcp.Content{

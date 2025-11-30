@@ -48,16 +48,17 @@ func (s *FireflyMCPServer) handleUpdateTransaction(
 		}
 	}
 
-	// Check if client is properly initialized
-	if s.client == nil || s.client.ClientInterface == nil {
-		return newErrorResult("Error: API client not properly initialized")
+	// Get API client
+	apiClient, err := s.getClient(ctx)
+	if err != nil {
+		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
 
 	// Convert DTO to API model
 	apiRequest := mapTransactionUpdateRequestToAPI(&args.TransactionUpdateRequest)
 
 	// Call the API
-	resp, err := s.client.UpdateTransactionWithResponse(ctx, args.ID, &client.UpdateTransactionParams{}, *apiRequest)
+	resp, err := apiClient.UpdateTransactionWithResponse(ctx, args.ID, &client.UpdateTransactionParams{}, *apiRequest)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Error updating transaction: %v", err))
 	}

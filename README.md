@@ -78,7 +78,7 @@ All configuration options can be set via environment variables with the `FIREFLY
 | Environment Variable | YAML Equivalent | Required | Default | Description |
 |---------------------|-----------------|----------|---------|-------------|
 | `FIREFLY_MCP_SERVER_URL` | `server.url` | Yes | - | Firefly III API base URL |
-| `FIREFLY_MCP_API_TOKEN` | `api.token` | Yes | - | Personal Access Token |
+| `FIREFLY_MCP_API_TOKEN` | `api.token` | Stdio only | - | Personal Access Token (not needed for HTTP mode) |
 | `FIREFLY_MCP_CLIENT_TIMEOUT` | `client.timeout` | No | 30 | HTTP timeout in seconds |
 | `FIREFLY_MCP_LIMITS_ACCOUNTS` | `limits.accounts` | No | 100 | Max accounts per request |
 | `FIREFLY_MCP_LIMITS_TRANSACTIONS` | `limits.transactions` | No | 100 | Max transactions per request |
@@ -160,30 +160,69 @@ You can combine both methods - use YAML for default values and environment varia
 
 ### Docker Deployment
 
-```yaml
-# docker-compose.yml
-version: '3.8'
-services:
-  firefly-mcp:
-    build: .
-    environment:
-      - FIREFLY_MCP_SERVER_URL=https://firefly.example.com/api
-      - FIREFLY_MCP_API_TOKEN=${FIREFLY_API_TOKEN}
-      - FIREFLY_MCP_CLIENT_TIMEOUT=60
-    stdin_open: true
-    tty: true
+The server can run in HTTP mode for remote access via Docker.
+
+**HTTP Mode Authentication**: In HTTP mode, each client passes their own Firefly III Personal Access Token via the `Authorization` header. This enables multi-tenant usage where different clients can use their own Firefly III accounts.
+
+#### Using Docker Compose (Recommended)
+
+1. **Create `.env` file with your server URL:**
+   ```bash
+   FIREFLY_SERVER_URL=https://your-firefly-instance.com/api
+   ```
+
+2. **Start the server:**
+   ```bash
+   docker compose up -d
+   ```
+
+3. **Check health:**
+   ```bash
+   curl http://localhost:8080/health
+   ```
+
+4. **Connect with your Firefly III token:**
+   ```bash
+   curl -H "Authorization: Bearer <your-firefly-iii-token>" http://localhost:8080/mcp
+   ```
+
+#### Using Docker Run
+
+```bash
+docker build -t firefly-mcp .
+
+docker run -d \
+  -p 8080:8080 \
+  -e FIREFLY_MCP_SERVER_URL=https://firefly.example.com/api \
+  --name firefly-mcp \
+  firefly-mcp
 ```
+
+#### Environment Variables for Docker
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `FIREFLY_MCP_SERVER_URL` | Yes | Firefly III API URL |
+| `FIREFLY_MCP_LOG_LEVEL` | No | Log level: debug, info, warn, error |
+
+**Note:** In HTTP mode, clients pass their Firefly III Personal Access Token via the `Authorization: Bearer <token>` header. No server-side token configuration is needed.
+
+#### Health Endpoints
+
+- `GET /health` - Liveness check
+- `GET /ready` - Readiness check
 
 ### Kubernetes Deployment
 
+In HTTP mode, clients pass their own Firefly III tokens - no secrets needed for API tokens:
+
 ```yaml
 apiVersion: v1
-kind: Secret
+kind: ConfigMap
 metadata:
-  name: firefly-mcp-secrets
-type: Opaque
-stringData:
-  api-token: your-personal-access-token
+  name: firefly-mcp-config
+data:
+  server-url: "https://firefly.example.com/api"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -197,13 +236,13 @@ spec:
         image: firefly-mcp:latest
         env:
         - name: FIREFLY_MCP_SERVER_URL
-          value: "https://firefly.example.com/api"
-        - name: FIREFLY_MCP_API_TOKEN
           valueFrom:
-            secretKeyRef:
-              name: firefly-mcp-secrets
-              key: api-token
+            configMapKeyRef:
+              name: firefly-mcp-config
+              key: server-url
 ```
+
+For detailed Kubernetes deployment instructions, see [kube.md](./kube.md).
 
 ## Usage
 
@@ -506,7 +545,23 @@ The implementation consists of:
 
 ## Authentication
 
-The server uses Bearer token authentication with the Firefly III API. The token is automatically added to all API requests via a request editor function.
+The server supports two authentication modes:
+
+### STDIO Mode (Default)
+For local usage with Claude Desktop or other MCP clients. Configure the Firefly III token via:
+- Config file: `api.token` in `config.yaml`
+- Environment variable: `FIREFLY_MCP_API_TOKEN`
+
+### HTTP Mode (Remote/Multi-tenant)
+For remote access via HTTP transport. Each client passes their own Firefly III Personal Access Token via the `Authorization` header:
+
+```
+Authorization: Bearer <firefly-iii-personal-access-token>
+```
+
+This enables multi-tenant usage where different clients use their own Firefly III accounts. Generate your token in Firefly III: **Profile → OAuth → Personal Access Tokens**
+
+The server returns `401 Unauthorized` if no token is provided in HTTP mode.
 
 ## Error Handling
 

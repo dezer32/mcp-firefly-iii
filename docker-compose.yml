@@ -1,0 +1,19 @@
+services:
+  mcp-firefly-iii:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      # Required: Firefly III server URL
+      - FIREFLY_MCP_SERVER_URL=${FIREFLY_SERVER_URL}
+      # Optional: Log level (debug, info, warn, error)
+      - FIREFLY_MCP_LOG_LEVEL=${LOG_LEVEL:-info}
+      # Note: In HTTP mode, clients pass their Firefly III Personal Access Token
+      # via the Authorization header. No server-side token configuration needed.
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 5s
+      retries: 3

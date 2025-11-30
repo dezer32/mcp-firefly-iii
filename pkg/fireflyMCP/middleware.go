@@ -1,6 +1,7 @@
 package fireflyMCP
 
 import (
+	"context"
 	"log/slog"
 	"net"
 	"net/http"
@@ -11,20 +12,29 @@ import (
 	"golang.org/x/time/rate"
 )
 
-// BearerAuthMiddleware creates middleware that validates Bearer token authentication.
-// If authToken is empty, no authentication is required.
-// Health check endpoints (/health, /ready) are excluded from authentication.
-func BearerAuthMiddleware(authToken string, logger *slog.Logger) func(http.Handler) http.Handler {
+// contextKey is a custom type for context keys to avoid collisions
+type contextKey string
+
+// FireflyTokenKey is the context key for storing the Firefly III API token
+const FireflyTokenKey contextKey = "firefly_token"
+
+// GetTokenFromContext extracts the Firefly III API token from the request context
+func GetTokenFromContext(ctx context.Context) string {
+	if token, ok := ctx.Value(FireflyTokenKey).(string); ok {
+		return token
+	}
+	return ""
+}
+
+// TokenExtractionMiddleware creates middleware that extracts the Firefly III API token
+// from the Authorization header and stores it in the request context.
+// The token is then used by the MCP server to authenticate with Firefly III API.
+// Health check endpoints (/health, /ready) are excluded from token requirement.
+func TokenExtractionMiddleware(logger *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Skip auth for health check endpoints
+			// Skip token extraction for health check endpoints
 			if r.URL.Path == "/health" || r.URL.Path == "/ready" {
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			// Skip auth if no token configured
-			if authToken == "" {
 				next.ServeHTTP(w, r)
 				return
 			}
@@ -34,7 +44,7 @@ func BearerAuthMiddleware(authToken string, logger *slog.Logger) func(http.Handl
 				logger.Warn("missing authorization header",
 					"remote_addr", r.RemoteAddr,
 					"path", r.URL.Path)
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				http.Error(w, "Authorization: Bearer <firefly-token> required", http.StatusUnauthorized)
 				return
 			}
 
@@ -43,20 +53,22 @@ func BearerAuthMiddleware(authToken string, logger *slog.Logger) func(http.Handl
 				logger.Warn("invalid authorization format",
 					"remote_addr", r.RemoteAddr,
 					"path", r.URL.Path)
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				http.Error(w, "Authorization: Bearer <firefly-token> required", http.StatusUnauthorized)
 				return
 			}
 
-			token := auth[7:]
-			if token != authToken {
-				logger.Warn("invalid token",
+			token := strings.TrimSpace(auth[7:])
+			if token == "" {
+				logger.Warn("empty token",
 					"remote_addr", r.RemoteAddr,
 					"path", r.URL.Path)
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				http.Error(w, "Empty token", http.StatusUnauthorized)
 				return
 			}
 
-			next.ServeHTTP(w, r)
+			// Store token in context for use by MCP handlers
+			ctx := context.WithValue(r.Context(), FireflyTokenKey, token)
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }

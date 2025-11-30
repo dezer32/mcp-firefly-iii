@@ -17,7 +17,6 @@ func main() {
 	// CLI flags (override config file and env vars)
 	transport := flag.String("transport", "", "Transport type: stdio (default) or http")
 	port := flag.Int("port", 0, "HTTP port (overrides config)")
-	authToken := flag.String("auth-token", "", "Bearer token for HTTP authentication (overrides config)")
 	configPath := flag.String("config", "config.yaml", "Path to configuration file")
 	logLevel := flag.String("log-level", "info", "Log level: debug, info, warn, error")
 	flag.Parse()
@@ -51,9 +50,6 @@ func main() {
 	}
 	if *port != 0 {
 		config.HTTP.Port = *port
-	}
-	if *authToken != "" {
-		config.HTTP.AuthToken = *authToken
 	}
 
 	log.Printf("Configuration loaded successfully")

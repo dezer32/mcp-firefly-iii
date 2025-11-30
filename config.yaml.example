@@ -18,11 +18,14 @@ server:
   # Environment variable: FIREFLY_MCP_SERVER_URL
   url: https://your-firefly-instance.com/api
 
-# API authentication
+# API authentication (only for stdio mode)
 api:
-  # Firefly III Personal Access Token (required)
+  # Firefly III Personal Access Token
   # Generate this in Firefly III: Profile -> OAuth -> Personal Access Tokens
   # Environment variable: FIREFLY_MCP_API_TOKEN
+  #
+  # NOTE: This is only required for STDIO mode.
+  # In HTTP mode, clients pass their token via Authorization header.
   # SECURITY: Use environment variable instead of storing token in this file
   token: your-personal-access-token-here
 
@@ -66,6 +69,13 @@ mcp:
 
 # HTTP Transport (alternative to stdio for remote access)
 # When enabled, the server runs as an HTTP service instead of stdio
+#
+# AUTHENTICATION: In HTTP mode, clients must pass their Firefly III Personal
+# Access Token via the Authorization header:
+#   Authorization: Bearer <firefly-iii-personal-access-token>
+#
+# The server extracts this token and uses it for Firefly III API calls.
+# This allows multi-tenant usage where each client uses their own Firefly III credentials.
 http:
   # Enable HTTP transport (default: false)
   # Set to true or use --transport=http CLI flag
@@ -79,12 +89,6 @@ http:
   # HTTP server host (default: 0.0.0.0)
   # Environment variable: FIREFLY_MCP_HTTP_HOST
   host: "0.0.0.0"
-
-  # Bearer token for HTTP authentication (recommended for production)
-  # If empty, no authentication is required
-  # Environment variable: FIREFLY_MCP_HTTP_AUTH_TOKEN
-  # SECURITY: Use environment variable instead of storing token in this file
-  auth_token: ""
 
   # HTTP timeouts in seconds
   # Environment variables: FIREFLY_MCP_HTTP_READ_TIMEOUT, etc.
@@ -117,21 +121,24 @@ http:
 #   ./mcp-server
 #
 # HTTP MODE (for remote access):
-#   ./mcp-server --transport=http --port=8080 --auth-token=your-secret
+#   ./mcp-server --transport=http --port=8080
 #   # or via environment:
-#   FIREFLY_MCP_HTTP_ENABLED=true FIREFLY_MCP_HTTP_AUTH_TOKEN=secret ./mcp-server
+#   FIREFLY_MCP_HTTP_ENABLED=true ./mcp-server
+#
+#   Clients must pass their Firefly III token in Authorization header:
+#   curl -H "Authorization: Bearer <firefly-token>" http://localhost:8080/mcp
 #
 # PRODUCTION DEPLOYMENT:
 # 1. Set environment variables instead of using config file:
 #    export FIREFLY_MCP_SERVER_URL=https://your-instance.com/api
+#    # For stdio mode only:
 #    export FIREFLY_MCP_API_TOKEN=your-token
 # 2. Run the server: ./mcp-server
 #
-# DOCKER DEPLOYMENT:
+# DOCKER DEPLOYMENT (HTTP mode):
 # Use environment variables in your docker-compose.yml or Kubernetes manifests:
 #   environment:
 #     - FIREFLY_MCP_SERVER_URL=https://your-instance.com/api
-#     - FIREFLY_MCP_API_TOKEN=your-token
 #     - FIREFLY_MCP_HTTP_ENABLED=true
 #     - FIREFLY_MCP_HTTP_PORT=8080
-#     - FIREFLY_MCP_HTTP_AUTH_TOKEN=your-secret-token
+# Note: In HTTP mode, clients pass their own Firefly III token via Authorization header

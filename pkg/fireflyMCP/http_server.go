@@ -46,11 +46,12 @@ func (s *HTTPServer) Start(ctx context.Context) error {
 	)
 
 	// Build middleware chain (order matters: outer -> inner)
-	// Request flow: logging -> rate limit -> CORS -> auth -> handler
+	// Request flow: logging -> rate limit -> CORS -> token extraction -> handler
 	var h http.Handler = handler
 
-	// Auth middleware (innermost - runs last before handler)
-	h = BearerAuthMiddleware(s.config.HTTP.AuthToken, s.logger)(h)
+	// Token extraction middleware (innermost - runs last before handler)
+	// Extracts Firefly III token from Authorization header and stores in context
+	h = TokenExtractionMiddleware(s.logger)(h)
 
 	// CORS middleware
 	h = CORSMiddleware(s.config.HTTP.AllowedOrigins, s.logger)(h)
@@ -78,7 +79,6 @@ func (s *HTTPServer) Start(ctx context.Context) error {
 
 	s.logger.Info("starting HTTP server",
 		"addr", addr,
-		"auth_enabled", s.config.HTTP.AuthToken != "",
 		"rate_limit", s.config.HTTP.RateLimit,
 		"rate_burst", s.config.HTTP.RateBurst)
 

@@ -35,7 +35,6 @@ type Config struct {
 		Enabled        bool     `yaml:"enabled" mapstructure:"enabled"`
 		Port           int      `yaml:"port" mapstructure:"port"`
 		Host           string   `yaml:"host" mapstructure:"host"`
-		AuthToken      string   `yaml:"auth_token" mapstructure:"auth_token"`
 		ReadTimeout    int      `yaml:"read_timeout" mapstructure:"read_timeout"`
 		WriteTimeout   int      `yaml:"write_timeout" mapstructure:"write_timeout"`
 		IdleTimeout    int      `yaml:"idle_timeout" mapstructure:"idle_timeout"`
@@ -121,7 +120,6 @@ func bindEnvVars(v *viper.Viper) {
 	v.BindEnv("http.enabled")
 	v.BindEnv("http.port")
 	v.BindEnv("http.host")
-	v.BindEnv("http.auth_token")
 	v.BindEnv("http.read_timeout")
 	v.BindEnv("http.write_timeout")
 	v.BindEnv("http.idle_timeout")
@@ -165,8 +163,9 @@ func validateConfig(config *Config) error {
 	if config.Server.URL == "" {
 		return fmt.Errorf("server.url is required (set via config file or FIREFLY_MCP_SERVER_URL)")
 	}
-	if config.API.Token == "" {
-		return fmt.Errorf("api.token is required (set via config file or FIREFLY_MCP_API_TOKEN)")
+	// api.token is required only for stdio mode (HTTP mode gets token from request header)
+	if !config.HTTP.Enabled && config.API.Token == "" {
+		return fmt.Errorf("api.token is required for stdio mode (set via config file or FIREFLY_MCP_API_TOKEN)")
 	}
 	if config.Client.Timeout <= 0 {
 		return fmt.Errorf("client.timeout must be positive")
