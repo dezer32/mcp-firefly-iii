@@ -1,0 +1,37 @@
+# Git
+.git
+.gitignore
+
+# Beads issue tracking
+.beads
+
+# Documentation (not needed in image)
+*.md
+docs/
+
+# Example configs
+*.yaml.example
+*.yml.example
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Build artifacts
+mcp-server
+*.exe
+
+# Test files
+*_test.go
+testdata/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Misc
+.DS_Store
+Thumbs.db

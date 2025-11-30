@@ -85,10 +85,8 @@ func LoadConfig(filename string) (*Config, error) {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
-	// Validate required fields
-	if err := validateConfig(&config); err != nil {
-		return nil, err
-	}
+	// Note: Validation is deferred to after CLI flags are applied
+	// Call ValidateConfig() after modifying config with CLI flags
 
 	return &config, nil
 }
@@ -158,8 +156,9 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("http.rate_burst", 20)
 }
 
-// validateConfig validates that required configuration fields are set
-func validateConfig(config *Config) error {
+// ValidateConfig validates that required configuration fields are set
+// This is exported so it can be called after CLI flags are applied
+func ValidateConfig(config *Config) error {
 	if config.Server.URL == "" {
 		return fmt.Errorf("server.url is required (set via config file or FIREFLY_MCP_SERVER_URL)")
 	}

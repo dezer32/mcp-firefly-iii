@@ -52,6 +52,11 @@ func main() {
 		config.HTTP.Port = *port
 	}
 
+	// Validate config after CLI flags are applied
+	if err := fireflyMCP.ValidateConfig(config); err != nil {
+		log.Fatalf("Invalid configuration: %v", err)
+	}
+
 	log.Printf("Configuration loaded successfully")
 
 	// Create MCP server
