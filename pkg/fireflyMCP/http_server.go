@@ -46,12 +46,9 @@ func (s *HTTPServer) Start(ctx context.Context) error {
 	)
 
 	// Build middleware chain (order matters: outer -> inner)
-	// Request flow: logging -> rate limit -> CORS -> token extraction -> handler
+	// Request flow: logging -> rate limit -> CORS -> handler
+	// Note: Token extraction is handled by MCP SDK via req.GetExtra().Header
 	var h http.Handler = handler
-
-	// Token extraction middleware (innermost - runs last before handler)
-	// Extracts Firefly III token from Authorization header and stores in context
-	h = TokenExtractionMiddleware(s.logger)(h)
 
 	// CORS middleware
 	h = CORSMiddleware(s.config.HTTP.AllowedOrigins, s.logger)(h)
