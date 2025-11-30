@@ -18,6 +18,41 @@ docker build -t your-registry/firefly-mcp:latest .
 docker push your-registry/firefly-mcp:latest
 ```
 
+## Configuration Options
+
+All configuration is done via environment variables with the `FIREFLY_MCP_` prefix:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `FIREFLY_MCP_SERVER_URL` | Firefly III API base URL | **Required** |
+| `FIREFLY_MCP_LOG_LEVEL` | Log level (debug/info/warn/error) | `info` |
+| `FIREFLY_MCP_CLIENT_TIMEOUT` | HTTP client timeout for Firefly III API (seconds) | `60` |
+| `FIREFLY_MCP_HTTP_ENABLED` | Enable HTTP transport | `false` |
+| `FIREFLY_MCP_HTTP_PORT` | HTTP server port | `8080` |
+| `FIREFLY_MCP_HTTP_HOST` | HTTP server bind address | `0.0.0.0` |
+| `FIREFLY_MCP_HTTP_READ_TIMEOUT` | HTTP read timeout (seconds) | `30` |
+| `FIREFLY_MCP_HTTP_WRITE_TIMEOUT` | HTTP write timeout (seconds) | `30` |
+| `FIREFLY_MCP_HTTP_IDLE_TIMEOUT` | HTTP idle timeout (seconds) | `120` |
+| `FIREFLY_MCP_HTTP_SESSION_TIMEOUT` | MCP session timeout (seconds) | `300` |
+| `FIREFLY_MCP_HTTP_RATE_LIMIT` | Requests per second per IP | `10.0` |
+| `FIREFLY_MCP_HTTP_RATE_BURST` | Rate limit burst capacity | `20` |
+| `FIREFLY_MCP_HTTP_ALLOWED_ORIGINS` | CORS allowed origins (comma-separated or `*`) | `*` |
+
+## CLI Flags
+
+The server supports command-line flags that override config file and environment variables:
+
+```bash
+# Run with HTTP transport
+./mcp-server --transport=http --port=8080
+
+# Available flags:
+#   --transport   Transport mode: "stdio" (default) or "http"
+#   --port        Override HTTP port
+#   --config      Path to config file (default: config.yaml)
+#   --log-level   Log level: debug, info, warn, error
+```
+
 ## Kubernetes Manifests
 
 ### 1. Namespace (Optional)
@@ -43,8 +78,6 @@ This enables multi-tenant usage where different clients can use their own Firefl
 
 ### 3. ConfigMap
 
-Non-sensitive configuration:
-
 ```yaml
 apiVersion: v1
 kind: ConfigMap
@@ -52,12 +85,22 @@ metadata:
   name: firefly-mcp-config
   namespace: firefly-mcp
 data:
-  # Firefly III API URL (the base URL that clients' tokens will authenticate against)
+  # Required: Firefly III API URL
   server-url: "https://firefly.example.com/api"
   # Log level: debug, info, warn, error
   log-level: "info"
-  # HTTP timeout in seconds
+  # HTTP client timeout for Firefly III API calls (seconds)
   client-timeout: "30"
+  # HTTP Server Configuration
+  http-read-timeout: "30"
+  http-write-timeout: "30"
+  http-idle-timeout: "120"
+  http-session-timeout: "300"
+  # Rate Limiting (per IP)
+  http-rate-limit: "10.0"
+  http-rate-burst: "20"
+  # CORS (use "*" for all origins, or comma-separated list)
+  http-allowed-origins: "*"
 ```
 
 ### 4. Deployment
@@ -99,19 +142,71 @@ spec:
             configMapKeyRef:
               name: firefly-mcp-config
               key: server-url
-        # Optional: Log level
+        # Log level
         - name: FIREFLY_MCP_LOG_LEVEL
           valueFrom:
             configMapKeyRef:
               name: firefly-mcp-config
               key: log-level
               optional: true
-        # Optional: HTTP client timeout
+        # HTTP client timeout
         - name: FIREFLY_MCP_CLIENT_TIMEOUT
           valueFrom:
             configMapKeyRef:
               name: firefly-mcp-config
               key: client-timeout
+              optional: true
+        # HTTP Server - Enable and bind
+        - name: FIREFLY_MCP_HTTP_ENABLED
+          value: "true"
+        - name: FIREFLY_MCP_HTTP_PORT
+          value: "8080"
+        - name: FIREFLY_MCP_HTTP_HOST
+          value: "0.0.0.0"
+        # HTTP Server - Timeouts
+        - name: FIREFLY_MCP_HTTP_READ_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: firefly-mcp-config
+              key: http-read-timeout
+              optional: true
+        - name: FIREFLY_MCP_HTTP_WRITE_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: firefly-mcp-config
+              key: http-write-timeout
+              optional: true
+        - name: FIREFLY_MCP_HTTP_IDLE_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: firefly-mcp-config
+              key: http-idle-timeout
+              optional: true
+        - name: FIREFLY_MCP_HTTP_SESSION_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: firefly-mcp-config
+              key: http-session-timeout
+              optional: true
+        # Rate Limiting
+        - name: FIREFLY_MCP_HTTP_RATE_LIMIT
+          valueFrom:
+            configMapKeyRef:
+              name: firefly-mcp-config
+              key: http-rate-limit
+              optional: true
+        - name: FIREFLY_MCP_HTTP_RATE_BURST
+          valueFrom:
+            configMapKeyRef:
+              name: firefly-mcp-config
+              key: http-rate-burst
+              optional: true
+        # CORS
+        - name: FIREFLY_MCP_HTTP_ALLOWED_ORIGINS
+          valueFrom:
+            configMapKeyRef:
+              name: firefly-mcp-config
+              key: http-allowed-origins
               optional: true
         # Note: No API token env vars needed - clients pass their own tokens via Authorization header
         resources:
@@ -213,7 +308,14 @@ kubectl create configmap firefly-mcp-config \
   --namespace firefly-mcp \
   --from-literal=server-url="https://firefly.example.com/api" \
   --from-literal=log-level="info" \
-  --from-literal=client-timeout="30"
+  --from-literal=client-timeout="30" \
+  --from-literal=http-read-timeout="30" \
+  --from-literal=http-write-timeout="30" \
+  --from-literal=http-idle-timeout="120" \
+  --from-literal=http-session-timeout="300" \
+  --from-literal=http-rate-limit="10.0" \
+  --from-literal=http-rate-burst="20" \
+  --from-literal=http-allowed-origins="*"
 
 # Apply manifests
 kubectl apply -f firefly-mcp.yaml
@@ -235,7 +337,7 @@ Once deployed, configure your MCP client to connect via HTTP.
 {
   "mcpServers": {
     "firefly-iii": {
-      "url": "http://mcp.example.com/mcp",
+      "url": "http://mcp.example.com/",
       "headers": {
         "Authorization": "Bearer <your-firefly-iii-personal-access-token>"
       }
@@ -251,7 +353,7 @@ Generate your Personal Access Token in Firefly III: **Profile → OAuth → Pers
 For services within the cluster:
 
 ```
-http://firefly-mcp.firefly-mcp.svc.cluster.local/mcp
+http://firefly-mcp.firefly-mcp.svc.cluster.local/
 ```
 
 Remember to include the Authorization header with each client's Firefly III token.
@@ -262,12 +364,29 @@ Remember to include the Authorization header with each client's Firefly III toke
 |----------|-------------|
 | `GET /health` | Liveness probe - returns 200 if server is running |
 | `GET /ready` | Readiness probe - returns 200 if server can handle requests |
+| `GET /` | MCP protocol endpoint (POST for tool calls) |
+
+## Rate Limiting
+
+The server includes built-in per-IP rate limiting:
+
+- **Default**: 10 requests/second with burst capacity of 20
+- **Per-IP tracking**: Each client IP gets independent limits
+- **Proxy support**: Respects `X-Forwarded-For` and `X-Real-IP` headers
+- **Health endpoints excluded**: `/health` and `/ready` bypass rate limiting
+
+Configure via:
+- `FIREFLY_MCP_HTTP_RATE_LIMIT` - requests per second (e.g., `10.0`)
+- `FIREFLY_MCP_HTTP_RATE_BURST` - burst capacity (e.g., `20`)
+
+When rate limit is exceeded, the server returns HTTP 429 (Too Many Requests).
 
 ## Scaling Considerations
 
 - The MCP server is stateless and can be horizontally scaled
 - Use `replicas: 2+` for high availability
-- Consider rate limiting at Ingress level to protect Firefly III API
+- Built-in rate limiting protects the Firefly III API
+- Consider additional rate limiting at Ingress level for DDoS protection
 
 ## Troubleshooting
 
@@ -289,10 +408,17 @@ kubectl -n firefly-mcp port-forward svc/firefly-mcp 8080:80
 
 # Test health endpoint
 curl http://localhost:8080/health
+
+# Test MCP endpoint (should return error without proper MCP request)
+curl -X POST http://localhost:8080/ \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <your-token>"
 ```
 
 ### Common Issues
 
-1. **CrashLoopBackOff**: Check logs for configuration errors (missing env vars)
+1. **CrashLoopBackOff**: Check logs for configuration errors (missing `FIREFLY_MCP_SERVER_URL`)
 2. **ImagePullBackOff**: Verify image name and registry credentials
 3. **Connection refused to Firefly III**: Verify `FIREFLY_MCP_SERVER_URL` is accessible from the cluster
+4. **401 Unauthorized**: Client is not providing valid `Authorization: Bearer <token>` header
+5. **429 Too Many Requests**: Rate limit exceeded, adjust `FIREFLY_MCP_HTTP_RATE_LIMIT` if needed
