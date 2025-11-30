@@ -185,6 +185,17 @@ func (s *FireflyMCPServer) Run(ctx context.Context, transport mcp.Transport) err
 	return s.server.Run(ctx, transport)
 }
 
+// MCPServer returns the underlying MCP server instance.
+// This is needed for HTTP transport which requires direct access to the server.
+func (s *FireflyMCPServer) MCPServer() *mcp.Server {
+	return s.server
+}
+
+// Config returns the server configuration.
+func (s *FireflyMCPServer) Config() *Config {
+	return s.config
+}
+
 // registerTools registers all available MCP tools
 func (s *FireflyMCPServer) registerTools() {
 	// Account tools

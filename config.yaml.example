@@ -64,10 +64,62 @@ mcp:
   # Environment variable: FIREFLY_MCP_MCP_INSTRUCTIONS
   instructions: MCP server for Firefly III personal finance management
 
+# HTTP Transport (alternative to stdio for remote access)
+# When enabled, the server runs as an HTTP service instead of stdio
+http:
+  # Enable HTTP transport (default: false)
+  # Set to true or use --transport=http CLI flag
+  # Environment variable: FIREFLY_MCP_HTTP_ENABLED
+  enabled: false
+
+  # HTTP server port (default: 8080)
+  # Environment variable: FIREFLY_MCP_HTTP_PORT
+  port: 8080
+
+  # HTTP server host (default: 0.0.0.0)
+  # Environment variable: FIREFLY_MCP_HTTP_HOST
+  host: "0.0.0.0"
+
+  # Bearer token for HTTP authentication (recommended for production)
+  # If empty, no authentication is required
+  # Environment variable: FIREFLY_MCP_HTTP_AUTH_TOKEN
+  # SECURITY: Use environment variable instead of storing token in this file
+  auth_token: ""
+
+  # HTTP timeouts in seconds
+  # Environment variables: FIREFLY_MCP_HTTP_READ_TIMEOUT, etc.
+  read_timeout: 30
+  write_timeout: 30
+  idle_timeout: 120
+
+  # MCP session timeout in seconds (default: 300)
+  # Sessions idle longer than this are automatically closed
+  # Environment variable: FIREFLY_MCP_HTTP_SESSION_TIMEOUT
+  session_timeout: 300
+
+  # CORS allowed origins (default: ["*"])
+  # Use specific origins in production for security
+  # Environment variable: FIREFLY_MCP_HTTP_ALLOWED_ORIGINS
+  allowed_origins:
+    - "*"
+
+  # Rate limiting (per IP)
+  # Environment variables: FIREFLY_MCP_HTTP_RATE_LIMIT, FIREFLY_MCP_HTTP_RATE_BURST
+  rate_limit: 10.0    # requests per second
+  rate_burst: 20      # burst capacity
+
 # QUICK START:
 # 1. Copy this file to config.yaml: cp config.yaml.example config.yaml
 # 2. Edit config.yaml and set your server URL and API token
 # 3. Run the server: ./mcp-server
+#
+# STDIO MODE (default, for Claude Desktop):
+#   ./mcp-server
+#
+# HTTP MODE (for remote access):
+#   ./mcp-server --transport=http --port=8080 --auth-token=your-secret
+#   # or via environment:
+#   FIREFLY_MCP_HTTP_ENABLED=true FIREFLY_MCP_HTTP_AUTH_TOKEN=secret ./mcp-server
 #
 # PRODUCTION DEPLOYMENT:
 # 1. Set environment variables instead of using config file:
@@ -80,4 +132,6 @@ mcp:
 #   environment:
 #     - FIREFLY_MCP_SERVER_URL=https://your-instance.com/api
 #     - FIREFLY_MCP_API_TOKEN=your-token
-#     - FIREFLY_MCP_CLIENT_TIMEOUT=60
+#     - FIREFLY_MCP_HTTP_ENABLED=true
+#     - FIREFLY_MCP_HTTP_PORT=8080
+#     - FIREFLY_MCP_HTTP_AUTH_TOKEN=your-secret-token

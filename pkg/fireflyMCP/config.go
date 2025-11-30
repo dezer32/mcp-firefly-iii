@@ -31,6 +31,19 @@ type Config struct {
 		Version      string `yaml:"version" mapstructure:"version"`
 		Instructions string `yaml:"instructions" mapstructure:"instructions"`
 	} `yaml:"mcp" mapstructure:"mcp"`
+	HTTP struct {
+		Enabled        bool     `yaml:"enabled" mapstructure:"enabled"`
+		Port           int      `yaml:"port" mapstructure:"port"`
+		Host           string   `yaml:"host" mapstructure:"host"`
+		AuthToken      string   `yaml:"auth_token" mapstructure:"auth_token"`
+		ReadTimeout    int      `yaml:"read_timeout" mapstructure:"read_timeout"`
+		WriteTimeout   int      `yaml:"write_timeout" mapstructure:"write_timeout"`
+		IdleTimeout    int      `yaml:"idle_timeout" mapstructure:"idle_timeout"`
+		SessionTimeout int      `yaml:"session_timeout" mapstructure:"session_timeout"`
+		AllowedOrigins []string `yaml:"allowed_origins" mapstructure:"allowed_origins"`
+		RateLimit      float64  `yaml:"rate_limit" mapstructure:"rate_limit"`
+		RateBurst      int      `yaml:"rate_burst" mapstructure:"rate_burst"`
+	} `yaml:"http" mapstructure:"http"`
 }
 
 // LoadConfig loads configuration from YAML file and environment variables
@@ -103,6 +116,19 @@ func bindEnvVars(v *viper.Viper) {
 	v.BindEnv("mcp.name")
 	v.BindEnv("mcp.version")
 	v.BindEnv("mcp.instructions")
+
+	// HTTP config
+	v.BindEnv("http.enabled")
+	v.BindEnv("http.port")
+	v.BindEnv("http.host")
+	v.BindEnv("http.auth_token")
+	v.BindEnv("http.read_timeout")
+	v.BindEnv("http.write_timeout")
+	v.BindEnv("http.idle_timeout")
+	v.BindEnv("http.session_timeout")
+	v.BindEnv("http.allowed_origins")
+	v.BindEnv("http.rate_limit")
+	v.BindEnv("http.rate_burst")
 }
 
 // setDefaults configures default values for all configuration options
@@ -120,6 +146,18 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("mcp.name", "firefly-iii-mcp")
 	v.SetDefault("mcp.version", "1.0.0")
 	v.SetDefault("mcp.instructions", "MCP server for Firefly III personal finance management")
+
+	// HTTP defaults
+	v.SetDefault("http.enabled", false)
+	v.SetDefault("http.port", 8080)
+	v.SetDefault("http.host", "0.0.0.0")
+	v.SetDefault("http.read_timeout", 30)
+	v.SetDefault("http.write_timeout", 30)
+	v.SetDefault("http.idle_timeout", 120)
+	v.SetDefault("http.session_timeout", 300)
+	v.SetDefault("http.allowed_origins", []string{"*"})
+	v.SetDefault("http.rate_limit", 10.0)
+	v.SetDefault("http.rate_burst", 20)
 }
 
 // validateConfig validates that required configuration fields are set
