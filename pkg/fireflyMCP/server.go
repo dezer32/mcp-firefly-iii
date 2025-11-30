@@ -353,6 +353,115 @@ func (s *FireflyMCPServer) registerTools() {
 			Description: "List transactions created by a specific recurrence",
 		}, s.handleListRecurrenceTransactions,
 	)
+
+	// Rule Group tools
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "list_rule_groups",
+			Description: "List all rule groups in Firefly III",
+		}, s.handleListRuleGroups,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "get_rule_group",
+			Description: "Get details of a specific rule group",
+		}, s.handleGetRuleGroup,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "create_rule_group",
+			Description: "Create a new rule group for organizing automation rules",
+		}, s.handleCreateRuleGroup,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "update_rule_group",
+			Description: "Update an existing rule group",
+		}, s.handleUpdateRuleGroup,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "delete_rule_group",
+			Description: "Delete a rule group",
+		}, s.handleDeleteRuleGroup,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "list_rules_by_group",
+			Description: "List all rules in a specific rule group",
+		}, s.handleListRulesByGroup,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "test_rule_group",
+			Description: "Test which transactions would be affected by a rule group (dry-run, no changes made)",
+		}, s.handleTestRuleGroup,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "trigger_rule_group",
+			Description: "Execute a rule group on transactions (applies changes asynchronously)",
+		}, s.handleTriggerRuleGroup,
+	)
+
+	// Rule tools
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "list_rules",
+			Description: "List all automation rules in Firefly III",
+		}, s.handleListRules,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "get_rule",
+			Description: "Get details of a specific rule including triggers and actions",
+		}, s.handleGetRule,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name: "create_rule",
+			Description: "Create a new automation rule. Triggers: store-journal (on create), update-journal (on update). " +
+				"Trigger types: description_contains, amount_more, from_account_is, category_is, etc. " +
+				"Action types: set_category, add_tag, set_budget, set_description, etc.",
+		}, s.handleCreateRule,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "update_rule",
+			Description: "Update an existing automation rule",
+		}, s.handleUpdateRule,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "delete_rule",
+			Description: "Delete an automation rule",
+		}, s.handleDeleteRule,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "test_rule",
+			Description: "Test which transactions would be affected by a rule (dry-run, no changes made)",
+		}, s.handleTestRule,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "trigger_rule",
+			Description: "Execute a rule on transactions (applies changes asynchronously)",
+		}, s.handleTriggerRule,
+	)
 }
 
 // Tool handlers

@@ -51,26 +51,26 @@ type AccountList struct {
 }
 
 type Transaction struct {
-	Id              string  `json:"id"`
-	Amount          string  `json:"amount"`
-	BillId          *string `json:"bill_id"`
-	BillName        *string `json:"bill_name"`
-	BudgetId        *string `json:"budget_id"`
-	BudgetName      *string     `json:"budget_name"`
-	CategoryId      *string     `json:"category_id"`
-	CategoryName    *string     `json:"category_name"`
-	CurrencyCode    string      `json:"currency_code"`
-	Date            time.Time   `json:"date"`
-	Description     string      `json:"description"`
-	DestinationId   string      `json:"destination_id"`
-	DestinationName string      `json:"destination_name"`
-	DestinationType string      `json:"destination_type"`
-	Notes           *string     `json:"notes"`
-	Reconciled      bool        `json:"reconciled"`
-	SourceId        string      `json:"source_id"`
-	SourceName      string      `json:"source_name"`
-	Tags            []string    `json:"tags"`
-	Type            string      `json:"type"`
+	Id              string    `json:"id"`
+	Amount          string    `json:"amount"`
+	BillId          *string   `json:"bill_id"`
+	BillName        *string   `json:"bill_name"`
+	BudgetId        *string   `json:"budget_id"`
+	BudgetName      *string   `json:"budget_name"`
+	CategoryId      *string   `json:"category_id"`
+	CategoryName    *string   `json:"category_name"`
+	CurrencyCode    string    `json:"currency_code"`
+	Date            time.Time `json:"date"`
+	Description     string    `json:"description"`
+	DestinationId   string    `json:"destination_id"`
+	DestinationName string    `json:"destination_name"`
+	DestinationType string    `json:"destination_type"`
+	Notes           *string   `json:"notes"`
+	Reconciled      bool      `json:"reconciled"`
+	SourceId        string    `json:"source_id"`
+	SourceName      string    `json:"source_name"`
+	Tags            []string  `json:"tags"`
+	Type            string    `json:"type"`
 }
 
 type TransactionGroup struct {
@@ -231,7 +231,7 @@ type TransactionStoreRequest struct {
 // TransactionSplitRequest represents a single transaction in a transaction group
 type TransactionSplitRequest struct {
 	Type                string   `json:"type" jsonschema:"Transaction type: withdrawal, deposit, transfer (required)"`                                     // Transaction type: withdrawal, deposit, transfer (required)
-	Date                string   `json:"date" jsonschema:"Transaction date in RFC3339 format, e.g. 2024-01-15T00:00:00Z (required)"`                          // Transaction date in RFC3339 format (required)
+	Date                string   `json:"date" jsonschema:"Transaction date in RFC3339 format, e.g. 2024-01-15T00:00:00Z (required)"`                       // Transaction date in RFC3339 format (required)
 	Amount              string   `json:"amount" jsonschema:"Transaction amount as string (e.g. '100.00') (required)"`                                      // Transaction amount (required)
 	Description         string   `json:"description" jsonschema:"Transaction description (required)"`                                                      // Transaction description (required)
 	SourceId            *string  `json:"source_id,omitempty" jsonschema:"Source account ID (use either source_id or source_name)"`                         // Source account ID
@@ -284,4 +284,120 @@ type ReceiptStoreRequest struct {
 	Notes               *string              `json:"notes,omitempty" jsonschema:"Notes for the receipt (applied to first transaction)"`
 	ApplyRules          bool                 `json:"apply_rules,omitempty" jsonschema:"Whether to apply processing rules (default: false)"`
 	FireWebhooks        bool                 `json:"fire_webhooks,omitempty" jsonschema:"Whether to fire webhooks (default: true)"`
+}
+
+// RuleGroup represents a simplified rule group for MCP responses
+type RuleGroup struct {
+	Id          string  `json:"id"`
+	Title       string  `json:"title"`
+	Description *string `json:"description"`
+	Order       int     `json:"order"`
+	Active      bool    `json:"active"`
+}
+
+// RuleGroupList represents a list of rule groups with pagination
+type RuleGroupList struct {
+	Data       []RuleGroup `json:"data"`
+	Pagination Pagination  `json:"pagination"`
+}
+
+// RuleTrigger represents a trigger condition for a rule
+type RuleTrigger struct {
+	Id             string `json:"id,omitempty"`
+	Type           string `json:"type"`
+	Value          string `json:"value"`
+	Prohibited     bool   `json:"prohibited"`
+	Active         bool   `json:"active"`
+	StopProcessing bool   `json:"stop_processing"`
+	Order          int    `json:"order"`
+}
+
+// RuleAction represents an action to perform when rule fires
+type RuleAction struct {
+	Id             string  `json:"id,omitempty"`
+	Type           string  `json:"type"`
+	Value          *string `json:"value"`
+	Active         bool    `json:"active"`
+	StopProcessing bool    `json:"stop_processing"`
+	Order          int     `json:"order"`
+}
+
+// Rule represents a simplified rule for MCP responses
+type Rule struct {
+	Id             string        `json:"id"`
+	Title          string        `json:"title"`
+	Description    *string       `json:"description"`
+	RuleGroupId    string        `json:"rule_group_id"`
+	RuleGroupTitle *string       `json:"rule_group_title,omitempty"`
+	Order          int           `json:"order"`
+	Trigger        string        `json:"trigger"`
+	Active         bool          `json:"active"`
+	Strict         bool          `json:"strict"`
+	StopProcessing bool          `json:"stop_processing"`
+	Triggers       []RuleTrigger `json:"triggers"`
+	Actions        []RuleAction  `json:"actions"`
+}
+
+// RuleList represents a list of rules with pagination
+type RuleList struct {
+	Data       []Rule     `json:"data"`
+	Pagination Pagination `json:"pagination"`
+}
+
+// RuleTriggerRequest for creating/updating triggers
+type RuleTriggerRequest struct {
+	Type           string `json:"type" jsonschema:"Trigger type (e.g., description_contains, amount_more, from_account_is)"`
+	Value          string `json:"value" jsonschema:"Value to match against"`
+	Prohibited     *bool  `json:"prohibited,omitempty" jsonschema:"Negate this trigger (default: false)"`
+	Active         *bool  `json:"active,omitempty" jsonschema:"Whether trigger is active (default: true)"`
+	StopProcessing *bool  `json:"stop_processing,omitempty" jsonschema:"Stop checking other triggers (default: false)"`
+}
+
+// RuleActionRequest for creating/updating actions
+type RuleActionRequest struct {
+	Type           string  `json:"type" jsonschema:"Action type (e.g., set_category, add_tag, set_budget)"`
+	Value          *string `json:"value,omitempty" jsonschema:"Value for the action (required for most types)"`
+	Active         *bool   `json:"active,omitempty" jsonschema:"Whether action is active (default: true)"`
+	StopProcessing *bool   `json:"stop_processing,omitempty" jsonschema:"Stop processing after this action (default: false)"`
+}
+
+// RuleStoreRequest represents the request body for creating a rule
+type RuleStoreRequest struct {
+	Title          string               `json:"title" jsonschema:"Title for the rule (required)"`
+	Description    *string              `json:"description,omitempty" jsonschema:"Description of the rule"`
+	RuleGroupId    string               `json:"rule_group_id" jsonschema:"ID of the rule group (required)"`
+	RuleGroupTitle *string              `json:"rule_group_title,omitempty" jsonschema:"Title of rule group (alternative to rule_group_id)"`
+	Trigger        string               `json:"trigger" jsonschema:"When to fire: store-journal or update-journal (required)"`
+	Active         *bool                `json:"active,omitempty" jsonschema:"Whether rule is active (default: true)"`
+	Strict         *bool                `json:"strict,omitempty" jsonschema:"ALL triggers must match (default: true)"`
+	StopProcessing *bool                `json:"stop_processing,omitempty" jsonschema:"Stop group after this rule (default: false)"`
+	Triggers       []RuleTriggerRequest `json:"triggers" jsonschema:"Array of trigger conditions (required, at least one)"`
+	Actions        []RuleActionRequest  `json:"actions" jsonschema:"Array of actions to perform (required, at least one)"`
+}
+
+// RuleUpdateRequest represents the request body for updating a rule
+type RuleUpdateRequest struct {
+	Title          *string              `json:"title,omitempty" jsonschema:"Title for the rule"`
+	Description    *string              `json:"description,omitempty" jsonschema:"Description of the rule"`
+	RuleGroupId    *string              `json:"rule_group_id,omitempty" jsonschema:"ID of the rule group"`
+	Trigger        *string              `json:"trigger,omitempty" jsonschema:"When to fire: store-journal or update-journal"`
+	Active         *bool                `json:"active,omitempty" jsonschema:"Whether rule is active"`
+	Strict         *bool                `json:"strict,omitempty" jsonschema:"ALL triggers must match"`
+	StopProcessing *bool                `json:"stop_processing,omitempty" jsonschema:"Stop group after this rule"`
+	Triggers       []RuleTriggerRequest `json:"triggers,omitempty" jsonschema:"Array of trigger conditions"`
+	Actions        []RuleActionRequest  `json:"actions,omitempty" jsonschema:"Array of actions to perform"`
+}
+
+// RuleGroupStoreRequest represents the request body for creating a rule group
+type RuleGroupStoreRequest struct {
+	Title       string  `json:"title" jsonschema:"Title for the rule group (required)"`
+	Description *string `json:"description,omitempty" jsonschema:"Description of the rule group"`
+	Active      *bool   `json:"active,omitempty" jsonschema:"Whether the rule group is active (default: true)"`
+}
+
+// RuleGroupUpdateRequest represents the request body for updating a rule group
+type RuleGroupUpdateRequest struct {
+	Title       *string `json:"title,omitempty" jsonschema:"Title for the rule group"`
+	Description *string `json:"description,omitempty" jsonschema:"Description of the rule group"`
+	Active      *bool   `json:"active,omitempty" jsonschema:"Whether the rule group is active"`
 }
