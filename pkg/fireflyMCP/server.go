@@ -186,7 +186,7 @@ func NewFireflyMCPServer(config *Config) (*FireflyMCPServer, error) {
 }
 
 // getClient returns the appropriate API client for the given context.
-// For HTTP mode, it creates a client using the token from the request headers.
+// For HTTP mode, it extracts token from request headers, with fallback to config token.
 // For stdio mode, it returns the pre-configured static client.
 func (s *FireflyMCPServer) getClient(ctx context.Context, req mcp.Request) (*client.ClientWithResponses, error) {
 	// For stdio mode, use the static client
@@ -196,8 +196,14 @@ func (s *FireflyMCPServer) getClient(ctx context.Context, req mcp.Request) (*cli
 
 	// For HTTP mode, extract token from request headers
 	token := extractTokenFromRequest(req)
+
+	// Fallback to config token (from env or yaml) if no header provided
 	if token == "" {
-		return nil, fmt.Errorf("no API token found in request headers (Authorization: Bearer <token> required)")
+		token = s.config.API.Token
+	}
+
+	if token == "" {
+		return nil, fmt.Errorf("no API token found: provide Authorization header or set FIREFLY_MCP_API_TOKEN")
 	}
 
 	return client.NewClientWithResponses(
