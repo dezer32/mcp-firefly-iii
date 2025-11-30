@@ -257,6 +257,14 @@ type TransactionSplitRequest struct {
 	Order               *int     `json:"order,omitempty" jsonschema:"Order of this split in the transaction group"`                                        // Order in the list
 }
 
+// TransactionUpdateRequest represents the request body for updating an existing transaction
+type TransactionUpdateRequest struct {
+	ApplyRules   bool                      `json:"apply_rules,omitempty" jsonschema:"Whether to apply processing rules when updating (default: false)"`
+	FireWebhooks bool                      `json:"fire_webhooks,omitempty" jsonschema:"Whether to fire webhooks for this update (default: true)"`
+	GroupTitle   string                    `json:"group_title,omitempty" jsonschema:"Title for the transaction group (for split transactions)"`
+	Transactions []TransactionSplitRequest `json:"transactions,omitempty" jsonschema:"Array of transaction splits to update"`
+}
+
 // ReceiptItemRequest represents a single item on a shopping receipt
 type ReceiptItemRequest struct {
 	Amount       string   `json:"amount" jsonschema:"Item amount as string (e.g. '12.99') (required)"`

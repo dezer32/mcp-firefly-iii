@@ -132,6 +132,11 @@ type StoreTransactionArgs struct {
 	TransactionStoreRequest
 }
 
+type UpdateTransactionArgs struct {
+	ID string `json:"id" jsonschema:"Transaction group ID (required)"`
+	TransactionUpdateRequest
+}
+
 func NewFireflyMCPServer(config *Config) (*FireflyMCPServer, error) {
 	// Create HTTP client with authentication
 	httpClient := &http.Client{
@@ -247,6 +252,13 @@ func (s *FireflyMCPServer) registerTools() {
 				"Use this to register multiple purchases from one store receipt at once. " +
 				"Optionally validates that item amounts sum to the expected total.",
 		}, s.handleStoreReceipt,
+	)
+
+	mcp.AddTool(
+		s.server, &mcp.Tool{
+			Name:        "update_transaction",
+			Description: "Update an existing transaction in Firefly III",
+		}, s.handleUpdateTransaction,
 	)
 
 	// Budget tools
