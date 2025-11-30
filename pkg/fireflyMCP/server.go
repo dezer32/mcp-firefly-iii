@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/dezer32/mcp-firefly-iii/pkg/client"
@@ -185,32 +186,57 @@ func NewFireflyMCPServer(config *Config) (*FireflyMCPServer, error) {
 }
 
 // getClient returns the appropriate API client for the given context.
-// For HTTP mode, it creates a client using the token from the request context.
+// For HTTP mode, it creates a client using the token from the request headers.
 // For stdio mode, it returns the pre-configured static client.
-func (s *FireflyMCPServer) getClient(ctx context.Context) (*client.ClientWithResponses, error) {
+func (s *FireflyMCPServer) getClient(ctx context.Context, req mcp.Request) (*client.ClientWithResponses, error) {
 	// For stdio mode, use the static client
 	if s.client != nil {
 		return s.client, nil
 	}
 
-	// For HTTP mode, get token from context and create a new client
-	token := GetTokenFromContext(ctx)
+	// For HTTP mode, extract token from request headers
+	token := extractTokenFromRequest(req)
 	if token == "" {
-		return nil, fmt.Errorf("no API token found in context")
+		return nil, fmt.Errorf("no API token found in request headers (Authorization: Bearer <token> required)")
 	}
 
 	return client.NewClientWithResponses(
 		s.config.Server.URL,
 		client.WithHTTPClient(s.httpClient),
 		client.WithRequestEditorFn(
-			func(ctx context.Context, req *http.Request) error {
-				req.Header.Set("Authorization", "Bearer "+token)
-				req.Header.Set("Accept", "application/vnd.api+json")
-				req.Header.Set("Content-Type", "application/json")
+			func(ctx context.Context, httpReq *http.Request) error {
+				httpReq.Header.Set("Authorization", "Bearer "+token)
+				httpReq.Header.Set("Accept", "application/vnd.api+json")
+				httpReq.Header.Set("Content-Type", "application/json")
 				return nil
 			},
 		),
 	)
+}
+
+// extractTokenFromRequest extracts the Firefly III API token from MCP request headers.
+// Returns empty string if token is not found or invalid.
+func extractTokenFromRequest(req mcp.Request) string {
+	if req == nil {
+		return ""
+	}
+
+	extra := req.GetExtra()
+	if extra == nil || extra.Header == nil {
+		return ""
+	}
+
+	auth := extra.Header.Get("Authorization")
+	if auth == "" {
+		return ""
+	}
+
+	// Check Bearer prefix (case-insensitive)
+	if len(auth) < 7 || !strings.EqualFold(auth[:7], "bearer ") {
+		return ""
+	}
+
+	return strings.TrimSpace(auth[7:])
 }
 
 // Run starts the MCP server with the given transport
@@ -527,7 +553,7 @@ func (s *FireflyMCPServer) handleListAccounts(
 	req *mcp.CallToolRequest,
 	args ListAccountsArgs,
 ) (*mcp.CallToolResult, any, error) {
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -572,7 +598,7 @@ func (s *FireflyMCPServer) handleGetAccount(
 		return newErrorResult("Account ID is required")
 	}
 
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -616,7 +642,7 @@ func (s *FireflyMCPServer) handleSearchAccounts(
 		}, nil, nil
 	}
 
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -667,7 +693,7 @@ func (s *FireflyMCPServer) handleListTransactions(
 	req *mcp.CallToolRequest,
 	args ListTransactionsArgs,
 ) (*mcp.CallToolResult, any, error) {
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -741,7 +767,7 @@ func (s *FireflyMCPServer) handleGetTransaction(
 		}, nil, nil
 	}
 
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -795,7 +821,7 @@ func (s *FireflyMCPServer) handleSearchTransactions(
 		}, nil, nil
 	}
 
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -837,7 +863,7 @@ func (s *FireflyMCPServer) handleListBudgets(
 	req *mcp.CallToolRequest,
 	args ListBudgetsArgs,
 ) (*mcp.CallToolResult, any, error) {
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -910,7 +936,7 @@ func (s *FireflyMCPServer) handleListCategories(
 	req *mcp.CallToolRequest,
 	args ListCategoriesArgs,
 ) (*mcp.CallToolResult, any, error) {
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -956,7 +982,7 @@ func (s *FireflyMCPServer) handleListTags(
 	req *mcp.CallToolRequest,
 	args ListTagsArgs,
 ) (*mcp.CallToolResult, any, error) {
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -1002,7 +1028,7 @@ func (s *FireflyMCPServer) handleGetSummary(
 	req *mcp.CallToolRequest,
 	args GetSummaryArgs,
 ) (*mcp.CallToolResult, any, error) {
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -1369,7 +1395,7 @@ func (s *FireflyMCPServer) handleExpenseCategoryInsights(
 		}, nil, nil
 	}
 
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -1460,7 +1486,7 @@ func (s *FireflyMCPServer) handleExpenseTotalInsights(
 		}, nil, nil
 	}
 
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -1530,7 +1556,7 @@ func (s *FireflyMCPServer) handleListBudgetLimits(
 		}, nil, nil
 	}
 
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -1608,7 +1634,7 @@ func (s *FireflyMCPServer) handleListBudgetTransactions(
 		}, nil, nil
 	}
 
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -1867,7 +1893,7 @@ func (s *FireflyMCPServer) handleListBills(
 	req *mcp.CallToolRequest,
 	args ListBillsArgs,
 ) (*mcp.CallToolResult, any, error) {
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -1946,7 +1972,7 @@ func (s *FireflyMCPServer) handleGetBill(
 	req *mcp.CallToolRequest,
 	args GetBillArgs,
 ) (*mcp.CallToolResult, any, error) {
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -2017,7 +2043,7 @@ func (s *FireflyMCPServer) handleListBillTransactions(
 	req *mcp.CallToolRequest,
 	args ListBillTransactionsArgs,
 ) (*mcp.CallToolResult, any, error) {
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}

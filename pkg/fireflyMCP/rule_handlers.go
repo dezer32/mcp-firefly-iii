@@ -99,7 +99,7 @@ func (s *FireflyMCPServer) handleListRuleGroups(
 	req *mcp.CallToolRequest,
 	args ListRuleGroupsArgs,
 ) (*mcp.CallToolResult, any, error) {
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -139,7 +139,7 @@ func (s *FireflyMCPServer) handleGetRuleGroup(
 		return newErrorResult("Rule group ID is required")
 	}
 
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -174,7 +174,7 @@ func (s *FireflyMCPServer) handleCreateRuleGroup(
 		return newErrorResult("Title is required")
 	}
 
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -211,7 +211,7 @@ func (s *FireflyMCPServer) handleUpdateRuleGroup(
 		return newErrorResult("Rule group ID is required")
 	}
 
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -252,7 +252,7 @@ func (s *FireflyMCPServer) handleDeleteRuleGroup(
 		return newErrorResult("Rule group ID is required")
 	}
 
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -283,7 +283,7 @@ func (s *FireflyMCPServer) handleListRulesByGroup(
 		return newErrorResult("Rule group ID is required")
 	}
 
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -327,7 +327,7 @@ func (s *FireflyMCPServer) handleTestRuleGroup(
 		return newErrorResult("Rule group ID is required")
 	}
 
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -384,7 +384,7 @@ func (s *FireflyMCPServer) handleTriggerRuleGroup(
 		return newErrorResult("Rule group ID is required")
 	}
 
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -437,7 +437,7 @@ func (s *FireflyMCPServer) handleListRules(
 	req *mcp.CallToolRequest,
 	args ListRulesArgs,
 ) (*mcp.CallToolResult, any, error) {
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -477,7 +477,7 @@ func (s *FireflyMCPServer) handleGetRule(
 		return newErrorResult("Rule ID is required")
 	}
 
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -525,7 +525,7 @@ func (s *FireflyMCPServer) handleCreateRule(
 		return newErrorResult("At least one action is required")
 	}
 
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -562,7 +562,7 @@ func (s *FireflyMCPServer) handleUpdateRule(
 		return newErrorResult("Rule ID is required")
 	}
 
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -603,7 +603,7 @@ func (s *FireflyMCPServer) handleDeleteRule(
 		return newErrorResult("Rule ID is required")
 	}
 
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -634,7 +634,7 @@ func (s *FireflyMCPServer) handleTestRule(
 		return newErrorResult("Rule ID is required")
 	}
 
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -691,7 +691,7 @@ func (s *FireflyMCPServer) handleTriggerRule(
 		return newErrorResult("Rule ID is required")
 	}
 
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}

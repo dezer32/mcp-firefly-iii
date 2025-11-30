@@ -36,7 +36,7 @@ func (s *FireflyMCPServer) handleListRecurrences(
 	req *mcp.CallToolRequest,
 	args ListRecurrencesArgs,
 ) (*mcp.CallToolResult, any, error) {
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -102,7 +102,7 @@ func (s *FireflyMCPServer) handleGetRecurrence(
 	req *mcp.CallToolRequest,
 	args GetRecurrenceArgs,
 ) (*mcp.CallToolResult, any, error) {
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
@@ -160,7 +160,7 @@ func (s *FireflyMCPServer) handleListRecurrenceTransactions(
 	req *mcp.CallToolRequest,
 	args ListRecurrenceTransactionsArgs,
 ) (*mcp.CallToolResult, any, error) {
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}

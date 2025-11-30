@@ -49,7 +49,7 @@ func (s *FireflyMCPServer) handleUpdateTransaction(
 	}
 
 	// Get API client
-	apiClient, err := s.getClient(ctx)
+	apiClient, err := s.getClient(ctx, req)
 	if err != nil {
 		return newErrorResult(fmt.Sprintf("Failed to get API client: %v", err))
 	}
