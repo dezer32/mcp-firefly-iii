@@ -14,46 +14,32 @@ func testLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError}))
 }
 
-func TestBearerAuthMiddleware_ValidToken(t *testing.T) {
+func TestTokenExtractionMiddleware_ValidToken(t *testing.T) {
+	var extractedToken string
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		extractedToken = GetTokenFromContext(r.Context())
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := BearerAuthMiddleware("secret-token", testLogger())
+	middleware := TokenExtractionMiddleware(testLogger())
 	wrapped := middleware(handler)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set("Authorization", "Bearer secret-token")
+	req.Header.Set("Authorization", "Bearer test-firefly-token")
 	rr := httptest.NewRecorder()
 
 	wrapped.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, "test-firefly-token", extractedToken)
 }
 
-func TestBearerAuthMiddleware_InvalidToken(t *testing.T) {
+func TestTokenExtractionMiddleware_MissingHeader(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := BearerAuthMiddleware("secret-token", testLogger())
-	wrapped := middleware(handler)
-
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	req.Header.Set("Authorization", "Bearer wrong-token")
-	rr := httptest.NewRecorder()
-
-	wrapped.ServeHTTP(rr, req)
-
-	assert.Equal(t, http.StatusUnauthorized, rr.Code)
-}
-
-func TestBearerAuthMiddleware_MissingHeader(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-
-	middleware := BearerAuthMiddleware("secret-token", testLogger())
+	middleware := TokenExtractionMiddleware(testLogger())
 	wrapped := middleware(handler)
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
@@ -64,32 +50,50 @@ func TestBearerAuthMiddleware_MissingHeader(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }
 
-func TestBearerAuthMiddleware_NoAuthRequired(t *testing.T) {
+func TestTokenExtractionMiddleware_InvalidFormat(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	// Empty token means no auth required
-	middleware := BearerAuthMiddleware("", testLogger())
+	middleware := TokenExtractionMiddleware(testLogger())
 	wrapped := middleware(handler)
 
+	// Test with Basic auth instead of Bearer
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Basic dXNlcjpwYXNz")
 	rr := httptest.NewRecorder()
 
 	wrapped.ServeHTTP(rr, req)
 
-	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
 }
 
-func TestBearerAuthMiddleware_HealthEndpointBypass(t *testing.T) {
+func TestTokenExtractionMiddleware_EmptyToken(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := BearerAuthMiddleware("secret-token", testLogger())
+	middleware := TokenExtractionMiddleware(testLogger())
 	wrapped := middleware(handler)
 
-	// Health endpoint should bypass auth
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req.Header.Set("Authorization", "Bearer ")
+	rr := httptest.NewRecorder()
+
+	wrapped.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
+}
+
+func TestTokenExtractionMiddleware_HealthEndpointBypass(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	middleware := TokenExtractionMiddleware(testLogger())
+	wrapped := middleware(handler)
+
+	// Health endpoints should bypass auth
 	for _, path := range []string{"/health", "/ready"} {
 		req := httptest.NewRequest(http.MethodGet, path, nil)
 		rr := httptest.NewRecorder()
@@ -100,16 +104,18 @@ func TestBearerAuthMiddleware_HealthEndpointBypass(t *testing.T) {
 	}
 }
 
-func TestBearerAuthMiddleware_CaseInsensitive(t *testing.T) {
+func TestTokenExtractionMiddleware_CaseInsensitive(t *testing.T) {
+	var extractedToken string
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		extractedToken = GetTokenFromContext(r.Context())
 		w.WriteHeader(http.StatusOK)
 	})
 
-	middleware := BearerAuthMiddleware("secret-token", testLogger())
+	middleware := TokenExtractionMiddleware(testLogger())
 	wrapped := middleware(handler)
 
 	// Test case-insensitive "Bearer" prefix
-	for _, authHeader := range []string{"Bearer secret-token", "bearer secret-token", "BEARER secret-token"} {
+	for _, authHeader := range []string{"Bearer test-token", "bearer test-token", "BEARER test-token"} {
 		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		req.Header.Set("Authorization", authHeader)
 		rr := httptest.NewRecorder()
@@ -117,6 +123,7 @@ func TestBearerAuthMiddleware_CaseInsensitive(t *testing.T) {
 		wrapped.ServeHTTP(rr, req)
 
 		assert.Equal(t, http.StatusOK, rr.Code, "auth: %s", authHeader)
+		assert.Equal(t, "test-token", extractedToken, "auth: %s", authHeader)
 	}
 }
 
