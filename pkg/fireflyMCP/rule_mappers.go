@@ -277,6 +277,9 @@ func mapRuleTriggerRequestToUpdate(req RuleTriggerRequest) client.RuleTriggerUpd
 
 	if req.Active != nil {
 		update.Active = req.Active
+	} else {
+		defaultActive := true
+		update.Active = &defaultActive
 	}
 	if req.StopProcessing != nil {
 		update.StopProcessing = req.StopProcessing
@@ -294,6 +297,9 @@ func mapRuleActionRequestToUpdate(req RuleActionRequest) client.RuleActionUpdate
 
 	if req.Active != nil {
 		update.Active = req.Active
+	} else {
+		defaultActive := true
+		update.Active = &defaultActive
 	}
 	if req.StopProcessing != nil {
 		update.StopProcessing = req.StopProcessing
